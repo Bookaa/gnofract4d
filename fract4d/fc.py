@@ -278,7 +278,34 @@ class Compiler:
         outputfile = os.path.abspath(self.generate_code(t, cg))
         
         return outputfile
-    
+
+    def compile_all_desc(self,formula,cf0,cf1,transforms,options,desc):
+        hash = self.hashcode(desc)
+
+        outputfile = self.cache.makefilename(hash,".so")
+        if os.path.exists(outputfile):
+            # skip compilation - we already have this code
+            return outputfile
+
+        print desc
+
+        wfile = self.cache.makefilename('formula', '.txt')
+        fi = open(wfile, 'w')
+        fi.write('hash=%s\n' % hash)
+        fi.write(desc)
+        fi.close()
+
+        cmd = 'python ../gnofract4d.compiler/main_compile.py'
+        print 'cmd:', cmd
+        (status,output) = commands.getstatusoutput(cmd)
+        print 'status:', status
+        print 'output:', output
+
+        if os.path.exists(outputfile):
+            return outputfile
+        print 'compile error'
+        assert False
+
     def find_file(self,filename,type):
         if os.path.exists(filename):
             dir = os.path.dirname(filename)

@@ -124,6 +124,11 @@ class T(fctutils.T):
         self.save(out,False,compress=comp)
         return out.getvalue()
 
+    def serialize_formula(self):
+        out = StringIO.StringIO()
+        self.save_formula(out)
+        return out.getvalue()
+
     def deserialize(self,string):
         self.loadFctFile(StringIO.StringIO(string))
         self.changed()
@@ -173,6 +178,19 @@ class T(fctutils.T):
         
         if update_saved_flag:
             self.saved = True
+
+    def save_formula(self,file):
+        print >>file, "gnofract4d formula desc"
+        print >>file, "version=%s" % THIS_FORMAT_VERSION
+
+        self.forms[0].save_formula_(file)
+        self.forms[1].save_formula_(file)
+        self.forms[2].save_formula_(file)
+
+        i = 0
+        for transform in self.transforms:
+            transform.save_formula_(file,i)
+            i += 1
 
     def get_gradient(self):
         try:
@@ -616,12 +634,14 @@ class T(fctutils.T):
         if self.dirtyFormula == False:
             return self.outputfile
 
-        outputfile = self.compiler.compile_all(
-            self.forms[0].formula, 
+        desc = self.serialize_formula()
+
+        outputfile = self.compiler.compile_all_desc(
+            self.forms[0].formula,
             self.forms[1].formula,
             self.forms[2].formula,
             [x.formula for x in self.transforms],
-            self.compiler_options)
+            self.compiler_options, desc)
         
         if outputfile != None:
             self.set_output_file(outputfile)

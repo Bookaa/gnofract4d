@@ -123,6 +123,22 @@ class T:
 
         print >>file, "[endsection]"
         
+    def save_formula_(self,file,sectnum=None):
+        if sectnum == None:
+            print >>file, "[%s]" % self.sectname
+        else:
+            print >>file, "[%s]=%d" % (self.sectname, sectnum)
+
+        # print >>file, "formulafile=%s" % self.funcFile
+        # print >>file, "function=%s" % self.funcName
+
+        if True: # (self.compiler.is_inline(self.funcFile, self.funcName)):
+            contents = self.compiler.get_formula_text(
+                self.funcFile, self.funcName)
+            print >>file, "formula=[\n%s\n]" % contents.strip()
+
+        print >>file, "[endsection]"
+
     def func_names(self):
         return self.formula.symbols.func_names()
 
