@@ -10,7 +10,6 @@ import re
 import testbase
 
 import gradient
-import fract4dc
 import fractal
 import translate
 import fractparser

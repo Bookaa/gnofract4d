@@ -13,12 +13,10 @@ import test_fract4d
 import test_fctutils
 import test_parfile
 import test_fractal
-import test_3d
 import test_gradient
 import test_preprocessor
 import test_graph
 import test_optimize
-import test_image
 import test_colorizer
 import test_animation
 import test_fractconfig
@@ -28,7 +26,6 @@ import test_browser_model
 import test_formsettings
 import test_ffloat
 import test_absyn
-import test_encoder
 import test_fractsettings
 
 #import test_stdlib
@@ -47,12 +44,10 @@ def suite():
     test_fctutils.suite(),
     test_parfile.suite(),
     test_fractal.suite(),
-    test_3d.suite(),
     test_gradient.suite(),
     test_preprocessor.suite(),
     test_graph.suite(),
     test_optimize.suite(),
-    test_image.suite(),
     test_colorizer.suite(),
     test_animation.suite(),
     test_fractconfig.suite(),
@@ -61,7 +56,6 @@ def suite():
     test_browser_model.suite(),
     test_formsettings.suite(),
     test_ffloat.suite(),
-    test_encoder.suite(),
     test_fractsettings.suite()
 	#test_stdlib.suite()
     ))

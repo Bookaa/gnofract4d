@@ -14,7 +14,6 @@ import filecmp
 import fc
 import fractal
 import fracttypes
-import image
 import formsettings
 
 # centralized to speed up tests
