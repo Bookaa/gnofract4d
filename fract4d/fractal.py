@@ -610,6 +610,30 @@ class T(fctutils.T):
         if options.antialias != None:
             self.antialias = options.antialias
 
+    def load_and_compile(self):
+        rfile = self.compiler.cache.makefilename('formula', '.txt')
+        fi = open(rfile)
+        text = fi.read()
+        fi.close()
+        # print text
+
+        f = StringIO.StringIO(text)
+        hashline = f.readline()
+        if not hashline.startswith('hash='):
+            print 'file content errr'
+            return
+        hash = hashline.strip()[5:]
+        print 'hash:<%s>' % hash
+        f.readline()
+        self.load(f)
+        outputfile = self.compiler.compile_all_hash(
+            self.forms[0].formula,
+            self.forms[1].formula,
+            self.forms[2].formula,
+            [x.formula for x in self.transforms],
+            self.compiler_options, hash)
+        return outputfile
+
     def compile(self):
         if self.forms[0].formula == None:
             raise ValueError("no formula")

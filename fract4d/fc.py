@@ -257,7 +257,13 @@ class Compiler:
         outputfile = os.path.abspath(self.generate_code(t, cg))        
         return outputfile
         
-    def compile_all(self,formula,cf0,cf1,transforms,options={}):        
+    def compile_all_hash(self,formula,cf0,cf1,transforms,options,hash):
+
+        outputfile = self.cache.makefilename(hash,".so")
+        if os.path.exists(outputfile):
+            # skip compilation - we already have this code
+            return outputfile
+
         self.compile(formula,options)
         self.compile(cf0,options)
         self.compile(cf1,options)
@@ -275,7 +281,7 @@ class Compiler:
         for transform in transforms:
             t.merge(transform,"t_")
         
-        outputfile = os.path.abspath(self.generate_code(t, cg))
+        outputfile = os.path.abspath(self.generate_code(t, cg, outputfile=outputfile, cfile=None, hash=hash))
         
         return outputfile
     
@@ -397,11 +403,12 @@ class Compiler:
         hash.update(self.libs)
         return hash.hexdigest()
         
-    def generate_code(self,ir, cg, outputfile=None,cfile=None):
+    def generate_code(self,ir, cg, outputfile=None, cfile=None, hash=None):
         cg.output_decls(ir)
         self.c_code = cg.output_c(ir)
 
-        hash = self.hashcode(self.c_code)
+        if not hash:
+            hash = self.hashcode(self.c_code)
         
         if outputfile == None:
             outputfile = self.cache.makefilename(hash,".so")
@@ -422,7 +429,7 @@ class Compiler:
         if 'win' == sys.platform[:3]:
             cmd += " /Fo\"%s\"" % objfile
         cmd += " %s" % self.libs
-        #print "cmd: %s" % cmd
+        print "cmd: %s" % cmd
 
         (status,output) = commands.getstatusoutput(cmd)
         if status != 0:
