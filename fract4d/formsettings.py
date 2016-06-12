@@ -9,7 +9,7 @@ import weakref
 
 import fracttypes
 import gradient
-import image
+# import image
 
 # matches a complex number
 cmplx_re = re.compile(r'\((.*?),(.*?)\)')

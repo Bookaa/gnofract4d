@@ -11,14 +11,11 @@ import copy
 import random
 from time import time as now
 
-try:
-    import fract4dcgmp as fract4dc
-except ImportError, err:
-    import fract4dc
+fract4dc = None
 
 import fracttypes
 import gradient
-import image
+# import image
 import fctutils
 import colorizer
 import formsettings
@@ -103,7 +100,7 @@ class T(fctutils.T):
         self.reset()
 
         # interaction with fract4dc library
-        self.site = site or fract4dc.site_create(self)
+        self.site = site # or fract4dc.site_create(self)
 
         # colorfunc lookup
         self.colorfunc_names = [
