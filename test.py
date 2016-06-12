@@ -36,17 +36,6 @@ class Test(unittest.TestCase):
         self.failUnless(m,"doc doesn't specify version")
         self.assertEqual(options.version,m.group(1), "Version mismatch")
 
-    def testWebsiteVersionMatches(self):
-        if not os.path.exists("website"):
-            # not included in source dist
-            return
-        mkweb = open("website/mkweb.py").read()
-        ver_re = re.compile(r'text="Version (\S+) released.')
-
-        m = ver_re.search(mkweb)
-        self.failUnless(m,"doc doesn't specify version")
-        self.assertEqual(options.version,m.group(1), "Version mismatch")
-
     def testPkgInfoVersionMatches(self):
         pki = open("PKG-INFO").read()
         pk_re = re.compile(r'^Version: (\S+)', re.MULTILINE)
@@ -86,10 +75,6 @@ def suite():
 
 def main():        
     os.chdir('fract4d')
-    os.system('./test.py')
-    os.chdir('../fract4dgui')
-    os.system('./test.py')
-    os.chdir('../fractutils')
     os.system('./test.py')
     os.chdir('..')
 
