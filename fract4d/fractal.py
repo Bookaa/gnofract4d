@@ -607,19 +607,14 @@ class T(fctutils.T):
         if options.antialias != None:
             self.antialias = options.antialias
 
-    def load_and_compile(self):
-        rfile = self.compiler.cache.makefilename('formula', '.txt')
-        fi = open(rfile)
-        text = fi.read()
-        fi.close()
-        # print text
-
+    def load_and_compile(self, hash, text):
         f = StringIO.StringIO(text)
-        hashline = f.readline()
-        if not hashline.startswith('hash='):
-            print 'file content errr'
-            return
-        hash = hashline.strip()[5:]
+        if False:
+            hashline = f.readline()
+            if not hashline.startswith('hash='):
+                print 'file content errr'
+                return
+            hash = hashline.strip()[5:]
         print 'hash:<%s>' % hash
         f.readline()
         self.load(f)
