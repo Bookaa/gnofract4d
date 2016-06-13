@@ -14,7 +14,6 @@ import inspect
 
 from fracttypes import *
 import ir
-import stdlib
 
 class OverloadList(UserList):
     def __init__(self,list,**kwds):

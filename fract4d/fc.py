@@ -139,8 +139,6 @@ class FormulaFile:
     
 class Compiler:
     def __init__(self):
-        self.parser = fractparser.parser
-        self.lexer = fractlexer.lexer
         self.c_code = ""
         self.path_lists = [ [], [], [], [] ]
         self.cache = cache.T()
@@ -289,18 +287,8 @@ class Compiler:
 
         print desc
 
-        wfile = self.cache.makefilename('formula', '.txt')
-        fi = open(wfile, 'w')
-        fi.write('hash=%s\n' % hash)
-        fi.write(desc)
-        fi.close()
-
-        cmd = 'python ../gnofract4d.compiler/main_compile.py'
-        print 'cmd:', cmd
-        (status,output) = commands.getstatusoutput(cmd)
-        print 'status:', status
-        print 'output:', output
-
+        Call_subprocess_compile(hash, desc)
+        
         if os.path.exists(outputfile):
             return outputfile
         print 'compile error'
@@ -335,20 +323,22 @@ class Compiler:
                 result.children[i].last_line = result.children[i+1].pos-1
             
     def parse_file(self,s):
-        self.lexer.lineno = 1
+        self_parser = fractparser.parser
+        self_lexer = fractlexer.lexer
+        self_lexer.lineno = 1
         result = None
         try:
             pp = preprocessor.T(s)
-            result = self.parser.parse(pp.out())
+            result = self_parser.parse(pp.out())
         except preprocessor.Error, err:
             # create an Error formula listing the problem
-            result = self.parser.parse('error {\n}\n')
+            result = self_parser.parse('error {\n}\n')
 
             result.children[0].children[0] = \
                 absyn.PreprocessorError(str(err), -1)
             #print result.pretty()
 
-        self.add_endlines(result,self.lexer.lineno)
+        self.add_endlines(result,self_lexer.lineno)
 
         formulas = {}
         for formula in result.children:
@@ -507,6 +497,13 @@ class Compiler:
         if not self.leave_dirty:
             self.clear_cache()
 
+def Call_subprocess_compile(hash, desc):
+    from subprocess import PIPE, Popen
+    p = Popen(["python", '../gnofract4d.compiler/main_compile.py'], stdin=PIPE, stdout=PIPE)
+    print >>p.stdin, hash
+    print >>p.stdin, desc
+    print p.communicate("\n")[0]
+    
 instance = Compiler()
 instance.update_from_prefs(fractconfig.instance)
 
