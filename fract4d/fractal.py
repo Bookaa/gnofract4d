@@ -487,7 +487,11 @@ class T(fctutils.T):
 
         self.forms[0].set_initparams_from_formula(g)
 
-        for (name,val) in self.forms[0].formula.defaults.items():
+        if formsettings.g_useMyFormula:
+            lst = self.forms[0].formula.defaults_items()
+        else:
+            lst = self.forms[0].formula.defaults.items()
+        for (name,val) in lst:
             # FIXME helpfile,helptopic,method,precision,
             #render,skew,stretch
             if name == "maxiter":
@@ -538,10 +542,15 @@ class T(fctutils.T):
         if funcname == None:
             # FIXME deal with diff
             return
-
-        func = self.forms[0].formula.symbols.get("@bailfunc")
-        if func != None:
-            self.set_func(func[0],funcname,self.forms[0].formula)            
+        
+        if formsettings.g_useMyFormula:
+            cname = self.forms[0].formula.get_func_value('@bailfunc')
+            if cname != funcname:
+                assert False
+        else:
+            func = self.forms[0].formula.symbols.get("@bailfunc")
+            if func != None:
+                self.set_func(func[0],funcname,self.forms[0].formula)            
 
     def changed(self,clear_image=True):
         self.dirty = True

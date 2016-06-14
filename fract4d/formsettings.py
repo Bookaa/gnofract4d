@@ -45,8 +45,12 @@ class T:
             raise ValueError("Unexpected prefix '%s' " % prefix)
         
     def set_initparams_from_formula(self,g):
-        self.params = self.formula.symbols.default_params()
-        self.paramtypes = self.formula.symbols.type_of_params()
+        if g_useMyFormula:
+            self.params = self.formula.symbols_default_params()
+            self.paramtypes = self.formula.symbols_type_of_params()
+        else:
+            self.params = self.formula.symbols.default_params()
+            self.paramtypes = self.formula.symbols.type_of_params()
         for i in xrange(len(self.paramtypes)):
             if self.paramtypes[i] == fracttypes.Gradient:
                 self.params[i] = copy.copy(g)
@@ -60,8 +64,12 @@ class T:
                 self.params[i] = im 
                 
     def reset_params(self):
-        self.params = self.formula.symbols.default_params()
-        self.paramtypes = self.formula.symbols.type_of_params()
+        if g_useMyFormula:
+            self.params = self.formula.symbols_default_params()
+            self.paramtypes = self.formula.symbols_type_of_params()
+        else:
+            self.params = self.formula.symbols.default_params()
+            self.paramtypes = self.formula.symbols.type_of_params()
 
     def copy_from(self,other):
         # copy the function overrides
@@ -74,7 +82,10 @@ class T:
 
     def initvalue(self,name,warp_param=None):
         ord = self.order_of_name(name)
-        type = self.formula.symbols[name].type
+        if g_useMyFormula:
+            type = self.formula.symbols_name_type(name)
+        else:
+            type = self.formula.symbols[name].type
         
         if type == fracttypes.Complex:
             if warp_param == name:
@@ -140,12 +151,20 @@ class T:
         print >>file, "[endsection]"
 
     def func_names(self):
-        return self.formula.symbols.func_names()
+        if g_useMyFormula:
+            return self.formula.symbols_func_names()
+        else:
+            return self.formula.symbols.func_names()
 
     def param_names(self):
-        return self.formula.symbols.param_names()
+        if g_useMyFormula:
+            return self.formula.symbols_param_names()
+        else:
+            return self.formula.symbols.param_names()
 
     def params_of_type(self,type,readable=False):
+        if g_useMyFormula:
+            return self.formula.params_of_type(type, readable)
         params = []
         op = self.formula.symbols.order_of_params()
         for name in op.keys():
@@ -158,8 +177,11 @@ class T:
         return params
 
     def get_func_value(self,func_to_get):
+        if g_useMyFormula:
+            return self.formula.get_func_value(func_to_get)
         fname = self.formula.symbols.demangle(func_to_get)
         func = self.formula.symbols[fname]
+                
         return func[0].cname
 
     def get_named_param_value(self,name):
@@ -168,6 +190,8 @@ class T:
         return self.params[ord]
 
     def order_of_name(self,name):
+        if g_useMyFormula:
+            return self.formula.order_of_name(name)
         symbol_table = self.formula.symbols
         op = symbol_table.order_of_params()
         rn = symbol_table.mangled_name(name)
@@ -262,6 +286,11 @@ class T:
             raise ValueError("Unknown param type %s for %s" % (t,name))
 
     def set_named_func(self,func_to_set,val):
+        if g_useMyFormula:
+            cname = self.formula.get_func_value(func_to_set)
+            if cname == val:
+                return False
+            assert False
         fname = self.formula.symbols.demangle(func_to_set)
         func = self.formula.symbols.get(fname)
         return self.set_func(func[0],val)            
@@ -327,14 +356,17 @@ class T:
         return self.formula.is_direct()
     
     def set_formula(self,file,func,gradient):
-        formula = self.compiler.get_formula(file,func,self.prefix)
-
-        if formula == None:
-            raise ValueError("no such formula: %s:%s" % (file, func))
-
-        if formula.errors != []:
-            raise ValueError("invalid formula '%s':\n%s" % \
-                             (func, "\n".join(formula.errors)))
+        if g_useMyFormula:
+            formula = MyFormula(file, func, self.prefix)
+        else:
+            formula = self.compiler.get_formula(file,func,self.prefix)
+    
+            if formula == None:
+                raise ValueError("no such formula: %s:%s" % (file, func))
+    
+            if formula.errors != []:
+                raise ValueError("invalid formula '%s':\n%s" % \
+                                 (func, "\n".join(formula.errors)))
 
         self.formula = formula
         self.funcName = func
@@ -367,5 +399,122 @@ class T:
                 # don't interpolate
                 pass
 
+g_useMyFormula = True
+
+class MyFormula:
+    def __init__(self, file_, func_, prefix_):
+        self.file_ = file_
+        self.func_ = func_
+        self.prefix_ = prefix_
+        self.dict_ = Call_subprocess_2(file_, func_, prefix_)
         
+        
+        #  formula = self.compiler.get_formula(self.file_, self.func_, self.prefix_)
+        # self.compiler is fract4d.fc.Compiler
             
+        #self.params = self.formula.symbols.default_params()
+        #self.paramtypes = self.formula.symbols.type_of_params()
+    def symbols_default_params(self):
+        return self.dict_['params']
+        # return self.m_symbols_default_params # [0, 4.0]
+    def symbols_type_of_params(self):
+        return self.dict_['paramtypes']
+        # return self.m_symbols_default_params # [7, 2]
+    
+    def defaults_items(self):
+        #lst = self.forms[0].formula.defaults_items():
+        return self.dict_['defaults_items']
+    def symbols_func_names(self):
+        return self.dict_['symbols_func_names']
+    def symbols_param_names(self):
+        return self.dict_['symbols_param_names']
+
+    def get_func_value(self, func_to_get):
+        fname = demangle(func_to_get)
+        cnames = self.dict_['cnames']
+        cname = cnames.get(fname)
+        if cname:
+            return cname
+        import fsymbol
+        fname2 = fsymbol.mangle(fname)
+        cname = cnames.get(fname2)
+        if cname:
+            return cname
+        
+        assert False
+        #fname = self.formula.symbols.demangle(func_to_get)
+        #func = self.formula.symbols[fname]
+        #return func[0].cname
+    
+    def order_of_name(self,name):
+        import fsymbol
+        rn = fsymbol.mangle(name)
+        op = self.dict_['op']
+        ord = op.get(rn)
+        if ord is not None:
+            return ord
+        assert False
+        symbol_table = self.formula.symbols
+        op = symbol_table.order_of_params()
+        # rn = symbol_table.mangled_name(name)
+        ord = op.get(rn)
+        if ord == None:
+            #print "can't find %s (%s) in %s" % (name,rn,op)
+            pass
+        return ord
+    def symbols_name_type(self, name):
+        fname = demangle(name)
+        cnames = self.dict_['types']
+        cname = cnames.get(fname)
+        if cname:
+            return cname
+        import fsymbol
+        fname2 = fsymbol.mangle(fname)
+        cname = cnames.get(fname2)
+        if cname:
+            return cname
+        assert False
+        
+    def params_of_type(self, type, readable):
+        params = []
+        op = self.dict_['op']
+        for name in op.keys():
+            if name != '__SIZE__':
+                if self.symbols_name_type(name) == type:
+                    if readable:
+                        params.append(demangle(name))
+                    else:
+                        params.append(name)
+        return params
+
+
+def Call_subprocess_2(file_, func_, prefix_):
+    from subprocess import PIPE, Popen
+    p = Popen(["python", '../gnofract4d.compiler/main_compile.py'], stdin=PIPE, stdout=PIPE)
+    print >>p.stdin, '2'
+    print >>p.stdin, file_
+    print >>p.stdin, func_
+    print >>p.stdin, prefix_
+    while True:
+        s = p.stdout.readline().strip()
+        if s == 'next is json':
+            break
+        print s
+    sJson = p.communicate("\n")[0]
+    import json
+    dict_ = json.loads(sJson)
+    print 'i get', dict_
+    return dict_
+
+def demangle(name):
+    # remove most obvious mangling.
+    # because of case-folding, demangle(mangle(s)) != s
+    if name[:3] == "t__":
+        name = name[3:]
+
+    if name[:2] == "a_":
+        name = "@" + name[2:]
+    elif name[:2] == "h_":
+        name = "#" + name[2:]
+        
+    return name

@@ -247,35 +247,10 @@ class Compiler:
                       filename)
 
     def compile_one(self,formula):
-        self.compile(formula)
-
-        t = translate.T(absyn.Formula("",[],-1))
-        cg = self.compile(t)
-        t.merge(formula,"")
-        outputfile = os.path.abspath(self.generate_code(t, cg))        
-        return outputfile
+        assert False
         
     def compile_all(self,formula,cf0,cf1,transforms,options={}):        
-        self.compile(formula,options)
-        self.compile(cf0,options)
-        self.compile(cf1,options)
-
-        for transform in transforms:
-            self.compile(transform,options)
-            
-        # create temp empty formula and merge everything into that
-        t = translate.T(absyn.Formula("",[],-1))
-        cg = self.compile(t,options)
-        t.merge(formula,"")
-        t.merge(cf0,"cf0_")        
-        t.merge(cf1,"cf1_")
-
-        for transform in transforms:
-            t.merge(transform,"t_")
-        
-        outputfile = os.path.abspath(self.generate_code(t, cg))
-        
-        return outputfile
+        assert False
 
     def compile_all_desc(self,formula,cf0,cf1,transforms,options,desc):
         hash = self.hashcode(desc)
@@ -323,6 +298,7 @@ class Compiler:
                 result.children[i].last_line = result.children[i+1].pos-1
             
     def parse_file(self,s):
+        print 'input', type(s), len(s)
         self_parser = fractparser.parser
         self_lexer = fractlexer.lexer
         self_lexer.lineno = 1
@@ -343,6 +319,7 @@ class Compiler:
         formulas = {}
         for formula in result.children:
             formulas[formula.leaf] = formula
+        print 'output', formulas
         return formulas
     
     def load_formula_file(self, filename):
@@ -415,38 +392,7 @@ class Compiler:
         return hash.hexdigest()
         
     def generate_code(self,ir, cg, outputfile=None,cfile=None):
-        cg.output_decls(ir)
-        self.c_code = cg.output_c(ir)
-
-        hash = self.hashcode(self.c_code)
-        
-        if outputfile == None:
-            outputfile = self.cache.makefilename(hash,".so")
-            if os.path.exists(outputfile):
-                # skip compilation - we already have this code
-                return outputfile
-        
-        if cfile == None:
-            cfile = self.cache.makefilename(hash,".c")
-            if 'win' in sys.platform:
-                objfile = self.cache.makefilename(hash, ".obj")
-
-        open(cfile,"w").write(self.c_code)
-
-        # -march=i686 for 10% speed gain
-        cmd = "%s \"%s\" %s %s\"%s\"" % \
-              (self.compiler_name, cfile, self.flags, self.output_flag, outputfile)
-        if 'win' == sys.platform[:3]:
-            cmd += " /Fo\"%s\"" % objfile
-        cmd += " %s" % self.libs
-        #print "cmd: %s" % cmd
-
-        (status,output) = commands.getstatusoutput(cmd)
-        if status != 0:
-            raise fracttypes.TranslationError(
-                "Error reported by C compiler:%s" % output)
-
-        return outputfile
+        assert False
 
     def get_parsetree(self,filename,formname):
         ff = self.get_file(filename)
@@ -500,6 +446,7 @@ class Compiler:
 def Call_subprocess_compile(hash, desc):
     from subprocess import PIPE, Popen
     p = Popen(["python", '../gnofract4d.compiler/main_compile.py'], stdin=PIPE, stdout=PIPE)
+    print >>p.stdin, '1'
     print >>p.stdin, hash
     print >>p.stdin, desc
     print p.communicate("\n")[0]
@@ -513,20 +460,7 @@ def usage():
     sys.exit(1)
 
 def generate(fc,formulafile, formula, outputfile, cfile):
-    # find the function we want
-    ir = fc.get_formula(formulafile,formula)
-    if ir == None:
-        raise Exception("Can't find formula %s in %s" % \
-              (formula, formulafile))
-
-    if ir.errors != []:
-        print "Errors during translation"
-        for e in ir.errors:
-            print e
-        raise Exception("Errors during translation")
-
-    cg = fc.compile(ir)
-    fc.generate_code(ir, cg, outputfile,cfile)
+    assert False
 
 def main(args):
     fc = Compiler()
