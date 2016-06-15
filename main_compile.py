@@ -2,9 +2,9 @@
 
 import sys
 from fract4d import fc
-from fract4d import fractal
+from fract4d import fractal, fracttypes
 
-def func2():
+def func2(sbody):
     file_ = sys.stdin.readline().strip()
     func_ = sys.stdin.readline().strip()
     prefix_ = sys.stdin.readline().strip()
@@ -14,12 +14,18 @@ def func2():
     
     compiler = fc.instance
     compiler.leave_dirty = True
+    
+    if sbody:
+        formulas = compiler.parse_file(sbody)
+        ff = fc.FormulaFile(formulas,sbody,None,'')
+        ff.file_backed = False
+        compiler.files[file_] = ff
 
     formula = compiler.get_formula(file_, func_, prefix_)
     params = formula.symbols.default_params()
     paramtypes = formula.symbols.type_of_params()
-    print 'params', params
-    print 'paramtypes', paramtypes
+    # print 'params', params
+    # print 'paramtypes', paramtypes
 
     defaults_items = formula.defaults.items()
     symbols_func_names = formula.symbols.func_names()
@@ -44,13 +50,26 @@ def func2():
         except:
             pass
 
+    params_ = formula.symbols.parameters()
+
+    dict_params = {}
+    for key, param in params_.items():
+        if isinstance(param, fracttypes.Var):
+            dict_params[key] = {'Var' : (param.type, param.value, param.pos)}
+        elif isinstance(param, fracttypes.Func):
+            dict_params[key] = {'Func' : (param.args, param.implicit_args, param.ret, param.pos, param.fname)}
+        else:
+            assert False
+
     dict_ = {'params' : params, 'paramtypes' : paramtypes, 'defaults_items' : defaults_items,
              'symbols_func_names' : symbols_func_names,
              'symbols_param_names' : symbols_param_names,
              'op' : op,
              'cnames' : dict2,
-             'types' : dict3
+             'types' : dict3,
+             'dict_params' : dict_params
              }
+    
     import json
     sjson = json.dumps(dict_)
     print 'next is json'
@@ -59,8 +78,13 @@ def func2():
 
 def docompile():
     stype = sys.stdin.readline().strip()
+    if stype == '3':
+        sbody_ = sys.stdin.readline().strip()
+        import json
+        sbody = json.loads(sbody_)
+        return func2(str(sbody))
     if stype == '2':
-        return func2()
+        return func2('')
     print 'stype : <%s>' % stype
     
     hash = sys.stdin.readline().strip()
