@@ -298,7 +298,7 @@ class Compiler:
                 result.children[i].last_line = result.children[i+1].pos-1
             
     def parse_file(self,s):
-        print 'input', type(s), len(s)
+        # print 'input', type(s), len(s)
         self_parser = fractparser.parser
         self_lexer = fractlexer.lexer
         self_lexer.lineno = 1
@@ -319,7 +319,7 @@ class Compiler:
         formulas = {}
         for formula in result.children:
             formulas[formula.leaf] = formula
-        print 'output', formulas
+        # print 'output', formulas
         return formulas
     
     def load_formula_file(self, filename):

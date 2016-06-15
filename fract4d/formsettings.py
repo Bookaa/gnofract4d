@@ -356,8 +356,17 @@ class T:
         return self.formula.is_direct()
     
     def set_formula(self,file,func,gradient):
+        if '__inline__' in file:
+            pass
         if g_useMyFormula:
-            formula = MyFormula(file, func, self.prefix)
+            sbody = ''
+            if '__inline__' in file:
+                import os
+                basefile = os.path.basename(file)
+                assert basefile in self.compiler.files
+                sbody = self.compiler.files[basefile].contents
+
+            formula = MyFormula(file, func, self.prefix, sbody)
         else:
             formula = self.compiler.get_formula(file,func,self.prefix)
     
@@ -402,11 +411,16 @@ class T:
 g_useMyFormula = True
 
 class MyFormula:
-    def __init__(self, file_, func_, prefix_):
+    import fsymbol
+    default_dict = fsymbol.createDefaultDict()
+    def __init__(self, file_, func_, prefix_, sbody):
+        if '__inline__' in file_:
+            pass
         self.file_ = file_
         self.func_ = func_
         self.prefix_ = prefix_
-        self.dict_ = Call_subprocess_2(file_, func_, prefix_)
+        self.sbody = sbody
+        self.dict_ = Call_subprocess_2(file_, func_, prefix_, sbody)
         
         
         #  formula = self.compiler.get_formula(self.file_, self.func_, self.prefix_)
@@ -486,12 +500,63 @@ class MyFormula:
                     else:
                         params.append(name)
         return params
+    
+    def symbols_parameters(self):
+        d1 = self.dict_['dict_params']
+        d2 = {}
+        for key, value in d1.items():
+            if value.keys() == ['Var']:
+                typ_,value_,pos_ = value.values()[0]
+                vnew = fracttypes.Var(typ_,value_,pos_)
+                d2[key] = vnew
+            elif value.keys() == ['Func']:
+                args_, implicit_args, ret_, pos_, fname_ = value.values()[0]
+                fnew = fracttypes.Func(args_,ret_,fname_,pos_)
+                fnew.implicit_args = implicit_args
+                d2[key] = fnew
+            else:
+                assert False
+        return d2
+    
+    def available_param_functions(self,ret,args):
+        # a list of all function names which take args of type 'args'
+        # and return 'ret' (for GUI to select a function)
+        def _is_private(key):
+            return key[0:3] == "t__"
+        flist = []
+        for (name,func) in self.default_dict.items():
+            try:
+                for f in func:
+                    if f.ret == ret and f.args == args and \
+                           not _is_private(name) and \
+                           not func.is_operator():
+                        flist.append(name)
+            except TypeError:
+                # wasn't a list
+                pass
+            
+        return flist
 
+def fn33(params):
+    for key, param in params.items():
+        if isinstance(param, fracttypes.Var):
+            print key, 'Var(%s,%s,%s)' % (param.type, param.value, param.pos)
+        elif isinstance(param, fracttypes.Func):
+            print key, 'Func', (param.args, param.implicit_args, param.ret, param.pos, param.fname)
+        else:
+            assert False
+        
 
-def Call_subprocess_2(file_, func_, prefix_):
+def Call_subprocess_2(file_, func_, prefix_, sbody):
+    import json
     from subprocess import PIPE, Popen
     p = Popen(["python", '../gnofract4d.compiler/main_compile.py'], stdin=PIPE, stdout=PIPE)
-    print >>p.stdin, '2'
+    if sbody:
+        print >>p.stdin, '3'
+        s3 = json.dumps(sbody)
+        print >>p.stdin, s3
+    else:
+        print >>p.stdin, '2'
     print >>p.stdin, file_
     print >>p.stdin, func_
     print >>p.stdin, prefix_
@@ -501,9 +566,8 @@ def Call_subprocess_2(file_, func_, prefix_):
             break
         print s
     sJson = p.communicate("\n")[0]
-    import json
     dict_ = json.loads(sJson)
-    print 'i get', dict_
+    # print 'i get', dict_
     return dict_
 
 def demangle(name):
