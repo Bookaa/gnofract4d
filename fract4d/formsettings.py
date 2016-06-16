@@ -19,7 +19,10 @@ hyper_re = re.compile(r'\((.*?),(.*?),(.*?),(.*?)\)')
 class T:
     def __init__(self,compiler,parent=None,prefix=None):
         self.compiler = compiler
-        self.formula = None
+        if g_useMyFormula:
+            self.formule = None
+        else:
+            self.formula = None
         self.funcName = None
         self.funcFile = None
         self.params = []
@@ -30,7 +33,7 @@ class T:
             self.parent = weakref.ref(parent)
         else:
             self.parent = None
-            
+
     def set_prefix(self,prefix):
         self.prefix = prefix
         if prefix == None:
@@ -40,14 +43,14 @@ class T:
         elif prefix == "cf1":
             self.sectname = "inner"
         elif prefix[0] == 't':
-            self.sectname = "transform" 
+            self.sectname = "transform"
         else:
             raise ValueError("Unexpected prefix '%s' " % prefix)
-        
+
     def set_initparams_from_formula(self,g):
         if g_useMyFormula:
-            self.params = self.formula.symbols_default_params()
-            self.paramtypes = self.formula.symbols_type_of_params()
+            self.params = self.formule.symbols_default_params_()
+            self.paramtypes = self.formule.symbols_type_of_params_()
         else:
             self.params = self.formula.symbols.default_params()
             self.paramtypes = self.formula.symbols.type_of_params()
@@ -61,12 +64,12 @@ class T:
                 #b[3] = chr(88)
                 #b[4] = chr(192)
                 #b[11] = chr(255)
-                self.params[i] = im 
-                
+                self.params[i] = im
+
     def reset_params(self):
         if g_useMyFormula:
-            self.params = self.formula.symbols_default_params()
-            self.paramtypes = self.formula.symbols_type_of_params()
+            self.params = self.formule.symbols_default_params_()
+            self.paramtypes = self.formule.symbols_type_of_params_()
         else:
             self.params = self.formula.symbols.default_params()
             self.paramtypes = self.formula.symbols.type_of_params()
@@ -83,10 +86,10 @@ class T:
     def initvalue(self,name,warp_param=None):
         ord = self.order_of_name(name)
         if g_useMyFormula:
-            type = self.formula.symbols_name_type(name)
+            type = self.formule.symbols_name_type_(name)
         else:
             type = self.formula.symbols[name].type
-        
+
         if type == fracttypes.Complex:
             if warp_param == name:
                 return "warp"
@@ -114,7 +117,7 @@ class T:
             print >>file, "[%s]" % self.sectname
         else:
             print >>file, "[%s]=%d" % (self.sectname, sectnum)
-            
+
         print >>file, "formulafile=%s" % self.funcFile
         print >>file, "function=%s" % self.funcName
 
@@ -133,7 +136,7 @@ class T:
             print >>file, "%s=%s" % (name, self.initvalue(name,warp_param))
 
         print >>file, "[endsection]"
-        
+
     def save_formula_(self,file,sectnum=None):
         if sectnum == None:
             print >>file, "[%s]" % self.sectname
@@ -152,19 +155,19 @@ class T:
 
     def func_names(self):
         if g_useMyFormula:
-            return self.formula.symbols_func_names()
+            return self.formule.symbols_func_names_()
         else:
             return self.formula.symbols.func_names()
 
     def param_names(self):
         if g_useMyFormula:
-            return self.formula.symbols_param_names()
+            return self.formule.symbols_param_names_()
         else:
             return self.formula.symbols.param_names()
 
     def params_of_type(self,type,readable=False):
         if g_useMyFormula:
-            return self.formula.params_of_type(type, readable)
+            return self.formule.params_of_type_(type, readable)
         params = []
         op = self.formula.symbols.order_of_params()
         for name in op.keys():
@@ -178,20 +181,28 @@ class T:
 
     def get_func_value(self,func_to_get):
         if g_useMyFormula:
-            return self.formula.get_func_value(func_to_get)
+            return self.formule.get_func_value2_(func_to_get)
         fname = self.formula.symbols.demangle(func_to_get)
         func = self.formula.symbols[fname]
-                
+
         return func[0].cname
 
     def get_named_param_value(self,name):
+        if g_useMyFormula:
+            if self.formule.me:
+                op = self.formule.me.symbols.order_of_params()
+                ord = op.get(self.formule.me.symbols.mangled_name(name))
+                return self.params[ord]
+            else:
+                assert False
+
         op = self.formula.symbols.order_of_params()
         ord = op.get(self.formula.symbols.mangled_name(name))
         return self.params[ord]
 
     def order_of_name(self,name):
         if g_useMyFormula:
-            return self.formula.order_of_name(name)
+            return self.formule.order_of_name_(name)
         symbol_table = self.formula.symbols
         op = symbol_table.order_of_params()
         rn = symbol_table.mangled_name(name)
@@ -218,7 +229,13 @@ class T:
             self.funcFile, self.funcName)
 
     def set_named_item(self,name,val):
-        sym = self.formula.symbols[name].first()
+        if g_useMyFormula:
+            if self.formule.me:
+                sym = self.formule.me.symbols[name].first()
+            else:
+                assert False
+        else:
+            sym = self.formula.symbols[name].first()
         if isinstance(sym, fracttypes.Func):
             self.set_named_func(name,val)
         else:
@@ -230,7 +247,13 @@ class T:
             #print "Ignoring unknown param %s" % name
             return
 
-        t = self.formula.symbols[name].type 
+        if g_useMyFormula:
+            if self.formule.me:
+                t = self.formule.me.symbols[name].type
+            else:
+                assert False
+        else:
+            t = self.formula.symbols[name].type
         if t == fracttypes.Complex:
             m = cmplx_re.match(val)
             if m != None:
@@ -238,7 +261,7 @@ class T:
                 if self.params[ord] != re:
                     self.params[ord] = re
                     self.changed()
-                if self.params[ord+1] != im:                
+                if self.params[ord+1] != im:
                     self.params[ord+1] = im
                     self.changed()
             elif val == "warp":
@@ -270,7 +293,7 @@ class T:
 	       # an old release included a 'True' or 'False' string
 	       if val == "True": i = 1
                else: i = 0
-            if self.params[ord] != i:                
+            if self.params[ord] != i:
                 self.params[ord] = i
                 self.changed()
         elif t == fracttypes.Gradient:
@@ -287,13 +310,18 @@ class T:
 
     def set_named_func(self,func_to_set,val):
         if g_useMyFormula:
-            cname = self.formula.get_func_value(func_to_set)
+            if self.formule.me:
+                fname = self.formule.me.symbols.demangle(func_to_set)
+                func = self.formule.me.symbols.get(fname)
+                return self.set_func(func[0],val)
+
+            cname = self.formule.get_func_value(func_to_set)
             if cname == val:
                 return False
             assert False
         fname = self.formula.symbols.demangle(func_to_set)
         func = self.formula.symbols.get(fname)
-        return self.set_func(func[0],val)            
+        return self.set_func(func[0],val)
 
     def zw_random(self,weirdness,size):
         factor = math.fabs(1.0 - math.log(size)) + 1.0
@@ -313,12 +341,12 @@ class T:
     def nudge_param(self,n,x,y):
         if x == 0 and y == 0:
             return False
-        
+
         self.params[n] += (0.025 * x)
         self.params[n+1] += (0.025 * y)
         self.changed()
         return True
-    
+
     def set_param(self,n,val):
         # set the N'th param to val, after converting from a string
         t = self.paramtypes[n]
@@ -331,7 +359,7 @@ class T:
             val = bool(val)
         else:
             raise ValueError("Unknown parameter type %s" % t)
-        
+
         if self.params[n] != val:
             self.params[n] = val
             self.changed()
@@ -354,7 +382,7 @@ class T:
 
     def is_direct(self):
         return self.formula.is_direct()
-    
+
     def set_formula(self,file,func,gradient):
         if '__inline__' in file:
             pass
@@ -366,18 +394,19 @@ class T:
                 assert basefile in self.compiler.files
                 sbody = self.compiler.files[basefile].contents
 
-            formula = MyFormula(file, func, self.prefix, sbody)
+            formula = MyFormula(file, func, self.prefix, sbody, self.compiler)
+            self.formule = formula
         else:
             formula = self.compiler.get_formula(file,func,self.prefix)
-    
+
             if formula == None:
                 raise ValueError("no such formula: %s:%s" % (file, func))
-    
+
             if formula.errors != []:
                 raise ValueError("invalid formula '%s':\n%s" % \
                                  (func, "\n".join(formula.errors)))
 
-        self.formula = formula
+            self.formula = formula
         self.funcName = func
         self.funcFile = file
 
@@ -394,7 +423,7 @@ class T:
         # update in-place our settings so that they are a mixture with the other
         if self.funcName != other.funcName or self.funcFile != other.funcFile:
             raise ValueError("Cannot blend parameters between different formulas")
-        
+
         for i in xrange(len(self.params)):
             (a,b) = (self.params[i],other.params[i])
             if self.paramtypes[i] == fracttypes.Float:
@@ -411,39 +440,56 @@ class T:
 g_useMyFormula = True
 
 class MyFormula:
-    import fsymbol
-    default_dict = fsymbol.createDefaultDict()
-    def __init__(self, file_, func_, prefix_, sbody):
-        if '__inline__' in file_:
-            pass
-        self.file_ = file_
-        self.func_ = func_
-        self.prefix_ = prefix_
-        self.sbody = sbody
-        self.dict_ = Call_subprocess_2(file_, func_, prefix_, sbody)
-        
-        
+    def __init__(self, file_, func_, prefix_, sbody, compiler):
+        if False:
+            self.file_ = file_
+            self.func_ = func_
+            self.prefix_ = prefix_
+            self.sbody = sbody
+            self.dict_ = Call_subprocess_2(file_, func_, prefix_, sbody)
+            import fsymbol
+            default_dict = fsymbol.createDefaultDict()
+            self.me = None
+        else:
+            self.me = compiler.get_formula(file_,func_,prefix_)
+
+
         #  formula = self.compiler.get_formula(self.file_, self.func_, self.prefix_)
         # self.compiler is fract4d.fc.Compiler
-            
+
         #self.params = self.formula.symbols.default_params()
         #self.paramtypes = self.formula.symbols.type_of_params()
-    def symbols_default_params(self):
+    def symbols_default_params_(self):
+        if self.me:
+            return self.me.symbols.default_params()
         return self.dict_['params']
-        # return self.m_symbols_default_params # [0, 4.0]
-    def symbols_type_of_params(self):
+    def symbols_type_of_params_(self):
+        if self.me:
+            return self.me.symbols.type_of_params()
         return self.dict_['paramtypes']
-        # return self.m_symbols_default_params # [7, 2]
-    
-    def defaults_items(self):
-        #lst = self.forms[0].formula.defaults_items():
+    def defaults_items_(self):
+        if self.me:
+            return self.me.defaults.items()
         return self.dict_['defaults_items']
-    def symbols_func_names(self):
+    def symbols_func_names_(self):
+        if self.me:
+            return self.me.symbols.func_names()
         return self.dict_['symbols_func_names']
-    def symbols_param_names(self):
+    def symbols_param_names_(self):
+        if self.me:
+            return self.me.symbols.param_names()
         return self.dict_['symbols_param_names']
 
-    def get_func_value(self, func_to_get):
+    def symbols_order_of_params_(self):
+        if self.me:
+            return self.me.symbols.order_of_params()
+        return self.dict_['op']
+
+    def get_func_value_(self, func_to_get):
+        if self.me:
+            func = self.me.symbols.get(func_to_get)
+            return func[0].cname
+
         fname = demangle(func_to_get)
         cnames = self.dict_['cnames']
         cname = cnames.get(fname)
@@ -454,13 +500,41 @@ class MyFormula:
         cname = cnames.get(fname2)
         if cname:
             return cname
-        
+
         assert False
         #fname = self.formula.symbols.demangle(func_to_get)
         #func = self.formula.symbols[fname]
         #return func[0].cname
-    
-    def order_of_name(self,name):
+
+    def get_func_value2_(self, func_to_get):
+        if self.me:
+            fname = self.me.symbols.demangle(func_to_get)
+            func = self.me.symbols[fname]
+            return func[0].cname
+        fname = demangle(func_to_get)
+        cnames = self.dict_['cnames']
+        cname = cnames.get(fname)
+        if cname:
+            return cname
+        import fsymbol
+        fname2 = fsymbol.mangle(fname)
+        cname = cnames.get(fname2)
+        if cname:
+            return cname
+
+        assert False
+
+    def order_of_name_(self,name):
+        if self.me:
+            symbol_table = self.me.symbols
+            op = symbol_table.order_of_params()
+            rn = symbol_table.mangled_name(name)
+            ord = op.get(rn)
+            if ord == None:
+                #print "can't find %s (%s) in %s" % (name,rn,op)
+                pass
+            return ord
+
         import fsymbol
         rn = fsymbol.mangle(name)
         op = self.dict_['op']
@@ -476,32 +550,48 @@ class MyFormula:
             #print "can't find %s (%s) in %s" % (name,rn,op)
             pass
         return ord
-    def symbols_name_type(self, name):
+    def symbols_name_type_(self, name):
+        if self.me:
+            return self.me.symbols[name].type
         fname = demangle(name)
-        cnames = self.dict_['types']
-        cname = cnames.get(fname)
-        if cname:
-            return cname
+        types = self.dict_['types']
+        type1 = types.get(fname)
+        if type1:
+            return type1
         import fsymbol
         fname2 = fsymbol.mangle(fname)
-        cname = cnames.get(fname2)
-        if cname:
-            return cname
+        type1 = types.get(fname2)
+        if type1:
+            return type1
         assert False
-        
-    def params_of_type(self, type, readable):
+
+    def params_of_type_(self, type, readable):
+        if self.me:
+            params = []
+            op = self.me.symbols.order_of_params()
+            for name in op.keys():
+                if name != '__SIZE__':
+                    if self.me.symbols[name].type == type:
+                        if readable:
+                            params.append(self.me.symbols.demangle(name))
+                        else:
+                            params.append(name)
+            return params
+
         params = []
         op = self.dict_['op']
         for name in op.keys():
             if name != '__SIZE__':
-                if self.symbols_name_type(name) == type:
+                if self.symbols_name_type_(name) == type:
                     if readable:
                         params.append(demangle(name))
                     else:
                         params.append(name)
         return params
-    
-    def symbols_parameters(self):
+
+    def symbols_parameters_(self):
+        if self.me:
+            return self.me.symbols.parameters()
         d1 = self.dict_['dict_params']
         d2 = {}
         for key, value in d1.items():
@@ -517,8 +607,10 @@ class MyFormula:
             else:
                 assert False
         return d2
-    
-    def available_param_functions(self,ret,args):
+
+    def available_param_functions_(self,ret,args):
+        if self.me:
+            return self.me.symbols.available_param_functions(ret, args)
         # a list of all function names which take args of type 'args'
         # and return 'ret' (for GUI to select a function)
         def _is_private(key):
@@ -534,8 +626,13 @@ class MyFormula:
             except TypeError:
                 # wasn't a list
                 pass
-            
+
         return flist
+
+    def is4D_(self):
+        if self.me:
+            return self.me.is4D()
+        assert False
 
 def fn33(params):
     for key, param in params.items():
@@ -545,7 +642,7 @@ def fn33(params):
             print key, 'Func', (param.args, param.implicit_args, param.ret, param.pos, param.fname)
         else:
             assert False
-        
+
 
 def Call_subprocess_2(file_, func_, prefix_, sbody):
     import json
@@ -580,5 +677,5 @@ def demangle(name):
         name = "@" + name[2:]
     elif name[:2] == "h_":
         name = "#" + name[2:]
-        
+
     return name

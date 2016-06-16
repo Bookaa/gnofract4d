@@ -54,7 +54,7 @@ class T(fctutils.T):
     paramnames = ["x","y","z","w","size","xy","xz","xw","yz","yw","zw"]
     def __init__(self,compiler,site=None):
         fctutils.T.__init__(self)
-        
+
         self.format_version = 2.8
 
         self.bailfunc = 0
@@ -83,7 +83,7 @@ class T(fctutils.T):
 
         self.warp_param = None
         # gradient
-        
+
         # default is just white outside
         self.default_gradient = gradient.Gradient()
         self.default_gradient.segments[0].left_color = [1.0,1.0,1.0,1.0]
@@ -99,7 +99,7 @@ class T(fctutils.T):
         self.dirtyFormula = True # formula needs recompiling
         self.dirty = True # parameters have changed
         self.clear_image = True
-        
+
         self.reset()
 
         # interaction with fract4dc library
@@ -107,7 +107,7 @@ class T(fctutils.T):
 
         # colorfunc lookup
         self.colorfunc_names = [
-            "default", 
+            "default",
             "continuous_potential",
             "zero",
             "ejection_distance",
@@ -118,7 +118,7 @@ class T(fctutils.T):
 
     def set_solid(self):
         pass
-    
+
     def serialize(self,comp=False):
         out = StringIO.StringIO()
         self.save(out,False,compress=comp)
@@ -132,7 +132,7 @@ class T(fctutils.T):
     def deserialize(self,string):
         self.loadFctFile(StringIO.StringIO(string))
         self.changed()
-        
+
     def apply_params(self,dict):
         for (key,value) in dict.items():
             self.parseVal(key,value,None)
@@ -154,7 +154,7 @@ class T(fctutils.T):
         print >>file, "yflip=%s" % self.yflip
         print >>file, "periodicity=%s" % int(self.periodicity)
         print >>file, "period_tolerance=%.17f" % self.period_tolerance
-        
+
         self.forms[0].save_formula_params(file,self.warp_param)
         self.forms[1].save_formula_params(file)
         self.forms[2].save_formula_params(file)
@@ -163,7 +163,7 @@ class T(fctutils.T):
         for transform in self.transforms:
             transform.save_formula_params(file,None,i)
             i += 1
-            
+
         print >>file, "[colors]"
         print >>file, "colorizer=1"
         print >>file, "solids=["
@@ -175,7 +175,7 @@ class T(fctutils.T):
         if compress:
             file.close()
             print >> main_file, file.getvalue()
-        
+
         if update_saved_flag:
             self.saved = True
 
@@ -209,13 +209,13 @@ class T(fctutils.T):
             if self.forms[1].is_direct() or \
                self.forms[2].is_direct():
                 needs_redraw = True
-               
+
             self.changed(True) #needs_redraw)
 
     def set_gradient_from_file(self, file, name):
         g = self.compiler.get_gradient(file, name)
         self.set_gradient(g)
-        
+
     def parse_periodicity(self,val,f):
         try:
             self.set_periodicity(int(val))
@@ -230,7 +230,7 @@ class T(fctutils.T):
         if val != self.period_tolerance:
             self.period_tolerance = val
             self.changed(False)
-            
+
     def normalize_formulafile(self,params,formindex,formtype):
         formula = params.dict.get("formula")
         if formula:
@@ -252,7 +252,7 @@ class T(fctutils.T):
             params,2,fc.FormulaTypes.COLORFUNC)
         self.set_inner(file,func)
         self.forms[2].load_param_bag(params)
-        
+
     def parse__outer_(self,val,f):
         params = fctutils.ParamBag()
         params.load(f)
@@ -268,7 +268,7 @@ class T(fctutils.T):
             params,0,fc.FormulaTypes.FRACTAL)
 
         self.set_formula(file,func,0)
-            
+
         for (name,val) in params.dict.items():
             if name == "formulafile" or name == "function" or name == "formula" or name=="":
                 continue
@@ -287,7 +287,7 @@ class T(fctutils.T):
             params.dict["function"],
             which_transform)
         self.transforms[which_transform].load_param_bag(params)
-        
+
     def __del__(self):
         #print "deleting fractal %s" % self
         del self.pfunc
@@ -311,7 +311,7 @@ class T(fctutils.T):
         for t in self.transforms:
             c.append_transform(t.funcFile, t.funcName)
             c.transforms[-1].copy_from(t)
-            
+
         c.solids = copy.copy(self.solids)
         c.yflip = self.yflip
         c.periodicity = self.periodicity
@@ -325,7 +325,7 @@ class T(fctutils.T):
 
     def determine_direction(self,a,b,mode):
         isClockwise = False
-        
+
         if mode==BLEND_NEAREST:
             if abs(b-a)<=math.pi and a<b:
                 isClockwise=True
@@ -348,7 +348,7 @@ class T(fctutils.T):
     def blend_angle(self,a,b,ratio,mode):
         angle = 0.0
         isClockwise = self.determine_direction(a,b,mode)
-        
+
         if isClockwise and b < a:
             b = b + math.pi * 2.0
         if not isClockwise and b > a:
@@ -357,9 +357,9 @@ class T(fctutils.T):
         angle = a * (1-ratio) + b * ratio
         while angle > math.pi:
             angle -= math.pi * 2.0
-            
+
         return angle
-    
+
     def blend(self,other,ratio,angle_options=()):
         """Create a new fractal which blends the this and other's parameter sets using ratio.
         'angle_options' can be used to override the default method of interpolating angles."""
@@ -390,13 +390,13 @@ class T(fctutils.T):
 
         for (form1,form2) in zip(new.forms,other.forms):
             form1.blend(form2,ratio)
-            
+
         return new
-    
+
     def reset_angles(self):
         for i in xrange(self.XYANGLE,self.ZWANGLE+1):
             self.set_param(i,0.0)
-        
+
     def reset(self):
         # set global default values, then override from formula
         # set up defaults
@@ -413,7 +413,7 @@ class T(fctutils.T):
         self.yflip = False
         self.auto_epsilon = False
         self.period_tolerance = 1.0E-9
-        
+
         g = self.get_gradient()
         self.set_formula_defaults(g)
 
@@ -438,7 +438,7 @@ class T(fctutils.T):
         if self.warp_param != param:
             self.warp_param = param
             self.changed(True)
-            
+
     def set_cmap(self,mapfile):
         c = colorizer.T(self)
         file = open(mapfile)
@@ -450,7 +450,7 @@ class T(fctutils.T):
     def get_initparam(self,n,param_type):
         params = self.forms[param_type].params
         return params[n]
-    
+
     def set_initparam(self,n,val, param_type):
         self.forms[param_type].set_param(n,val)
 
@@ -459,7 +459,7 @@ class T(fctutils.T):
             return
         self.solids[i] = newsolid
         self.changed(False)
-        
+
     def set_solids(self, solids):
         same = True
         for i in xrange(len(solids)):
@@ -471,7 +471,7 @@ class T(fctutils.T):
 
         self.solids[0:len(solids)] = solids[:]
         self.changed(False)
-        
+
     def refresh(self):
         for i in xrange(3):
             if self.compiler.out_of_date(self.forms[i].funcFile):
@@ -479,8 +479,13 @@ class T(fctutils.T):
                     self.forms[i].funcFile,self.forms[i].funcName,i)
 
     def set_formula_defaults(self, g=None):
-        if self.forms[0].formula == None:
-            return
+
+        if formsettings.g_useMyFormula:
+            if self.forms[0].formule == None:
+                return
+        else:
+            if self.forms[0].formula == None:
+                return
 
         if g == None:
             g = self.get_gradient()
@@ -488,7 +493,7 @@ class T(fctutils.T):
         self.forms[0].set_initparams_from_formula(g)
 
         if formsettings.g_useMyFormula:
-            lst = self.forms[0].formula.defaults_items()
+            lst = self.forms[0].formule.defaults_items_()
         else:
             lst = self.forms[0].formula.defaults.items()
         for (name,val) in lst:
@@ -527,10 +532,10 @@ class T(fctutils.T):
             self.warp_param = None
         self.formula_changed()
         self.changed()
-        
+
     def get_saved(self):
         return self.saved
-    
+
     def set_bailfunc(self):
         bailfuncs = [
             "cmag", "manhattanish","manhattanish2",
@@ -542,35 +547,35 @@ class T(fctutils.T):
         if funcname == None:
             # FIXME deal with diff
             return
-        
+
         if formsettings.g_useMyFormula:
-            cname = self.forms[0].formula.get_func_value('@bailfunc')
+            cname = self.forms[0].formule.get_func_value_('@bailfunc')
             if cname != funcname:
                 assert False
         else:
             func = self.forms[0].formula.symbols.get("@bailfunc")
             if func != None:
-                self.set_func(func[0],funcname,self.forms[0].formula)            
+                self.set_func(func[0],funcname,self.forms[0].formula)
 
     def changed(self,clear_image=True):
         self.dirty = True
         self.saved = False
         self.clear_image = clear_image
-        
+
     def formula_changed(self):
         self.dirtyFormula = True
-        
+
     def set_func(self,func,fname,formula):
         if func.cname != fname:
             formula.symbols.set_std_func(func,fname)
             self.dirtyFormula = True
             self.changed()
-            
+
     def set_periodicity(self,periodicity):
         if self.periodicity != periodicity:
             self.periodicity = periodicity
             self.changed()
-        
+
     def set_inner(self,funcfile,funcname):
         self.set_formula(funcfile,funcname,2)
 
@@ -582,16 +587,16 @@ class T(fctutils.T):
         prefix = "t%d" % i
         self.next_transform_id += 1
         return prefix
-    
+
     def append_transform(self,funcfile,funcname):
-        fs = formsettings.T(self.compiler,self,self.get_transform_prefix())    
+        fs = formsettings.T(self.compiler,self,self.get_transform_prefix())
         fs.set_formula(funcfile, funcname, self.get_gradient())
         self.transforms.append(fs)
         self.formula_changed()
         self.changed()
-        
+
     def set_transform(self,funcfile,funcname,i):
-        fs = formsettings.T(self.compiler,self,self.get_transform_prefix())    
+        fs = formsettings.T(self.compiler,self,self.get_transform_prefix())
         fs.set_formula(funcfile, funcname, self.get_gradient())
         if len(self.transforms) <= i:
             self.transforms.extend([None] * (i- len(self.transforms)+1))
@@ -599,12 +604,12 @@ class T(fctutils.T):
         self.transforms[i] = fs
         self.formula_changed()
         self.changed()
-        
+
     def remove_transform(self,i):
         self.transforms.pop(i)
         self.formula_changed()
         self.changed()
-        
+
     def set_compiler_option(self,option,val):
         self.compiler_options[option] = val
         self.dirtyFormula = True
@@ -630,7 +635,7 @@ class T(fctutils.T):
 
         for (file,func) in options.transforms:
             self.append_transform(file,func)
-            
+
         if options.map:
             self.set_cmap(options.map)
 
@@ -638,20 +643,35 @@ class T(fctutils.T):
             self.antialias = options.antialias
 
     def compile(self):
-        if self.forms[0].formula == None:
-            raise ValueError("no formula")
-        if self.dirtyFormula == False:
-            return self.outputfile
+        if formsettings.g_useMyFormula:
+            if self.forms[0].formule == None:
+                raise ValueError("no formula")
+            if self.dirtyFormula == False:
+                return self.outputfile
 
-        desc = self.serialize_formula()
+            desc = self.serialize_formula()
 
-        outputfile = self.compiler.compile_all_desc(
-            self.forms[0].formula,
-            self.forms[1].formula,
-            self.forms[2].formula,
-            [x.formula for x in self.transforms],
-            self.compiler_options, desc)
-        
+            outputfile = self.compiler.compile_all_desc(
+                self.forms[0].formule,
+                self.forms[1].formule,
+                self.forms[2].formule,
+                [x.formule for x in self.transforms],
+                self.compiler_options, desc)
+        else:
+            if self.forms[0].formula == None:
+                raise ValueError("no formula")
+            if self.dirtyFormula == False:
+                return self.outputfile
+
+            desc = self.serialize_formula()
+
+            outputfile = self.compiler.compile_all_desc(
+                self.forms[0].formula,
+                self.forms[1].formula,
+                self.forms[2].formula,
+                [x.formula for x in self.transforms],
+                self.compiler_options, desc)
+
         if outputfile != None:
             self.set_output_file(outputfile)
 
@@ -667,7 +687,7 @@ class T(fctutils.T):
     def make_random_colors(self, n):
         self.get_gradient().randomize(n)
         self.changed(False)
-        
+
     def mul_vs(self,v,s):
         return map(lambda x : x * s, v)
 
@@ -684,17 +704,20 @@ class T(fctutils.T):
             return 0.0 # no change
 
         action = random.random()
-        if action < weirdness/6.0: 
+        if action < weirdness/6.0:
             # +/- pi/2
             if random.random() > 0.5:
                 return math.pi/2.0
             else:
                 return math.pi/2.0
-        
+
         return weirdness * (random.random() - 0.5) * math.pi/2.0
 
     def is4D(self):
-        return self.warp_param != None or self.forms[0].formula.is4D()
+        if formsettings.g_useMyFormula:
+            return self.warp_param != None or self.forms[0].formule.is4D_()
+        else:
+            return self.warp_param != None or self.forms[0].formula.is4D()
 
     def mutate(self,weirdness,color_weirdness):
         '''randomly adjust position, colors, angles and parameters.
@@ -705,7 +728,7 @@ class T(fctutils.T):
         self.params[self.YCENTER] += self.xy_random(weirdness, size)
 
         self.params[self.XYANGLE] += self.angle_random(weirdness)
-        
+
         if self.is4D():
             self.params[self.ZCENTER] += self.zw_random(weirdness, size)
             self.params[self.WCENTER] += self.zw_random(weirdness, size)
@@ -727,7 +750,7 @@ class T(fctutils.T):
                 # can occur if no gradients available or occasionally
                 # because random.choice is horked
                 pass
-        
+
     def nudge(self,x,y,axis=0):
         # move a little way in x or y
         self.relocate(0.025 * x , 0.025 * y, 1.0,axis)
@@ -738,7 +761,7 @@ class T(fctutils.T):
         else:
             form = self.forms[param_type]
         return form
-    
+
     def nudge_param(self, i, param_type, x, y):
         form = self.get_form(param_type)
         form.nudge_param(i,x,y)
@@ -746,7 +769,7 @@ class T(fctutils.T):
     def relocate(self,dx,dy,zoom,axis=0):
         if dx == 0 and dy == 0 and zoom == 1.0:
             return
-        
+
         m = fract4dc.rot_matrix(self.params)
 
         deltax = self.mul_vs(m[axis],dx)
@@ -761,20 +784,20 @@ class T(fctutils.T):
         self.params[self.WCENTER] += deltax[3] + deltay[3]
         self.params[self.MAGNITUDE] *= zoom
         self.changed()
-        
+
     def flip_to_julia(self):
         self.params[self.XZANGLE] += self.rot_by
         self.params[self.YWANGLE] += self.rot_by
         self.rot_by = - self.rot_by
         self.changed()
-        
+
     # status callbacks
     def status_changed(self,val):
         pass
-    
+
     def progress_changed(self,d):
         pass
-    
+
     def stats_changed(self,s):
         pass
 
@@ -849,7 +872,7 @@ class T(fctutils.T):
         if auto_tolerance != self.auto_tolerance:
             self.auto_tolerance = auto_tolerance
             self.changed(True)
-            
+
     def calc(self,image,colormap,nthreads,site,async):
         fract4dc.calc(
             params=self.params,
@@ -869,7 +892,7 @@ class T(fctutils.T):
             site=site,
             dirty=self.clear_image,
             async=async)
-        
+
     def drawpoint(self):
         self.init_pfunc()
         print "x:\t\t%.17f\ny:\t\t%.17f\nz:\t\t%.17f\nw:\t\t%.17f\n" % tuple(self.params[0:4])
@@ -891,10 +914,10 @@ class T(fctutils.T):
             self.calc(image,colormap,nthreads,self.site,False)
 
             image.save_tile()
-        
+
     def clean(self):
         self.dirty = False
-        
+
     def set_param(self,n,val):
         val = float(val)
         if self.params[n] != val:
@@ -903,7 +926,7 @@ class T(fctutils.T):
 
     def get_param(self,n):
         return self.params[n]
-    
+
     def parse_gnofract4d_parameter_file(self,val,f):
         pass
 
@@ -925,11 +948,11 @@ class T(fctutils.T):
         if 1700.0 < self.format_version < 2000.0:
             # a version that used auto-tolerance for Nova and Newton
             self.auto_epsilon = True
-            
+
         if self.format_version > this_format_version:
             warning = \
 '''This file was created by a newer version of Gnofract 4D.
-The image may not display correctly. Please upgrade to version %s or higher.''' 
+The image may not display correctly. Please upgrade to version %s or higher.'''
 
             self.warn(warning % val)
     def warn(self,msg):
@@ -948,18 +971,18 @@ The image may not display correctly. Please upgrade to version %s or higher.'''
             # loading a legacy rgb colorizer
             self.set_outer("gf4d.cfrm", "rgb")
 
-            val = "(%f,%f,%f,1.0)" % tuple(cf.rgb) 
+            val = "(%f,%f,%f,1.0)" % tuple(cf.rgb)
             self.forms[1].set_named_item("@col",val)
 
     def parse__colors_(self,val,f):
         cf = colorizer.T(self)
         cf.load(f)
         self.apply_colorizer(cf)
-        
+
     def parse__colorizer_(self,val,f):
         which_cf = int(val)
         cf = colorizer.T(self)
-        cf.load(f)        
+        cf.load(f)
         if which_cf == 0:
             self.apply_colorizer(cf)
         # ignore other colorlists for now
@@ -976,10 +999,10 @@ The image may not display correctly. Please upgrade to version %s or higher.'''
         if self.yflip != yflip:
             self.yflip = yflip
             self.changed()
-        
+
     def parse_yflip(self,val,f):
         self.yflip = (val == "1" or val == "True")
-        
+
     def parse_x(self,val,f):
         self.set_param(self.XCENTER,val)
 
@@ -1018,7 +1041,7 @@ The image may not display correctly. Please upgrade to version %s or higher.'''
 
     def parse_maxiter(self,val,f):
         self.maxiter = int(val)
-        
+
     def parse_antialias(self,val,f):
         # antialias now a user pref, not saved in file
         #self.antialias = int(val)
@@ -1032,7 +1055,7 @@ The image may not display correctly. Please upgrade to version %s or higher.'''
             #print "can't find %s (%s) in %s" % (name,rn,op)
             pass
         return ord
-    
+
     def fix_bailout(self):
         # because bailout occurs before we know which function this is
         # in older files, we save it in self.bailout then apply to the
@@ -1048,7 +1071,7 @@ The image may not display correctly. Please upgrade to version %s or higher.'''
         for i in xrange(len(p)):
             if p[i] == old_gradient:
                 p[i] = self.get_gradient()
-        
+
     def param_display_name(self,name,param):
         if hasattr(param,"title"):
             return param.title.value
@@ -1074,7 +1097,7 @@ The image may not display correctly. Please upgrade to version %s or higher.'''
         self.fix_bailout()
         #self.fix_gradients(old_gradient)
         self.saved = True
-        
+
 if __name__ == '__main__':
     g_comp = fc.Compiler()
     g_comp.add_func_path("formulas")
@@ -1090,4 +1113,4 @@ if __name__ == '__main__':
         im = image.T(64,48)
         f.draw(im)
         im.save(os.path.basename(arg) + ".png")
-        
+

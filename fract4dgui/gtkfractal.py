@@ -29,7 +29,7 @@ class Hidden(gobject.GObject):
         gobject.TYPE_NONE, (gobject.TYPE_INT,)),
         'tolerance-changed' : (
         (gobject.SIGNAL_RUN_FIRST | gobject.SIGNAL_NO_RECURSE),
-        gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)),    
+        gobject.TYPE_NONE, (gobject.TYPE_FLOAT,)),
         'formula-changed' : (
         (gobject.SIGNAL_RUN_FIRST | gobject.SIGNAL_NO_RECURSE),
         gobject.TYPE_NONE, ()),
@@ -46,7 +46,7 @@ class Hidden(gobject.GObject):
         'stats-changed' : (
         (gobject.SIGNAL_RUN_FIRST | gobject.SIGNAL_NO_RECURSE),
         gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
-            
+
         }
 
     def __init__(self,comp,width,height,total_width=-1,total_height=-1):
@@ -73,7 +73,7 @@ class Hidden(gobject.GObject):
         self.try_init_fractal()
 
         self.input_add(self.readfd, self.onData)
-        
+
         self.width = width
         self.height = height
         self.image = image.T(
@@ -109,37 +109,37 @@ class Hidden(gobject.GObject):
         self.set_saved(False)
         if not self.frozen:
             self.emit('parameters-changed')
-        
+
     def formula_changed(self):
         #print "formula changed"
         self.f.dirtyFormula = True
         #if not self.frozen:
         self.emit('formula-changed')
-            
+
     def set_saved(self,val):
         if self.f != None:
             self.f.saved = val
-        
+
     def input_add(self,fd,cb):
         utils.input_add(fd,cb)
 
     def error(self,msg,err):
         print "Error: %s %s" % (msg,err)
-        
+
     def warn(self,msg):
         print "Warning: ", msg
 
     def update_formula(self):
         if self.f != None:
             self.f.dirtyFormula = True
-        
+
     def freeze(self):
         self.frozen = True
-        
+
     def thaw(self):
         if self.f == None:
             return False
-        
+
         self.frozen = False
         was_dirty = self.f.dirty
         self.f.clean()
@@ -149,9 +149,9 @@ class Hidden(gobject.GObject):
         if self.skip_updates:
             #print "skip recursive interrupt"
             return
-        
+
         self.skip_updates = True
-        
+
         fract4dc.interrupt(self.site)
 
         n = 0
@@ -171,7 +171,7 @@ class Hidden(gobject.GObject):
     def onData(self,fd,condition):
         self.msgbuf = self.msgbuf + self.io_subsys.read(fd, 8 - len(self.msgbuf))
 
-        if len(self.msgbuf) < 8:            
+        if len(self.msgbuf) < 8:
             #print "incomplete message: %s" % list(self.msgbuf)
             return True
 
@@ -185,7 +185,7 @@ class Hidden(gobject.GObject):
         m = messages.parse(t,bytes)
 
         if utils.threads_enabled:
-            gtk.gdk.threads_enter()    
+            gtk.gdk.threads_enter()
 
         #print "msg: %s %d %d %d %d" % (m,p1,p2,p3,p4)
         if t == fract4dc.MESSAGE_TYPE_ITERS:
@@ -217,34 +217,34 @@ class Hidden(gobject.GObject):
         if utils.threads_enabled:
             gtk.gdk.threads_leave()
         return True
-    
+
     def __getattr__(self,name):
         return getattr(self.f,name)
 
     def params(self):
         return self.f.params
-    
+
     def get_param(self,n):
         return self.f.get_param(n)
-    
+
     def set_nthreads(self, n):
         if self.nthreads != n:
             self.nthreads = n
             self.changed()
-            
+
     def set_auto_deepen(self,deepen):
         if self.f.auto_deepen != deepen:
             self.f.auto_deepen = deepen
             self.changed()
-            
+
     def set_antialias(self,aa_type):
         if self.f.antialias != aa_type:
             self.f.antialias = aa_type
             self.changed()
-        
+
     def set_func(self,func,fname,formula):
         self.f.set_func(func,fname,formula)
-        
+
     def improve_quality(self):
         self.freeze()
         self.set_maxiter(self.f.maxiter*2)
@@ -267,27 +267,27 @@ class Hidden(gobject.GObject):
         if self.f == None:
             return True
         return self.f.saved
-    
+
     def save_image(self,filename):
         self.image.save(filename)
-        
+
     def progress_changed(self,progress):
         self.emit('progress-changed',progress)
-        
+
     def status_changed(self,status):
         self.emit('status-changed',status)
-        
+
     def iters_changed(self,n):
         self.f.maxiter = n
         # don't emit a parameters-changed here to avoid deadlock
         self.emit('iters-changed',n)
-        
+
     def tolerance_changed(self,tolerance):
         self.f.period_tolerance = tolerance
         self.emit('tolerance-changed', tolerance)
 
     def image_changed(self,x1,y1,x2,y2):
-        pass 
+        pass
 
     def stats_changed(self,stats):
         self.emit('stats-changed', stats)
@@ -302,10 +302,10 @@ class Hidden(gobject.GObject):
         cmap = self.f.get_colormap()
         self.running = True
         try:
-            self.f.calc(image,cmap, nthreads, self.site, True)            
+            self.f.calc(image,cmap, nthreads, self.site, True)
         except MemoryError:
             pass
-        
+
     def draw_image(self,aa=None,auto_deepen=None):
         if self.f == None:
             return
@@ -326,19 +326,19 @@ class Hidden(gobject.GObject):
             self.set_param(angle1,math.pi/2)
         if angle2 != None:
             self.f.set_param(angle2,math.pi/2)
-            
+
         if self.thaw():
             self.changed()
 
     def float_coords(self,x,y):
         return ((x - self.width/2.0)/self.width,
                 (y - self.height/2.0)/self.width)
-    
+
     def recenter(self,x,y,zoom):
         dx = (x - self.width/2.0)/self.width
-        dy = (y - self.height/2.0)/self.width                
+        dy = (y - self.height/2.0)/self.width
         self.relocate(dx,dy,zoom)
-        
+
     def count_colors(self,rect):
         # calculate the number of different colors which appear
         # in the subsection of the image bounded by the rectangle
@@ -371,7 +371,7 @@ class Hidden(gobject.GObject):
         self.interrupt()
         if self.width == new_width and self.height == new_height :
             return
-        
+
         self.width = new_width
         self.height = new_height
 
@@ -394,7 +394,7 @@ class HighResolution(Hidden):
         self.ntiles = len(self.tile_list)
         self.ncomplete_tiles = 0
         self.last_overall_progress = 0.0
-        
+
     def compute_tile_size(self,w,h):
         tile_width = w
         tile_height = min(h,128)
@@ -406,7 +406,7 @@ class HighResolution(Hidden):
         self.interrupt()
 
         self.f.compile()
-        
+
         self.f.auto_deepen = False
         self.f.auto_tolerance = False
         self.image.start_save(name)
@@ -417,9 +417,9 @@ class HighResolution(Hidden):
         # work left to do
         (xoff,yoff,w,h) = self.tile_list.pop(0)
         self.image.resize_tile(w,h)
-        self.image.set_offset(xoff,yoff)        
+        self.image.set_offset(xoff,yoff)
         self.draw(self.image,w,h,self.nthreads)
-        
+
     def status_changed(self,status):
         if status == 0:
             # done this chunk
@@ -447,7 +447,7 @@ class T(Hidden):
         Hidden.__init__(self,comp,width,height)
 
         self.paint_mode = False
-                
+
         drawing_area = gtk.DrawingArea()
         drawing_area.set_events(
             gtk.gdk.BUTTON_RELEASE_MASK |
@@ -468,8 +468,8 @@ class T(Hidden):
         drawing_area.connect('expose_event',self.onExpose)
 
         c = utils.get_rgb_colormap()
-        
-        drawing_area.set_colormap(c)        
+
+        drawing_area.set_colormap(c)
         drawing_area.set_size_request(self.width,self.height)
 
         self.widget = drawing_area
@@ -521,12 +521,12 @@ class T(Hidden):
         widget.f = self
         widget.connect('focus-out-event',
                        set_fractal,form,order)
-        
+
         if hasattr(param, "min") and hasattr(param, "max"):
             # add a slider
             adj = gtk.Adjustment(
                 0.0,param.min.value, param.max.value,
-                0.001, 
+                0.001,
                 0.01)
 
             def set_adj():
@@ -553,7 +553,7 @@ class T(Hidden):
 
     def make_numeric_widget(
         self, table, i, form, name, part, param, order):
-    
+
         label = gtk.Label(self.param_display_name(name,param)+part)
         label.set_alignment(1.0, 0.0)
         table.attach(label,0,1,i,i+1,gtk.EXPAND | gtk.FILL,0,0,0)
@@ -563,7 +563,7 @@ class T(Hidden):
 
         label.set_mnemonic_widget(widget)
         return widget
-    
+
     def make_bool_widget(self, form, name, param, order):
 
         widget = gtk.CheckButton(self.param_display_name(name,param))
@@ -605,7 +605,7 @@ class T(Hidden):
             form.set_param(order+2, b)
             if self.thaw():
                 self.changed()
-                
+
 
         rgba = []
         for j in xrange(4):
@@ -619,9 +619,9 @@ class T(Hidden):
             for j in xrange(4):
                 rgba.append(form.params[order+j])
             color_button.set_color(rgba)
-            
+
         set_selected_value()
-        
+
         color_button.widget.set_data("update_function", set_selected_value)
 
         return color_button.widget
@@ -643,11 +643,11 @@ class T(Hidden):
                 return
 
             utils.set_selected(widget, index)
-            
+
         def set_fractal(entry,form,order):
             new_value = utils.get_selected(widget)
             form.set_param(order, new_value)
-            
+
         set_selected_value(self)
 
         widget.set_data("update_function", set_selected_value)
@@ -661,7 +661,7 @@ class T(Hidden):
 
     def add_formula_setting(
         self,table,i,form,name,part,param,order):
-        
+
         if param.type == fracttypes.Int:
             if hasattr(param,"enum"):
                 widget = self.make_enumerated_widget(
@@ -669,7 +669,7 @@ class T(Hidden):
             else:
                 widget = self.make_numeric_widget(
                     table, i,form,name,part,param,order)
-                
+
         elif param.type == fracttypes.Float or \
              param.type == fracttypes.Complex or \
              param.type == fracttypes.Hyper:
@@ -693,7 +693,7 @@ class T(Hidden):
 
     def add_complex_formula_setting(
         self,table,i,form,name,param,order,param_type):
-        
+
         widget = self.make_numeric_entry(
                 form,param,order)
 
@@ -708,14 +708,14 @@ class T(Hidden):
         fway = fourway.T(name)
         tip = self.param_tip(name,param)
         fway.widget.set_tooltip_text(tip)
-        
+
         fway.connect('value-changed',self.fourway_released, order, form)
 
         if self.parent:
             fway.connect(
                 'value-slightly-changed',
                 self.parent.on_drag_param_fourway, order, param_type)
-        
+
         table.attach(fway.widget,0,1,i,i+2, gtk.EXPAND|gtk.FILL,0, 0,0)
 
     def fourway_released(self,widget,x,y,order,form):
@@ -724,24 +724,24 @@ class T(Hidden):
     def construct_function_menu(self,param,form):
         from fract4d import formsettings
         if formsettings.g_useMyFormula:
-            funclist = form.formula.available_param_functions(param.ret,param.args)
+            funclist = form.formule.available_param_functions_(param.ret,param.args)
         else:
             funclist = form.formula.symbols.available_param_functions(param.ret,param.args)
         funclist.sort()
         return funclist
-    
+
     def set_nthreads(self, n):
         if self.nthreads != n:
             self.nthreads = n
             self.changed()
-    
+
     def error(self,msg,err):
         print self, self.parent
         if self.parent:
             self.parent.show_error_message(msg, err)
         else:
             print "Error: %s : %s" % (msg,err)
-        
+
     def warn(self,msg):
         if self.parent:
             self.parent.show_warning(msg)
@@ -756,7 +756,11 @@ class T(Hidden):
         funclist = self.construct_function_menu(param,form)
         widget = utils.create_option_menu(funclist)
 
-        formula = form.formula
+        from fract4d import formsettings
+        if formsettings.g_useMyFormula:
+            formula = form.formule
+        else:
+            formula = form.formula
         def set_selected_function():
             try:
                 selected_func_name = form.get_func_value(name)
@@ -765,9 +769,9 @@ class T(Hidden):
                 # func.cname not in list
                 #print "bad cname"
                 return
-            
+
             utils.set_selected(widget, index)
-            
+
         def set_fractal_function(om,f,param,formula):
             index = utils.get_selected(om)
             if index != -1:
@@ -779,13 +783,13 @@ class T(Hidden):
 
                 fname = list[index]
                 f.set_func(param,fname,formula)
-                
+
         set_selected_function()
 
         widget.set_data("update_function", set_selected_function)
 
         widget.connect('changed',set_fractal_function,self,param,formula)
-        
+
         table.attach(widget,1,2,i,i+1,gtk.EXPAND | gtk.FILL,0,0,0)
 
     def create_maxiter_widget(self,table,i):
@@ -796,7 +800,7 @@ class T(Hidden):
 
         widget = gtk.Entry()
         widget.set_activates_default(True)
-        
+
         def set_entry(*args):
             widget.set_text("%d" % self.f.maxiter)
 
@@ -826,16 +830,17 @@ class T(Hidden):
     def populate_formula_settings(self, table, param_type, row=0):
         # create widget to fiddle with this fractal's settings
         form = self.f.get_form(param_type)
-        formula = form.formula
-        
+
         if param_type == 0:
             row = self.create_maxiter_widget(table,row)
-            
+
         from fract4d import formsettings
         if formsettings.g_useMyFormula:
-            params = formula.symbols_parameters()
-            op = formula.dict_['op'] # symbols.order_of_params()
+            formula = form.formule
+            params = formula.symbols_parameters_()
+            op = formula.symbols_order_of_params_()
         else:
+            formula = form.formula
             params = formula.symbols.parameters()
             formsettings.fn33(params)
             op = formula.symbols.order_of_params()
@@ -880,7 +885,7 @@ class T(Hidden):
             self.widget.set_size_request(new_width,new_height)
         except MemoryError, err:
             utils.idle_add(self.warn,str(err))
-                    
+
     def draw_image(self,aa=None,auto_deepen=None):
         try:
             Hidden.draw_image(self,aa,auto_deepen)
@@ -928,15 +933,15 @@ class T(Hidden):
         self.button = event.button
         if self.button == 1:
             self.notice_mouse = True
-        
+
     def set_paint_mode(self,isEnabled, colorsel):
         self.paint_mode = isEnabled
         self.paint_color_sel = colorsel
-        
+
     def get_paint_color(self):
-        color = self.paint_color_sel.get_current_color() 
+        color = self.paint_color_sel.get_current_color()
         return (color.red/65535.0, color.green/65535.0, color.blue/65535.0)
-    
+
     def onPaint(self,x,y):
         # obtain index
         fate = self.image.get_fate(int(x), int(y))
@@ -944,10 +949,10 @@ class T(Hidden):
             return
 
         index = self.image.get_color_index(int(x), int(y))
-        
+
         # obtain a color
         (r,g,b) = self.get_paint_color()
-        
+
         # update colormap
         grad = self.f.get_gradient()
 
@@ -971,18 +976,20 @@ class T(Hidden):
                 if self.x == self.newx or self.y == self.newy:
                     self.onPaint(self.newx, self.newy)
                     return True
-        
+
         return False
-    
+
     def onButtonRelease(self,widget,event):
         self.redraw_rect(0,0,self.width,self.height)
         self.button = 0
         self.notice_mouse = False
         if self.filterPaintModeRelease(event):
             return
-        
+
         self.freeze()
         if event.button == 1:
+            if not hasattr(self, 'newx'):
+                self.newx = self.x
             if self.x == self.newx or self.y == self.newy:
                 zoom=0.5
                 x = self.x
@@ -996,14 +1003,14 @@ class T(Hidden):
             if hasattr(event,"state") and event.state & gtk.gdk.SHIFT_MASK:
                 zoom = 1.0
             self.recenter(x,y,zoom)
-            
+
         elif event.button == 2:
             (x,y) = (event.x, event.y)
             zoom = 1.0
             self.recenter(x,y,zoom)
             if self.is4D():
                 self.flip_to_julia()
-            
+
         else:
             if hasattr(event,"state") and event.state & gtk.gdk.CONTROL_MASK:
                 zoom = 20.0
@@ -1029,7 +1036,7 @@ class T(Hidden):
         if x >= self.width or y >= self.height or w < 1 or h < 1:
             # nothing to do
             return
-        
+
         gc = self.widget.get_style().white_gc
 
         try:
@@ -1037,7 +1044,7 @@ class T(Hidden):
         except MemoryError, err:
             # suppress these errors
             return
-        
+
         if self.widget.window:
             self.widget.window.draw_rgb_image(
                 gc,
@@ -1058,7 +1065,7 @@ class Preview(T):
     def error(self,msg,exn):
         # suppress errors from previews
         pass
-    
+
     def stats_changed(self,s):
         pass
 
@@ -1066,10 +1073,10 @@ class SubFract(T):
     def __init__(self,comp,width=640,height=480):
         T.__init__(self,comp,None,width,height)
         self.master = None
-        
+
     def set_master(self,master):
         self.master = master
-        
+
     def onButtonRelease(self,widget,event):
         self.button = 0
         if self.master:
