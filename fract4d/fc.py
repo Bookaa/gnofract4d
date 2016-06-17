@@ -34,7 +34,6 @@ import copy
 
 import fractconfig
 import translate
-import codegen
 import fracttypes
 import absyn
 import preprocessor
@@ -392,6 +391,7 @@ class Compiler:
         return not self.files[filename].file_backed
 
     def compile(self,ir,options={}):
+        import codegen
         cg = codegen.T(ir.symbols,options)
         cg.output_all(ir)
         return cg
