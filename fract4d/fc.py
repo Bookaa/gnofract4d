@@ -36,7 +36,6 @@ import fractconfig
 import translate
 import fracttypes
 import absyn
-import preprocessor
 import cache
 import gradient
 
@@ -304,6 +303,7 @@ class Compiler:
         else:
             import fractparser
             import fractlexer
+            import preprocessor
             self_parser = fractparser.parser
             self_lexer = fractlexer.lexer
             self_lexer.lineno = 1
