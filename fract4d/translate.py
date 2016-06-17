@@ -3,16 +3,16 @@
 # Translate an abstract syntax tree into tree-structured intermediate
 # code, performing type checking as a side effect
 import sys
-    
+
 from absyn import *
 import fsymbol
-import fractparser
-import fractlexer
+#import fractparser
+#import fractlexer
 import ir
 import canon
 
 from fracttypes import *
-    
+
 allowed_param_names = [
     "default",
     "caption",
@@ -34,7 +34,7 @@ class TBase:
         self.output_sections = {}
         self.defaults = {}
         self.fakeNode = Empty(-1) # node used for code not written by user
-        
+
         self.dumpCanon = 0
         self.dumpDecorated = 0
         self.dumpProbs = 0
@@ -51,7 +51,7 @@ class TBase:
         if self.dumpProbs:
             print self.errors
             print self.warnings
-            
+
         if self.dumpDecorated:
             print f.pretty()
 
@@ -68,7 +68,7 @@ class TBase:
 
     def is_direct(self):
         return self.symbols.is_direct()
-    
+
     def merge(self,other,name):
         for (k,s) in other.output_sections.items():
             existing_section = self.output_sections.get(name + k)
@@ -113,12 +113,12 @@ class TBase:
             else:
                 out.append("Unknown tree %s in section %s" % (tree, name))
         return string.join(out,"\n")
-    
+
     def error(self,msg):
         self.errors.append(msg)
     def warning(self,msg):
         self.warnings.append(msg)
-            
+
     def canonicalize(self):
         for (k,tree) in self.sections.items():
             startLabel = "t__start_" + self.symbols.prefix + k
@@ -131,7 +131,7 @@ class TBase:
                     ("Formula contains a fractint-style implicit %s section "+
                     "and an explicit UltraFractal %s section. "+
                     "Using explicit section.") % (sect,sect))
-        
+
     def sectionOrNone(self,sectname):
         if self.sections.has_key(sectname):
             return self.sections[sectname]
@@ -140,7 +140,7 @@ class TBase:
     def update_settings(self,sectname,node):
         l = self.setlist(node)
         self.add_to_section(sectname, l)
-        
+
     def default(self,node):
         self.update_settings("default", node)
 
@@ -150,7 +150,7 @@ class TBase:
             self.sections[sectname] = stmlist
         else:
             self.sections[sectname].children += stmlist.children
-        
+
     def global_(self,node):
         self.add_to_section("global", self.stmlist(node))
 
@@ -159,7 +159,7 @@ class TBase:
 
     def setlist(self, node):
         children = filter(lambda c : c.type != "empty", node.children)
-        settings = map(lambda c: self.setting(c), children)        
+        settings = map(lambda c: self.setting(c), children)
         seq = ir.Seq(filter(lambda c: c != None, settings), node)
         return seq
 
@@ -175,14 +175,14 @@ class TBase:
         if name == "visible" or name == "enabled":
             #FIXME ignore visibility for now, parser can't deal with it
             return
-        
+
         if name == "default":
             e = self.exp(node.children[1])
             var.full_default = e
 
         if name == "enum":
             self.enum(node.children[1])
-                
+
         val = self.const_exp(node.children[1])
         setattr(var,name,val)
 
@@ -203,10 +203,10 @@ class TBase:
         if name[0] == "@":
             return name
         return "@" + name
-    
+
     def param(self,node):
         # translate a param block
-        
+
         # find if this is an enum, override type if so
         for child in node.children:
             if child.type == "set" and child.children[0].leaf == "enum":
@@ -224,7 +224,7 @@ class TBase:
 
         # create param if not already present
         #print "call get with", name
-        v = self.symbols.get(name)    
+        v = self.symbols.get(name)
         set_v = False
         #print "name:%s val:%s" % (name, v)
         if not v:
@@ -235,10 +235,10 @@ class TBase:
         # check only declared once
         if v.declared:
             self.raise_declare_error(v,node)
-        
+
         v.declared = True
-        
-        # process settings        
+
+        # process settings
         for child in node.children:
             if child.type == "set":
                 self.paramsetting(child,v)
@@ -248,7 +248,7 @@ class TBase:
         if hasattr(v,"default") and v.default != None:
             if node.datatype == None:
                 # oddly, this was bypassing the property when I used v.type
-                v._set_type(v.default.datatype) 
+                v._set_type(v.default.datatype)
                 v.value = default_value(v.type)
 
             v.default = self.expand_enum(node, v, name)
@@ -257,7 +257,7 @@ class TBase:
         # if we created new var, write it back
         if set_v:
             self.symbols[name] = v
-        
+
         if node.datatype:
             if(hasattr(v,"full_default")):
                 e = self.coerce(v.full_default,node.datatype)
@@ -269,7 +269,7 @@ class TBase:
                 ir.Var(name,node,node.datatype),
                 defexp,
                 node, node.datatype)
-        
+
     def funcsetting(self,node,func):
         name = node.children[0].leaf
         if name == "default":
@@ -278,7 +278,7 @@ class TBase:
             if fol == None:
                 msg = "%d: unknown default function '%s'" % (node.pos,fname)
                 raise TranslationError(msg)
-                
+
             # is there an overload which matches our args?
             typelist = func.args
             found = False
@@ -292,7 +292,7 @@ class TBase:
                 f = fol[0]
                 func.ret = f.ret
                 func.args = f.args
-            
+
             func.set_func(fname)
         elif name == "visible":
             # fixme can't deal with visibility calculations yet
@@ -302,7 +302,7 @@ class TBase:
         else:
             val = self.const_exp(node.children[1])
             setattr(func,name,val)
-        
+
     def func(self, node):
         # translate a func block
         name = self.normalize_name(node.leaf)
@@ -320,7 +320,7 @@ class TBase:
             else:
                 argtype = [Complex]
                 fname = "ident"
-                
+
             f = Func(argtype,node.datatype,fname)
             set_f = True
         else:
@@ -339,7 +339,7 @@ class TBase:
         if set_f:
             fol = fsymbol.OverloadList([f])
             fol.declared = True
-            self.symbols[name] = fol 
+            self.symbols[name] = fol
 
     def raise_declare_error(self, obj, node):
         type = isinstance(obj, fracttypes.Var) and "parameter" or "function"
@@ -368,14 +368,14 @@ class TBase:
 
     def add_enum_value(self,name,val,pos):
         self.symbols.newEnum(name,val,pos)
-        
+
     def enum(self,node):
         # declaring an enum
         vals = self.string(node)
-        
+
         strings = [node.leaf]
         strings += map(lambda n : n.leaf, node.children)
-        
+
         i = 0
         for s in strings:
             self.add_enum_value(s,i,node.pos)
@@ -392,7 +392,7 @@ class TBase:
                                     fracttypes.Float)
 
             return ir.Const([re, im],node,fracttypes.Complex)
-        
+
         elif node.type == "unop" and node.leaf == "t__neg":
             val = self.const_exp(node.children[0])
             val.value = -val.value
@@ -424,9 +424,9 @@ class TBase:
                             ir.Const(0.0, node, fracttypes.Float)]
                 else:
                     val = ir.Const(0.0, node, fracttypes.Float)
-                    
+
                 var = ir.Const(val,node,t)
-                    
+
                 #return ir.Var(
                 #    node.leaf, node, self.symbols[node.leaf].type)
             else:
@@ -440,14 +440,14 @@ class TBase:
         if not fracttypes.canBeCast(val.datatype,type_out):
             self.error("%d: Cannot convert %s (%s) to %s" % \
                   (val.node.pos, fracttypes.strOfType(val.datatype),
-                   val.value, fracttypes.strOfType(type_out)))            
+                   val.value, fracttypes.strOfType(type_out)))
             return val
-        
+
         if val.datatype == type_out:
             return val
 
         retval = ir.Const(None,val.node,type_out)
-        
+
         if val.datatype == fracttypes.Complex:
             if type_out == fracttypes.Bool or \
                type_out == fracttypes.Int or \
@@ -460,7 +460,7 @@ class TBase:
                             ir.Const(0.0,val.node,fracttypes.Float)]
         else:
             retval.value = float(val.value)
-            
+
         return retval
 
     def is4D(self):
@@ -473,17 +473,17 @@ class TBase:
             return
         val = node.children[1]
         self.defaults[name] = self.const_exp(val)
-    
+
     def stmlist(self, node):
         children = filter(lambda c : c.type != "empty", node.children)
         seq = ir.Seq(map(lambda c: self.stm(c), children), node)
         return seq
 
-    def stmlist_with_label(self, node, label):        
+    def stmlist_with_label(self, node, label):
         seq = self.stmlist(node)
         seq.children.insert(0, label)
         return seq
-    
+
     def stm(self,node):
         if node.type == "decl":
             r = self.decl(node)
@@ -514,7 +514,7 @@ class TBase:
 
     def newTemp(self, node):
         return ir.Var(self.symbols.newTemp(node.datatype),node, node.datatype)
-    
+
     def makeCompare(self,node):
         'convert a node into a comparison op'
         if not self.isCompare(node):
@@ -544,7 +544,7 @@ class TBase:
         # convert main block of code inside while loop
         bodyCode = self.stmlist_with_label(node.children[1],body)
         bodyCode.children.append(ir.Jump(start.name, node))
-        
+
         # construct actual if operation
         test = ir.CJump(node.children[0].leaf,
                         convertedChildren[0],
@@ -554,7 +554,7 @@ class TBase:
         # overall code
         whilestm = ir.Seq([start,test,bodyCode,end],node)
         return whilestm
-        
+
     def if_(self,node):
         '''the result of an if is:
         seq(
@@ -563,13 +563,13 @@ class TBase:
             seq(label(falseDest), falseCode)
             label(end)
         )'''
-        
+
         trueDest = self.newLabel(node)
         falseDest = self.newLabel(node)
         doneDest = self.newLabel(node)
 
         node.children[0] = self.makeCompare(node.children[0])
-        
+
         # convert boolean operation
         children = map(lambda n : self.exp(n) , node.children[0].children)
         op = self.findOp(node.children[0].leaf, node.children[0].pos,children)
@@ -580,7 +580,7 @@ class TBase:
         trueBlock.children.append(ir.Jump(doneDest.name, node))
 
         falseBlock = self.stmlist_with_label(node.children[2], falseDest)
-        
+
         # construct actual if operation
         test = ir.CJump(node.children[0].leaf,
                          convertedChildren[0],
@@ -594,8 +594,8 @@ class TBase:
     def checkArrayArity(self, name, indexes, pos):
         try:
             arity = self.symbols[name].arity
-            
-            if len(indexes) != arity:                   
+
+            if len(indexes) != arity:
                 raise TranslationError("%d: wrong number of indexes for %s" % (pos, name))
 
         except KeyError, err:
@@ -603,8 +603,8 @@ class TBase:
         except AttributeError, err:
             # not an array
             raise TranslationError("%d: %s is not an array" % (pos, name))
-                               
-                
+
+
     def arraylookup(self, node):
         name = node.leaf
         indexes = self.indexes(node)
@@ -613,16 +613,16 @@ class TBase:
         array = self.symbols[name]
         atype = array.type
         elementType = fracttypes.elementTypeOf(atype)
-        
+
         r = ir.Call("_read_lookup", [ir.Var(name,node,atype)] + indexes, node, elementType)
         return r
-        
+
     def assign(self, node):
         '''assign a new value to a variable, creating it if required'''
         lvalue = node.children[0]
         lhs = expectedType = None
         rhs = self.exp(node.children[1])
-        
+
         if lvalue.type == "id" or lvalue.type == "arraylookup":
             name = lvalue.leaf
             if not self.symbols.has_key(name):
@@ -630,7 +630,7 @@ class TBase:
                 self.symbols[name] = \
                     Var(Complex,None,lvalue.pos)
 
-            if isinstance(self.symbols[name],fracttypes.Var): 
+            if isinstance(self.symbols[name],fracttypes.Var):
                 expectedType = self.symbols[name].type
             else:
                 msg = "%d: %s is not a variable, assignment to it is not allowed" % (node.pos, name)
@@ -639,16 +639,16 @@ class TBase:
             if lvalue.type == "id":
                 lhs = ir.Var(name, node, expectedType)
             else:
-                # array lookup                
+                # array lookup
                 var = ir.Var(name, node, expectedType)
-                
+
                 indexes = self.indexes(node.children[0])
 
                 self.checkArrayArity(name, indexes, node.pos)
                 elementType = fracttypes.elementTypeOf(expectedType)
                 rhs = self.coerce(rhs,elementType)
-                return ir.Call("_write_lookup", [var] + indexes + [rhs], node, elementType)                
-                
+                return ir.Call("_write_lookup", [var] + indexes + [rhs], node, elementType)
+
         elif lvalue.type == "funcall":
             lhs = self.funcall(lvalue)
             expectedType = lhs.datatype
@@ -669,7 +669,7 @@ class TBase:
         else:
             raise TranslationError(
                 "%s: '%s' is not a function and cannot be called" % (pos, name))
-        
+
     def findOp(self, func, pos, list):
         ' find the most appropriate overload for this op'
         try:
@@ -685,17 +685,17 @@ class TBase:
 
         if isinstance(overloadList, fracttypes.Var):
             return self.findPseudoOp(overloadList, func, pos)
-        
+
         typelist = map(lambda ir : ir.datatype , list)
-        
+
         for ol in overloadList:
             if ol.matchesArgs(typelist):
                 return ol
-        
+
         raise TranslationError(
             "Invalid argument types %s for %s on line %s" % \
             (map(fracttypes.strOfType,typelist), func, pos))
-    
+
     def decl(self,node):
         if node.children:
             exp = self.stm(node.children[0])
@@ -706,10 +706,10 @@ class TBase:
         try:
             self.symbols[node.leaf] = Var(node.datatype, None, node.pos)
             return ir.Move(
-                ir.Var(node.leaf, node, node.datatype),                
+                ir.Var(node.leaf, node, node.datatype),
                 self.coerce(exp, node.datatype),
                 node, node.datatype)
-        
+
         except KeyError, e:
             self.error("Invalid declaration on line %d: %s" % (node.pos,e))
 
@@ -722,32 +722,32 @@ class TBase:
             self.error("%d: Arrays can only have up to 2 indexes" % node.pos)
 
         return indexes
-    
+
     def declarray(self,node):
         indexes = self.indexes(node)
-            
+
         atype = fracttypes.arrayTypeOf(node.datatype,node)
 
         try:
             var = Var(atype, None, node.pos)
             var.arity = len(indexes)
             self.symbols[node.leaf] = var
-            
+
         except KeyError, e:
             self.error("Invalid declaration on line %d: %s" % (node.pos,e))
 
         arena = ir.Var("t__p_stub->arena",node,fracttypes.VoidArray)
-        
+
         # initialize array by calling _alloc() and casting to correct type
         size = ir.Const(fracttypes.elementSizeOf(atype), node, fracttypes.Int)
 
         # a bit of a hack. Complex arrays are just float arrays twice as big
-        if atype == fracttypes.ComplexArray:            
+        if atype == fracttypes.ComplexArray:
             indexes[-1] = ir.Binop(
                 '*',
                 [ir.Const(2,node,fracttypes.Int), indexes[-1]],
                 node, fracttypes.Int)
-            
+
         init_exp = self.coerce(
             ir.Call("_alloc", [arena, size] + indexes, node, fracttypes.VoidArray),
             atype)
@@ -757,8 +757,8 @@ class TBase:
             ir.Var(node.leaf, node, atype),
             init_exp,
             node,
-            atype)            
-                
+            atype)
+
     def exp(self,node):
         if node.type == "const":
             r = self.const(node)
@@ -805,7 +805,7 @@ class TBase:
                 op = self.findOp(node.leaf, node.pos,children)
             except Exception, err2:
                 raise err
-            
+
         except KeyError, err:
             raise TranslationError(
                     "Unknown function %s on line %d" % (node.leaf,node.pos))
@@ -815,28 +815,28 @@ class TBase:
             implicit_children = [
                 ir.Var(name, None, type) for name in op.implicit_args]
             children = implicit_children + children
-            
+
         children = self.coerceList(op.args,children)
 
         # use the leaf's name unless the function specifies otherwise
         name = getattr(op, "override_name", node.leaf)
-        
+
         return ir.Call(name, children, node, op.ret)
-    
+
     def shortcut(self, node):
         # convert into an if-expression
         trueDest = self.newLabel(node)
         falseDest = self.newLabel(node)
         doneDest = self.newLabel(node)
-        
+
         node.children[0] = self.makeCompare(node.children[0])
 
-        children = map(lambda n : self.exp(n) , node.children)        
+        children = map(lambda n : self.exp(n) , node.children)
         op = self.findOp(node.leaf, node.pos ,children)
         children = self.coerceList(op.args,children)
 
         temp = ir.Var(self.symbols.newTemp(Bool),node, Bool)
-        
+
         # a && b = eseq(if(a) then t = (bool)b else t = false; t)
         #        = eseq(cjump(==,a,0,td,fd),
         #               lab(td),move(t,b),jmp(end),
@@ -847,13 +847,13 @@ class TBase:
             trueBlock = ir.Seq(
                 [trueDest, ir.Move(temp, children[1],node, children[1].datatype),
                  ir.Jump(doneDest.name, node)], node)
-            
+
             # code to set temp to false
             falseBlock = ir.Seq(
                 [falseDest,
                  ir.Move(temp, ir.Const(0,node,Bool),node, Bool),
                  ir.Jump(doneDest.name, node)], node)
-            
+
         else:
             # a || b = eseq(if(a) then t = true else t = (bool)b; t)
 
@@ -868,13 +868,13 @@ class TBase:
                 [falseDest,
                  ir.Move(temp, children[1],node, children[1].datatype),
                  ir.Jump(doneDest.name, node)], node)
-            
+
         # construct actual if operation
         test = ir.CJump(children[0].op,
                         children[0].children[0],
                         children[0].children[1],
                         trueDest.name, falseDest.name, node)
-        
+
         r = ir.ESeq([test, trueBlock, falseBlock, doneDest],
                     temp, node, op.ret)
         return r
@@ -887,7 +887,7 @@ class TBase:
                 return i
             i += 1
         raise ValueError, "not found"
-    
+
     def binop(self, node):
         if self.isShortcut(node):
             return self.shortcut(node)
@@ -899,7 +899,7 @@ class TBase:
             return ir.Binop(node.leaf,
                             children,
                             node,op.ret)
-    
+
     def id(self, node):
         try:
             node.datatype = self.symbols[node.leaf].type
@@ -912,7 +912,7 @@ class TBase:
                     fracttypes.Complex, None, node.pos)
             except KeyError, e:
                 raise TranslationError("%d: %s" % (node.pos, e.args[0]))
-            
+
             node.datatype = fracttypes.Complex
         except AttributeError:
             # if this is a function, it's an error unless it has an overload
@@ -923,15 +923,15 @@ class TBase:
             except TranslationError:
                 # couldn't find one, treat this as an accidental function use
                 pass
-            
+
             msg = "%d: '%s' is a function name and cannot be used here. Perhaps you meant to call the function instead?" % \
                       (node.pos, node.leaf)
             raise TranslationError(msg)
-        
+
         return ir.Var(node.leaf, node, node.datatype)
-        
+
     def const(self,node):
-        return ir.Const(node.leaf, node, node.datatype)        
+        return ir.Const(node.leaf, node, node.datatype)
 
     def string(self,node):
         if node.children == None or node.children == []:
@@ -945,16 +945,16 @@ class TBase:
         try:
             val = self.symbols["__enum_" + node.leaf].value
             return ir.Const(val, node, fracttypes.Int)
-        except KeyError, err:            
+        except KeyError, err:
             msg = "%d: Unknown enumeration value '%s'" % (node.pos,node.leaf)
             raise TranslationError(msg)
-        
+
     def coerceList(self,expList,typeList):
         return map( lambda (exp,ty) : self.coerce(exp,ty) ,
                     zip(typeList, expList))
-    
+
     def coerce(self, exp, expectedType):
-        '''insert code to cast exp to expectedType 
+        '''insert code to cast exp to expectedType
            or produce an error if conversion is not permitted'''
 
         #if exp.datatype == None or expectedType == None:
@@ -967,7 +967,7 @@ class TBase:
             return ir.Cast(exp, exp.node, expectedType)
         else:
             self.badCast(exp,expectedType)
-            
+
     def init(self,node):
         self.add_to_section("init", self.stmlist(node))
 
@@ -985,7 +985,7 @@ class TBase:
             bail_stm = ir.Move(
                 ir.Var("__bailout",node, Bool),
                 bail_stm,node,Bool)
-            bailList.children[-1] = bail_stm            
+            bailList.children[-1] = bail_stm
             self.sections["bailout"] = bailList
         except IndexError:
             self.warnings.append("No bailout expression found. Calculation will never bail out.")
@@ -1000,7 +1000,7 @@ class TBase:
            ("%s: invalid type %s for %s, expecting %s" %
             (exp.node.pos, strOfType(exp.datatype),
              exp.node.leaf, strOfType(expectedType))))
-    
+
     def warnCast(self,exp,expectedType):
         msg = "%s: Warning: conversion from %s to %s" % \
         (exp.node.pos, strOfType(exp.datatype), strOfType(expectedType))
@@ -1026,7 +1026,7 @@ class T(TBase):
     def main(self, f):
         if len(f.children) == 0:
             return
-        
+
         if f.children[0].type == "error":
             self.error(f.children[0].leaf)
             return
@@ -1037,7 +1037,7 @@ class T(TBase):
         gradient_var = Var(Gradient, 0, -1)
         self.symbols.ensure("@_gradient", gradient_var)
         self.symbols["@_gradient"].default = ir.Const(0, f, Gradient)
-        
+
         # lookup sections in order
         s = f.childByName("default")
         if s: self.default(s)
@@ -1054,7 +1054,7 @@ class T(TBase):
 
         #  ignore switch and builtin for now
 
-    def canonicalizeSections(self,f):        
+    def canonicalizeSections(self,f):
         '''a nameless section (started by ':') is the same as a loop
            section with the last stm as a bailout section - make this
            change'''
@@ -1067,7 +1067,7 @@ class T(TBase):
                 self.dupSectionWarning("init")
             else:
                 s.leaf = "init"
-        
+
         s = f.childByName("")
         if not s or s.children == []:
             return
@@ -1078,13 +1078,13 @@ class T(TBase):
         else:
             bailout = [s.children[-1]]
             loop = s.children[:-1]
-            
+
         oldbailout = f.childByName("bailout")
         if oldbailout:
             self.dupSectionWarning("bailout")
         else:
             f.children.append(Stmlist("bailout",bailout, -1))
-        
+
         oldloop = f.childByName("loop")
         if oldloop:
             self.dupSectionWarning("loop")
@@ -1114,7 +1114,7 @@ class Transform(TBase):
     def main(self, f):
         if len(f.children) == 0:
             return
-        
+
         if f.children[0].type == "error":
             self.error(f.children[0].leaf)
             return
@@ -1136,11 +1136,11 @@ class ParFile(TBase):
 
         self.grad = []
         self.main(f)
-        
+
     def main(self, f):
         if len(f.children) == 0:
             return
-        
+
         if f.children[0].type == "error":
             self.error(f.children[0].leaf)
             return
@@ -1151,14 +1151,14 @@ class ParFile(TBase):
 
     def params(self, node):
         self.update_settings("gradient", node)
-        
+
     def set(self,node):
         name = node.children[0].leaf
         val = self.const_exp(node.children[1])
         return ir.Move(
             ir.Var(name, node, val.datatype),
             val, node, val.datatype)
-    
+
 class GradientFunc(TBase):
     "For translating UltraFractal .ugr files"
     def __init__(self,f,prefix,dump=None):
@@ -1166,11 +1166,11 @@ class GradientFunc(TBase):
 
         self.grad = []
         self.main(f)
-        
+
     def main(self, f):
         if len(f.children) == 0:
             return
-        
+
         if f.children[0].type == "error":
             self.error(f.children[0].leaf)
             return
@@ -1183,7 +1183,7 @@ class GradientFunc(TBase):
 
     def gradient(self, node):
         self.update_settings("gradient", node)
-        
+
     def opacity(self, node):
         self.update_settings("opacity", node)
 
@@ -1193,7 +1193,7 @@ class GradientFunc(TBase):
         return ir.Move(
             ir.Var(name, node, val.datatype),
             val, node, val.datatype)
-        
+
 class ColorFunc(TBase):
     "For translating .ucl files"
     def __init__(self,f,name,dump=None):
@@ -1222,13 +1222,13 @@ class ColorFunc(TBase):
         density = Var(Float, 0.0, -1)
         density.default = ir.Const(1.0,-1,fracttypes.Float)
         density.caption = ir.Const("Color Density", -1, fracttypes.String)
-        self.symbols["@_density"] = density        
-        
+        self.symbols["@_density"] = density
+
     def index_calc(self, var):
         # @transfer(var) * @density + @offset
         return \
-            Binop('+', 
-                  Binop('*', 
+            Binop('+',
+                  Binop('*',
                         ID("@_density",-1),
                         Funcall("@_transfer",[var],-1), -1),
                   ID("@_offset",-1),-1)
@@ -1250,15 +1250,15 @@ class ColorFunc(TBase):
             "",
             [ Assign(ID("#index",-1), self.index_calc(ID("#index",-1)), -1)],
             -1)
-        
+
         TBase.final(self,f)
         TBase.final(self,transfer)
-        
+
     def main(self,f):
         if f.children[0].type == "error":
             self.error(f.children[0].leaf)
             return
-            
+
         self.canonicalizeSections(f)
         s = f.childByName("default")
         if s: self.default(s)
@@ -1286,7 +1286,7 @@ class ColorFunc(TBase):
         if self.dumpCanon:
             print f.pretty()
 
-parser = fractparser.parser
+# parser = fractparser.parser
 
 def main(args):
     for arg in args:
@@ -1303,4 +1303,4 @@ def main(args):
 # debugging
 if __name__ == '__main__':
     main(sys.argv[1:])
-    
+
