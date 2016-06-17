@@ -390,12 +390,6 @@ class Compiler:
     def is_inline(self,filename, formname):
         return not self.files[filename].file_backed
 
-    def compile(self,ir,options={}):
-        import codegen
-        cg = codegen.T(ir.symbols,options)
-        cg.output_all(ir)
-        return cg
-
     def hashcode(self,c_code):
         hash = hashlib.md5()
         hash.update(c_code)
@@ -485,24 +479,4 @@ def ParseFormulaFileRemote(s):
 instance = Compiler()
 instance.update_from_prefs(fractconfig.instance)
 
-def usage():
-    print "FC : a compiler from Fractint .frm files to C code"
-    print "fc.py -o [outfile] -f [formula] infile"
-    sys.exit(1)
-
-def generate(fc,formulafile, formula, outputfile, cfile):
-    assert False
-
-def main(args):
-    fc = Compiler()
-    fc.leave_dirty = True
-    for arg in args:
-        ff = fc.load_formula_file(arg)
-        for name in ff.get_formula_names():
-            print name
-            form = fc.get_formula(arg,name)
-            cg = fc.compile(form)
-
-if __name__ == '__main__':
-    main(sys.argv[1:])
 
