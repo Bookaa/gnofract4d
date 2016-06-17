@@ -189,12 +189,10 @@ class T:
 
     def get_named_param_value(self,name):
         if g_useMyFormula:
-            if self.formule.me:
-                op = self.formule.me.symbols.order_of_params()
-                ord = op.get(self.formule.me.symbols.mangled_name(name))
-                return self.params[ord]
-            else:
-                assert False
+            op = self.formule.symbols_order_of_params_()
+            from fsymbol import mangle
+            ord = op.get(mangle(name))
+            return self.params[ord]
 
         op = self.formula.symbols.order_of_params()
         ord = op.get(self.formula.symbols.mangled_name(name))
@@ -285,12 +283,12 @@ class T:
                 self.changed()
         elif t == fracttypes.Bool:
             # don't use bool(val) - that makes "0" = True
-	    try:
+            try:
                i = int(val)
-	       i = (i != 0)
-	    except ValueError:
-	       # an old release included a 'True' or 'False' string
-	       if val == "True": i = 1
+               i = (i != 0)
+            except ValueError:
+               # an old release included a 'True' or 'False' string
+               if val == "True": i = 1
                else: i = 0
             if self.params[ord] != i:
                 self.params[ord] = i
@@ -309,12 +307,7 @@ class T:
 
     def set_named_func(self,func_to_set,val):
         if g_useMyFormula:
-            if self.formule.me:
-                fname = self.formule.me.symbols.demangle(func_to_set)
-                func = self.formule.me.symbols.get(fname)
-                return self.set_func(func[0],val)
-
-            cname = self.formule.get_func_value_(func_to_set)
+            cname = self.get_func_value(func_to_set)
             if cname == val:
                 return False
             assert False
@@ -487,6 +480,8 @@ class MyFormula:
     def get_func_value_(self, func_to_get):
         if self.me:
             func = self.me.symbols.get(func_to_get)
+            if func is None:
+                return None
             return func[0].cname
 
         fname = demangle(func_to_get)
@@ -500,10 +495,7 @@ class MyFormula:
         if cname:
             return cname
 
-        assert False
-        #fname = self.formula.symbols.demangle(func_to_get)
-        #func = self.formula.symbols[fname]
-        #return func[0].cname
+        return None
 
     def get_func_value2_(self, func_to_get):
         if self.me:

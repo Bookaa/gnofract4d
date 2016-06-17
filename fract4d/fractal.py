@@ -193,11 +193,14 @@ class T(fctutils.T):
             i += 1
 
     def get_gradient(self):
-        try:
-            g = self.forms[0].get_named_param_value("@_gradient")
-            if g == 0:
-                g = self.default_gradient
-        except Exception, exn:
+        if formsettings.g_useMyFormula:
+            if self.forms[0].formule is None:
+                return self.default_gradient
+        else:
+            if self.forms[0].formula is None:
+                return self.default_gradient
+        g = self.forms[0].get_named_param_value("@_gradient")
+        if g == 0:
             g = self.default_gradient
         return g
 
@@ -550,7 +553,7 @@ class T(fctutils.T):
 
         if formsettings.g_useMyFormula:
             cname = self.forms[0].formule.get_func_value_('@bailfunc')
-            if cname != funcname:
+            if cname is not None and cname != funcname:
                 assert False
         else:
             func = self.forms[0].formula.symbols.get("@bailfunc")
