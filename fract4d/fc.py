@@ -33,8 +33,6 @@ import re
 import copy
 
 import fractconfig
-import fractparser
-import fractlexer
 import translate
 import codegen
 import fracttypes
@@ -60,7 +58,7 @@ class FormulaTypes:
         re.compile(r'\.uxf\Z', re.IGNORECASE),
         re.compile(r'(\.ugr\Z)|(\.map\Z)|(\.ggr\Z)|(\.cs\Z)|(\.pal\Z)', re.IGNORECASE)
         ]
-    
+
     # indexed by FormulaTypes above
     extensions = [ "frm", "cfrm", "uxf", "ggr", "pal"]
 
@@ -73,7 +71,7 @@ class FormulaTypes:
         if FormulaTypes.matches[FormulaTypes.FRACTAL].search(filename):
             return translate.T
         elif FormulaTypes.matches[FormulaTypes.COLORFUNC].search(filename):
-            return translate.ColorFunc        
+            return translate.ColorFunc
         elif FormulaTypes.matches[FormulaTypes.TRANSFORM].search(filename):
             return translate.Transform
         elif FormulaTypes.matches[FormulaTypes.GRADIENT].search(filename):
@@ -110,7 +108,7 @@ class FormulaTypes:
                 return True
         return False
     isFormula = staticmethod(isFormula)
-    
+
 class FormulaFile:
     def __init__(self, formulas, contents,mtime,filename):
         self.formulas = formulas
@@ -118,14 +116,14 @@ class FormulaFile:
         self.mtime = mtime
         self.filename = filename
         self.file_backed = True
-        
+
     def out_of_date(self):
         return self.file_backed and \
                os.stat(self.filename)[stat.ST_MTIME] > self.mtime
-    
+
     def get_formula(self,formula):
         return self.formulas.get(formula)
-    
+
     def get_formula_names(self, skip_type=None):
         '''return all the coloring funcs except those marked as only suitable
         for the OTHER kind (inside vs outside)'''
@@ -136,7 +134,7 @@ class FormulaFile:
                 names.append(name)
 
         return names
-    
+
 class Compiler:
     def __init__(self):
         self.c_code = ""
@@ -170,7 +168,7 @@ class Compiler:
         self.set_func_path_list(prefs.get_list("formula_path"))
         self.path_lists[FormulaTypes.GRADIENT] = copy.copy(
             prefs.get_list("map_path"))
-        
+
     def set_flags(self,flags):
         self.flags = flags
 
@@ -186,7 +184,7 @@ class Compiler:
         self.path_lists[FormulaTypes.FRACTAL] = copy.copy(list)
         self.path_lists[FormulaTypes.COLORFUNC] = copy.copy(list)
         self.path_lists[FormulaTypes.TRANSFORM] = copy.copy(list)
-        
+
     def init_cache(self):
         self.cache.init()
 
@@ -207,7 +205,7 @@ class Compiler:
 
     def find_formula_files(self):
         return self.find_files_of_type(FormulaTypes.FRACTAL)
-                
+
     def find_colorfunc_files(self):
         return self.find_files_of_type(FormulaTypes.COLORFUNC)
 
@@ -218,7 +216,7 @@ class Compiler:
         file = self.files.get(fname)
         if not file:
             self.load_formula_file(fname)
-        
+
         return self.files[fname].contents
 
     def nextInlineFile(self,type):
@@ -248,8 +246,8 @@ class Compiler:
 
     def compile_one(self,formula):
         assert False
-        
-    def compile_all(self,formula,cf0,cf1,transforms,options={}):        
+
+    def compile_all(self,formula,cf0,cf1,transforms,options={}):
         assert False
 
     def compile_all_desc(self,formula,cf0,cf1,transforms,options,desc):
@@ -263,7 +261,7 @@ class Compiler:
         print desc
 
         Call_subprocess_compile(hash, desc)
-        
+
         if os.path.exists(outputfile):
             return outputfile
         print 'compile error'
@@ -274,7 +272,7 @@ class Compiler:
             dir = os.path.dirname(filename)
             if self.path_lists[type].count(dir) == 0:
                 # add directory to search path
-                self.path_lists[type].append(dir)            
+                self.path_lists[type].append(dir)
             return filename
 
         filename = os.path.basename(filename)
@@ -283,7 +281,7 @@ class Compiler:
             if os.path.exists(f):
                 return f
 
-        return self.last_chance(filename)        
+        return self.last_chance(filename)
 
     def add_endlines(self,result,final_line):
         "Add info on which is the final source line of each formula"
@@ -296,35 +294,50 @@ class Compiler:
                 result.children[i].last_line = final_line
             else:
                 result.children[i].last_line = result.children[i+1].pos-1
-            
+
     def parse_file(self,s):
         # print 'input', type(s), len(s)
-        self_parser = fractparser.parser
-        self_lexer = fractlexer.lexer
-        self_lexer.lineno = 1
-        result = None
-        try:
-            pp = preprocessor.T(s)
-            result = self_parser.parse(pp.out())
-        except preprocessor.Error, err:
-            # create an Error formula listing the problem
-            result = self_parser.parse('error {\n}\n')
+        if True:
+            dict_ = ParseFormulaFileRemote(s)
 
-            result.children[0].children[0] = \
-                absyn.PreprocessorError(str(err), -1)
-            #print result.pretty()
+            result = absyn.Node(0,0)
+            result.SerialIn(dict_)
+        else:
+            import fractparser
+            import fractlexer
+            self_parser = fractparser.parser
+            self_lexer = fractlexer.lexer
+            self_lexer.lineno = 1
+            result = None
+            try:
+                pp = preprocessor.T(s)
+                result = self_parser.parse(pp.out())
+            except preprocessor.Error, err:
+                # create an Error formula listing the problem
+                result = self_parser.parse('error {\n}\n')
 
-        self.add_endlines(result,self_lexer.lineno)
+                result.children[0].children[0] = \
+                    absyn.PreprocessorError(str(err), -1)
+                #print result.pretty()
+
+            self.add_endlines(result,self_lexer.lineno)
+
+        if False:
+            sJson = result.SerialOut()
+            import json
+            dict_ = json.loads(sJson)
+            node1 = absyn.Node(0,0)
+            node1.SerialIn(dict_)
 
         formulas = {}
         for formula in result.children:
             formulas[formula.leaf] = formula
         # print 'output', formulas
         return formulas
-    
+
     def load_formula_file(self, filename):
         try:
-            type = FormulaTypes.guess_formula_type_from_filename(filename)            
+            type = FormulaTypes.guess_formula_type_from_filename(filename)
             filename = self.find_file(filename,type)
             s = open(filename,"r").read() # read in a whole file
             basefile = os.path.basename(filename)
@@ -341,7 +354,7 @@ class Compiler:
                 formulas = self.parse_file(s)
 
             ff = FormulaFile(formulas,s,mtime,filename)
-            self.files[basefile] = ff 
+            self.files[basefile] = ff
 
             return ff
         except Exception, err:
@@ -351,11 +364,11 @@ class Compiler:
     def out_of_date(self,filename):
         basefile = os.path.basename(filename)
         ff = self.files.get(basefile)
-        if not ff:            
+        if not ff:
             self.load_formula_file(filename)
             ff = self.files.get(basefile)
         return ff.out_of_date()
-    
+
     def get_file(self,filename):
         basefile = os.path.basename(filename)
         ff = self.files.get(basefile)
@@ -364,7 +377,7 @@ class Compiler:
             ff = self.files.get(basefile)
         elif ff.out_of_date():
             self.load_formula_file(filename)
-            ff = self.files.get(basefile)            
+            ff = self.files.get(basefile)
         return ff
 
     def get_formula_text(self,filename,formname):
@@ -390,7 +403,7 @@ class Compiler:
         hash.update(self.flags)
         hash.update(self.libs)
         return hash.hexdigest()
-        
+
     def generate_code(self,ir, cg, outputfile=None,cfile=None):
         assert False
 
@@ -401,7 +414,7 @@ class Compiler:
 
     def guess_type_from_filename(self,filename):
         return FormulaTypes.guess_type_from_filename(filename)
-    
+
     def get_formula(self, filename, formname,prefix=""):
         type = self.guess_type_from_filename(filename)
 
@@ -418,7 +431,7 @@ class Compiler:
         else:
             compiled_gradient = self.get_formula(filename,formname)
             g.load_ugr(compiled_gradient)
-            
+
         return g
 
     def get_random_gradient(self):
@@ -427,7 +440,7 @@ class Compiler:
     def get_random_formula(self,type):
         files = self.find_files_of_type(type)
         file = random.choice(files)
-        
+
         if gradient.FileType.guess(file) == gradient.FileType.UGR:
             ff = self.get_file(file)
             formulas = ff.formulas.keys()
@@ -435,7 +448,7 @@ class Compiler:
         else:
             formula = None
         return (file,formula)
-    
+
     def clear_cache(self):
         self.cache.clear()
 
@@ -450,7 +463,25 @@ def Call_subprocess_compile(hash, desc):
     print >>p.stdin, hash
     print >>p.stdin, desc
     print p.communicate("\n")[0]
-    
+
+def ParseFormulaFileRemote(s):
+    #print 'length1', len(s)
+    import json
+    sFile = json.dumps(s)
+    # print 'send length', len(sFile)
+    from subprocess import PIPE, Popen
+    p = Popen(["python", '../gnofract4d.compiler/main_compile.py'], stdin=PIPE, stdout=PIPE)
+    print >>p.stdin, '4'
+    print >>p.stdin, sFile
+    while True:
+        s = p.stdout.readline().strip()
+        if s == 'next is json':
+            break
+        print s
+    sJson = p.communicate("\n")[0]
+    dict_ = json.loads(sJson)
+    return dict_
+
 instance = Compiler()
 instance.update_from_prefs(fractconfig.instance)
 
@@ -471,7 +502,7 @@ def main(args):
             print name
             form = fc.get_formula(arg,name)
             cg = fc.compile(form)
-            
+
 if __name__ == '__main__':
     main(sys.argv[1:])
 

@@ -433,7 +433,7 @@ g_useMyFormula = True
 
 class MyFormula:
     def __init__(self, file_, func_, prefix_, sbody, compiler):
-        if True:
+        if False:
             self.file_ = file_
             self.func_ = func_
             self.prefix_ = prefix_

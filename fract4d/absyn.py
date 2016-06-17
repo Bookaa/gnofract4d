@@ -18,10 +18,10 @@ class Node:
          self.leaf = leaf
          self.datatype = datatype
          self.pos = pos
-         
+
     def __str__(self):
         return "[%s : %s]" % (self.type , self.leaf)
-    
+
     def pretty(self,depth=0):
         str = " " * depth + "[%s : %s" % (self.type , self.leaf)
         if self.datatype != None:
@@ -31,11 +31,11 @@ class Node:
             for child in self.children:
                 assert(isinstance(child,Node))
                 str += child.pretty(depth+1) + "\n"
-            str += " " * depth + "]" 
+            str += " " * depth + "]"
         else:
             str += "]"
         return str
-    
+
     def __iter__(self):
         return NodeIter(self)
 
@@ -45,24 +45,64 @@ class Node:
             if child.leaf == name:
                 return child
         return None
-    
+
     def DeepCmp(self,other):
         if self.type < other.type: return -1
         if self.type > other.type: return 1
 
         if self.leaf < other.leaf: return -1
         if self.leaf > other.leaf: return 1
-        
+
         #if len(self.children) < len(other.children): return -1
         #if len(self.children) > len(other.children): return 1
 
         if not self.children and not other.children: return 0
-        
+
         for (child, otherchild) in zip(self.children,other.children):
             eql = child.DeepCmp(otherchild)
             if eql: return eql
         return eql
 
+    def SerialOut(self):
+        # self.type is str
+        # self.leaf is str
+        # self.pos is int
+        # self.datatype is None or int
+        lst = []
+        for nod in self.children:
+            s = nod.SerialOut()
+            lst.append(s)
+
+        dict_ = {'type' : self.type, 'leaf' : self.leaf, 'pos' : self.pos, 'datatype' : self.datatype,}
+        if hasattr(self, 'symmetry'):
+            dict_['symmetry'] = self.symmetry
+        if hasattr(self, 'last_line'):
+            dict_['last_line'] = self.last_line
+        import json
+        if not lst:
+            dict_['children'] = []
+            s = json.dumps(dict_)
+        else:
+            s = json.dumps(dict_)
+            s2 = ', '.join(lst)
+            assert s[-1] == '}'
+            s = s[:-1] + (', "children": [%s]}' % s2)
+        return s
+    def SerialIn(self, dict_):
+        self.type = dict_['type']
+        self.leaf = dict_['leaf']
+        self.pos = dict_['pos']
+        self.datatype = dict_['datatype']
+        if 'symmetry' in dict_:
+            self.symmetry = dict_['symmetry']
+        if 'last_line' in dict_:
+            self.last_line = dict_['last_line']
+        lst = dict_['children']
+        if lst:
+            for dict1 in lst:
+                m = Node(0,0)
+                m.SerialIn(dict1)
+                self.children.append(m)
 # def preorder(t):
 #     if t:
 #         print "pre",t
@@ -74,7 +114,7 @@ class Node:
 class NodeIter:
     def __init__(self,node):
         self.nodestack = [(node,-1)]
-        
+
     def __iter__(self):
         return self
 
@@ -83,7 +123,7 @@ class NodeIter:
             return node
         else:
             return node.children[child]
-        
+
     def next(self):
         #print map(lambda (n,x) :"%s %s" % (n,x), self.nodestack)
         if self.nodestack == []:
@@ -96,12 +136,12 @@ class NodeIter:
             if self.nodestack == []:
                 return ret
             (node,child) = self.nodestack.pop()
-            
+
         self.nodestack.append((node,child+1))
-        self.nodestack.append((node.children[child],-1))                
-        
+        self.nodestack.append((node.children[child],-1))
+
         return ret
-    
+
 def CheckTree(tree, nullOK=0):
     if nullOK and tree == None:
         return 1
@@ -123,7 +163,7 @@ def Set(id, s, pos):
 
 def SetType(id,t,pos):
     type = fracttypes.typeOfStr(t)
-    return Node("set", pos, [id, Empty(pos)], None, type) 
+    return Node("set", pos, [id, Empty(pos)], None, type)
 
 def Number(n,pos):
     if re.search('[.eE]',n):
@@ -195,13 +235,13 @@ def Formula(id, stmlist, pos):
         id = id[:m.start(1)]
     else:
         symmetry = None
-        
+
     n = Node("formula", pos, stmlist, id)
     n.symmetry = symmetry
-    
+
     return n
 
-def Param(id,settinglist,type,pos):    
+def Param(id,settinglist,type,pos):
     return Node("param", pos, settinglist, id, fracttypes.typeOfStr(type))
 
 def Func(id,settinglist,type, pos):
@@ -223,7 +263,7 @@ def If(test, left, right, pos):
 def Error2(str, pos):
     if str == "$":
         return Node(
-            "error", pos, None, 
+            "error", pos, None,
             "%d: Error: unexpected preprocessor directive" % pos)
     return Node("error", pos, None,
                 "%d: Syntax error: unexpected '%s' " % (pos,str))

@@ -18,9 +18,9 @@ def show_settings(parent,alt_parent, f,dialog_mode):
 class SettingsDialog(dialog.T):
     def show(parent, alt_parent, f,dialog_mode):
         dialog.T.reveal(SettingsDialog,dialog_mode, parent, alt_parent, f)
-            
+
     show = staticmethod(show)
-    
+
     def __init__(self, main_window, f):
         dialog.T.__init__(
             self,
@@ -37,7 +37,7 @@ class SettingsDialog(dialog.T):
         self.vbox.pack_start(self.controls, True, True)
         self.tables = [None,None,None,None]
         self.selected_transform = None
-        
+
         self.create_formula_parameters_page()
         self.create_outer_page()
         self.create_inner_page()
@@ -57,11 +57,11 @@ class SettingsDialog(dialog.T):
 
     def gradarea_mousemoved(self, widget, event):
         pass
-    
+
     def gradarea_realized(self, widget):
         self.gradgc = widget.window.new_gc(fill=gtk.gdk.SOLID)
         return True
-        
+
     def gradarea_expose(self, widget, event):
         #Draw the gradient itself
         r = event.area
@@ -83,7 +83,7 @@ class SettingsDialog(dialog.T):
         # draw the color preview bar
         wwidth = float(widget.allocation.width)
         colorband_height = widget.allocation.height - self.grad_handle_height
-        
+
         colormap = widget.get_colormap()
         grad = self.f.get_gradient()
         for i in xrange(x, x+w):
@@ -94,7 +94,7 @@ class SettingsDialog(dialog.T):
                 int(col[1]*65535),
                 int(col[2]*65535),
                 True, True)
-            
+
             self.gradgc.set_foreground(gtkcol)
             widget.window.draw_line(
                 self.gradgc, i, y, i, min(y+h, colorband_height))
@@ -110,7 +110,7 @@ class SettingsDialog(dialog.T):
 
         for i in xrange(len(grad.segments)):
             seg = grad.segments[i]
-            
+
             left = int(seg.left * wwidth)
             mid = int(seg.mid * wwidth)
             right = int(seg.right * wwidth)
@@ -147,15 +147,15 @@ class SettingsDialog(dialog.T):
 
         browse_button.connect(
             "clicked", self.show_browser, browser_model.GRADIENT)
-            
+
         gradbox.pack_start(browse_button, False, False, 1)
-        
+
         # gradient viewer
         self.grad_handle_height = 8
-        
+
         self.gradarea=gtk.DrawingArea()
         c = utils.get_rgb_colormap()
-        self.gradarea.set_colormap(c)        
+        self.gradarea.set_colormap(c)
 
         self.gradarea.add_events(
             gtk.gdk.BUTTON_RELEASE_MASK |
@@ -184,7 +184,7 @@ class SettingsDialog(dialog.T):
             grad.segments[0].left_color, self.color_changed, True)
         self.left_color_button.widget.set_tooltip_text(
             _("Color of segment's left end"))
-        
+
         self.right_color_button = utils.ColorButton(
             grad.segments[0].right_color, self.color_changed, False)
         self.right_color_button.widget.set_tooltip_text(
@@ -213,11 +213,11 @@ class SettingsDialog(dialog.T):
         self.copy_left_button.connect('clicked', self.copy_left)
         table.attach(self.copy_left_button,
                      2,3,1,2, gtk.EXPAND | gtk.FILL, gtk.EXPAND)
-        
+
         self.copy_right_button = gtk.Button(_("Copy>"))
         self.copy_right_button.connect('clicked', self.copy_right)
         table.attach(self.copy_right_button,
-                     3,4,1,2, gtk.EXPAND | gtk.FILL, gtk.EXPAND)        
+                     3,4,1,2, gtk.EXPAND | gtk.FILL, gtk.EXPAND)
 
         self.inner_solid_button = utils.ColorButton(
             utils.floatColorFrom256(self.f.solids[1]),
@@ -248,7 +248,7 @@ class SettingsDialog(dialog.T):
         segments = self.f.get_gradient().segments
         segments[i-1].right_color = copy.copy(segments[i].left_color)
         self.f.changed()
-        
+
     def copy_right(self,widget):
         i = self.selected_segment
         segments = self.f.get_gradient().segments
@@ -274,12 +274,12 @@ class SettingsDialog(dialog.T):
         if self.selected_segment > 0:
             self.selected_segment -= 1
         self.f.changed()
-        
+
     def solid_color_changed(self, r, g, b, index):
         self.f.set_solid(
             index,
             utils.color256FromFloat(r,g,b, self.f.solids[index]))
-        
+
     def color_changed(self,r,g,b, is_left):
         #print "color changed", r, g, b, is_left
         self.f.get_gradient().set_color(
@@ -291,7 +291,7 @@ class SettingsDialog(dialog.T):
 
     def select_segment(self,i):
         self.selected_segment = i
-        
+
         if i == -1:
             self.left_color_button.set_color([0.5,0.5,0.5,1])
             self.right_color_button.set_color([0.5,0.5,0.5,1])
@@ -319,7 +319,7 @@ class SettingsDialog(dialog.T):
         label = gtk.Label(_("_Location"))
         label.set_use_underline(True)
         self.notebook.append_page(table,label)
-        
+
     def create_location_table(self):
         table = gtk.Table(5,2,False)
         self.create_param_entry(table,0,_("_X :"), self.f.XCENTER)
@@ -333,9 +333,9 @@ class SettingsDialog(dialog.T):
         self.create_param_entry(table,8,_("YZ (_4):"), self.f.YZANGLE)
         self.create_param_entry(table,9,_("YW (_5):"), self.f.YWANGLE)
         self.create_param_entry(table,10,_("ZW (_6):"), self.f.ZWANGLE)
-        
+
         return table
-    
+
     def create_general_page(self):
         table = gtk.Table(5,2,False)
         label = gtk.Label(_("_General"))
@@ -354,15 +354,15 @@ class SettingsDialog(dialog.T):
     def create_tolerance_entry(self, table, row, text):
         label = gtk.Label(text)
         label.set_use_underline(True)
-        
+
         label.set_justify(gtk.JUSTIFY_RIGHT)
         table.attach(label,0,1,row,row+1,0,0,2,2)
-        
+
         entry = gtk.Entry()
         entry.set_activates_default(True)
         table.attach(entry,1,2,row,row+1,gtk.EXPAND | gtk.FILL, 0, 2, 2)
         label.set_mnemonic_widget(entry)
-        
+
         def set_entry(f,*args):
             try:
                 current = float(entry.get_text())
@@ -379,7 +379,7 @@ class SettingsDialog(dialog.T):
             except Exception, exn:
                 print exn
             return False
-        
+
         set_entry(self.f)
         self.f.connect('parameters-changed', set_entry)
         self.f.connect('tolerance-changed', set_entry)
@@ -390,7 +390,7 @@ class SettingsDialog(dialog.T):
         widget.set_use_underline(True)
         widget.set_tooltip_text(
             _("If set, Y axis increases down the screen, otherwise up the screen"))
-        
+
         def set_widget(*args):
             widget.set_active(self.f.yflip)
 
@@ -408,7 +408,7 @@ class SettingsDialog(dialog.T):
         widget.set_use_underline(True)
         widget.set_tooltip_text(
             _("Try to speed up calculations by looking for loops. Can cause incorrect images with some functions, though."))
-        
+
         def set_widget(*args):
             widget.set_active(self.f.periodicity)
 
@@ -425,16 +425,16 @@ class SettingsDialog(dialog.T):
         label = gtk.Label(text)
         label.set_use_underline(True)
         frame = gtk.Frame()
-        frame.set_shadow_type(gtk.SHADOW_ETCHED_IN)        
+        frame.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         frame.add(page)
         self.notebook.append_page(frame,label)
-        
+
     def remove_transform(self,*args):
         if self.selected_transform == None:
             return
 
         self.f.remove_transform(self.selected_transform)
-        
+
     def create_transforms_page(self):
         vbox = gtk.VBox()
         table = Table(5,2,False)
@@ -455,7 +455,7 @@ class SettingsDialog(dialog.T):
         self.transform_view.set_size_request(150,250)
         renderer = gtk.CellRendererText ()
         column = gtk.TreeViewColumn ('_Transforms', renderer, text=0)
-        
+
         self.transform_view.append_column (column)
 
         sw = gtk.ScrolledWindow()
@@ -479,7 +479,7 @@ class SettingsDialog(dialog.T):
 
         table.attach(
             remove_button, 1,2,1,2, gtk.EXPAND | gtk.FILL, 0, 2, 2)
-        
+
         selection = self.transform_view.get_selection()
         selection.connect('changed',self.transform_selection_changed,vbox)
 
@@ -491,7 +491,7 @@ class SettingsDialog(dialog.T):
         (model,iter) = selection.get_selected()
         if iter == None:
             self.selected_transform = None
-        else:        
+        else:
             transform = model.get_value(iter,1)
             # this is bogus. How do I get the index into the list in a less
             # stupid way?
@@ -508,7 +508,7 @@ class SettingsDialog(dialog.T):
         label = gtk.Label(self.f.forms[param_type].funcName)
         def set_label(*args):
             label.set_text(self.f.forms[param_type].funcName)
-            
+
         self.f.connect('parameters-changed',set_label)
 
         hbox = gtk.HBox(False,1)
@@ -520,7 +520,7 @@ class SettingsDialog(dialog.T):
         button.connect('clicked', self.show_browser, param_type)
         hbox.pack_start(button)
 
-        typelabel = gtk.Label(typename) 
+        typelabel = gtk.Label(typename)
         typelabel.set_alignment(1.0,0.0)
         table.add(typelabel,0, gtk.EXPAND|gtk.FILL,0,2,2)
         table.add(hbox, 1, gtk.EXPAND | gtk.FILL ,0,2,2)
@@ -528,7 +528,7 @@ class SettingsDialog(dialog.T):
     def update_formula_text(self, f, textview,formindex):
         text = f.forms[formindex].text()
 
-        latin_text = unicode(text,'latin-1')
+        latin_text = unicode(str(text),'latin-1')
         utf8_text = latin_text.encode('utf-8')
 
         textview.get_buffer().set_text(utf8_text,-1)
@@ -544,7 +544,7 @@ class SettingsDialog(dialog.T):
         if buftext == self.f.forms[formtype].text():
             #print "not changed"
             return
-        
+
         #print "text is '%s'" % buftext
         (fileName, formName) = self.f.compiler.add_inline_formula(
             buftext, formtype)
@@ -587,10 +587,10 @@ class SettingsDialog(dialog.T):
 
         apply = gtk.Button(_("Apply Formula Changes"))
         apply.connect(
-            'clicked', 
-            self.change_formula, 
+            'clicked',
+            self.change_formula,
             textview.get_buffer(),
-            formindex, 
+            formindex,
             formtype)
 
         parent.pack_end(apply, False, False, 1)
@@ -602,9 +602,9 @@ class SettingsDialog(dialog.T):
         self.create_formula_widget_table(
             formbox,
             0,
-            _("Formula"), 
+            _("Formula"),
             _("Browse available fractal functions"))
-        
+
         vbox.pack_start(formbox, False, False, 0)
         self.create_formula_text_area(vbox,0,FormulaTypes.FRACTAL)
         self.add_notebook_page(vbox, _("Formula"))
@@ -621,7 +621,7 @@ class SettingsDialog(dialog.T):
         vbox.pack_start(formbox, False, False, 0)
         self.create_formula_text_area(vbox,1,FormulaTypes.COLORFUNC)
         self.add_notebook_page(vbox,_("Outer"))
-        
+
     def create_inner_page(self):
         vbox = gtk.VBox()
         formbox = gtk.VBox()
@@ -637,7 +637,7 @@ class SettingsDialog(dialog.T):
 
 
     def update_transform_parameters(self, parent, *args):
-        widget = self.tables[3] 
+        widget = self.tables[3]
         if widget != None and widget.parent != None:
             parent.remove(self.tables[3])
 
@@ -652,29 +652,29 @@ class SettingsDialog(dialog.T):
 
     def create_transform_widget_table(self,parent):
         self.tables[3] = None
-                    
+
         self.update_transform_parameters(parent)
 
         self.f.connect(
             'formula-changed', self.update_transform_parameters, parent)
         self.f.connect(
             'parameters-changed', self.update_all_widgets, lambda: self.tables[3])
-        
-    def create_formula_widget_table(self,parent,param_type,typename,tip): 
+
+    def create_formula_widget_table(self,parent,param_type,typename,tip):
         self.tables[param_type] = None
-        
+
         def update_formula_parameters(*args):
-            widget = self.tables[param_type] 
+            widget = self.tables[param_type]
             if widget != None and widget.parent != None:
                 parent.remove(self.tables[param_type])
 
             table = Table(5,2,False)
             self.create_browsable_name(table, param_type, typename, tip)
-            
+
             self.f.populate_formula_settings(
                 table,
                 param_type, 1)
-            
+
             table.show_all()
             parent.pack_start(table)
             self.tables[param_type] = table
@@ -682,7 +682,7 @@ class SettingsDialog(dialog.T):
 
         self.f.connect('formula-changed', update_formula_parameters)
         self.f.connect(
-            'parameters-changed', 
+            'parameters-changed',
             self.update_all_widgets, lambda: self.tables[param_type])
 
     def update_all_widgets(self, fractal, container):
@@ -710,19 +710,19 @@ class SettingsDialog(dialog.T):
 
     def show_browser(self,button,type):
         browser.show(self.main_window, self.f, type)
-        
+
     def create_param_entry(self,table, row, text, param):
         label = gtk.Label(text)
         label.set_use_underline(True)
-        
+
         label.set_justify(gtk.JUSTIFY_RIGHT)
         table.attach(label,0,1,row,row+1,0,0,2,2)
-        
+
         entry = gtk.Entry()
         entry.set_activates_default(True)
         table.attach(entry,1,2,row,row+1,gtk.EXPAND | gtk.FILL, 0, 2, 2)
         label.set_mnemonic_widget(entry)
-        
+
         def set_entry(f):
             try:
                 current = float(entry.get_text())
@@ -738,8 +738,8 @@ class SettingsDialog(dialog.T):
             except Exception, exn:
                 print exn
             return False
-        
+
         set_entry(self.f)
         self.f.connect('parameters-changed', set_entry)
         entry.connect('focus-out-event', set_fractal)
-        
+
