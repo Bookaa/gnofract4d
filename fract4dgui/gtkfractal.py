@@ -722,11 +722,7 @@ class T(Hidden):
         form.nudge_param(order, x,y)
 
     def construct_function_menu(self,param,form):
-        from fract4d import formsettings
-        if formsettings.g_useMyFormula:
-            funclist = form.formule.available_param_functions_(param.ret,param.args)
-        else:
-            funclist = form.formula.symbols.available_param_functions(param.ret,param.args)
+        funclist = form.formula.symbols.available_param_functions(param.ret,param.args)
         funclist.sort()
         return funclist
 
@@ -756,11 +752,7 @@ class T(Hidden):
         funclist = self.construct_function_menu(param,form)
         widget = utils.create_option_menu(funclist)
 
-        from fract4d import formsettings
-        if formsettings.g_useMyFormula:
-            formula = form.formule
-        else:
-            formula = form.formula
+        formula = form.formula
         def set_selected_function():
             try:
                 selected_func_name = form.get_func_value(name)
@@ -834,15 +826,9 @@ class T(Hidden):
         if param_type == 0:
             row = self.create_maxiter_widget(table,row)
 
-        from fract4d import formsettings
-        if formsettings.g_useMyFormula:
-            formula = form.formule
-            params = formula.symbols_parameters_()
-            op = formula.symbols_order_of_params_()
-        else:
-            formula = form.formula
-            params = formula.symbols.parameters()
-            op = formula.symbols.order_of_params()
+        formula = form.formula
+        params = formula.symbols.parameters()
+        op = formula.symbols.order_of_params()
 
         keys = params.keys()
         keys.sort()

@@ -193,12 +193,8 @@ class T(fctutils.T):
             i += 1
 
     def get_gradient(self):
-        if formsettings.g_useMyFormula:
-            if self.forms[0].formule is None:
-                return self.default_gradient
-        else:
-            if self.forms[0].formula is None:
-                return self.default_gradient
+        if self.forms[0].formula is None:
+            return self.default_gradient
         g = self.forms[0].get_named_param_value("@_gradient")
         if g == 0:
             g = self.default_gradient
@@ -482,23 +478,15 @@ class T(fctutils.T):
                     self.forms[i].funcFile,self.forms[i].funcName,i)
 
     def set_formula_defaults(self, g=None):
-
-        if formsettings.g_useMyFormula:
-            if self.forms[0].formule == None:
-                return
-        else:
-            if self.forms[0].formula == None:
-                return
+        if self.forms[0].formula == None:
+            return
 
         if g == None:
             g = self.get_gradient()
 
         self.forms[0].set_initparams_from_formula(g)
 
-        if formsettings.g_useMyFormula:
-            lst = self.forms[0].formule.defaults_items_()
-        else:
-            lst = self.forms[0].formula.defaults.items()
+        lst = self.forms[0].formula.defaults.items()
         for (name,val) in lst:
             # FIXME helpfile,helptopic,method,precision,
             #render,skew,stretch
@@ -551,14 +539,9 @@ class T(fctutils.T):
             # FIXME deal with diff
             return
 
-        if formsettings.g_useMyFormula:
-            cname = self.forms[0].formule.get_func_value_('@bailfunc')
-            if cname is not None and cname != funcname:
-                assert False
-        else:
-            func = self.forms[0].formula.symbols.get("@bailfunc")
-            if func != None:
-                self.set_func(func[0],funcname,self.forms[0].formula)
+        func = self.forms[0].formula.symbols.get("@bailfunc")
+        if func != None:
+            self.set_func(func[0],funcname,self.forms[0].formula)
 
     def changed(self,clear_image=True):
         self.dirty = True
@@ -646,34 +629,19 @@ class T(fctutils.T):
             self.antialias = options.antialias
 
     def compile(self):
-        if formsettings.g_useMyFormula:
-            if self.forms[0].formule == None:
-                raise ValueError("no formula")
-            if self.dirtyFormula == False:
-                return self.outputfile
+        if self.forms[0].formula == None:
+            raise ValueError("no formula")
+        if self.dirtyFormula == False:
+            return self.outputfile
 
-            desc = self.serialize_formula()
+        desc = self.serialize_formula()
 
-            outputfile = self.compiler.compile_all_desc(
-                self.forms[0].formule,
-                self.forms[1].formule,
-                self.forms[2].formule,
-                [x.formule for x in self.transforms],
-                self.compiler_options, desc)
-        else:
-            if self.forms[0].formula == None:
-                raise ValueError("no formula")
-            if self.dirtyFormula == False:
-                return self.outputfile
-
-            desc = self.serialize_formula()
-
-            outputfile = self.compiler.compile_all_desc(
-                self.forms[0].formula,
-                self.forms[1].formula,
-                self.forms[2].formula,
-                [x.formula for x in self.transforms],
-                self.compiler_options, desc)
+        outputfile = self.compiler.compile_all_desc(
+            self.forms[0].formula,
+            self.forms[1].formula,
+            self.forms[2].formula,
+            [x.formula for x in self.transforms],
+            self.compiler_options, desc)
 
         if outputfile != None:
             self.set_output_file(outputfile)
@@ -717,10 +685,7 @@ class T(fctutils.T):
         return weirdness * (random.random() - 0.5) * math.pi/2.0
 
     def is4D(self):
-        if formsettings.g_useMyFormula:
-            return self.warp_param != None or self.forms[0].formule.is4D_()
-        else:
-            return self.warp_param != None or self.forms[0].formula.is4D()
+        return self.warp_param != None or self.forms[0].formula.is4D()
 
     def mutate(self,weirdness,color_weirdness):
         '''randomly adjust position, colors, angles and parameters.

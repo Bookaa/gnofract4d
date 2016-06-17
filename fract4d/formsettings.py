@@ -19,10 +19,7 @@ hyper_re = re.compile(r'\((.*?),(.*?),(.*?),(.*?)\)')
 class T:
     def __init__(self,compiler,parent=None,prefix=None):
         self.compiler = compiler
-        if g_useMyFormula:
-            self.formule = None
-        else:
-            self.formula = None
+        self.formula = None
         self.funcName = None
         self.funcFile = None
         self.params = []
@@ -48,12 +45,8 @@ class T:
             raise ValueError("Unexpected prefix '%s' " % prefix)
 
     def set_initparams_from_formula(self,g):
-        if g_useMyFormula:
-            self.params = self.formule.symbols_default_params_()
-            self.paramtypes = self.formule.symbols_type_of_params_()
-        else:
-            self.params = self.formula.symbols.default_params()
-            self.paramtypes = self.formula.symbols.type_of_params()
+        self.params = self.formula.symbols.default_params()
+        self.paramtypes = self.formula.symbols.type_of_params()
         for i in xrange(len(self.paramtypes)):
             if self.paramtypes[i] == fracttypes.Gradient:
                 self.params[i] = copy.copy(g)
@@ -67,12 +60,8 @@ class T:
                 self.params[i] = im
 
     def reset_params(self):
-        if g_useMyFormula:
-            self.params = self.formule.symbols_default_params_()
-            self.paramtypes = self.formule.symbols_type_of_params_()
-        else:
-            self.params = self.formula.symbols.default_params()
-            self.paramtypes = self.formula.symbols.type_of_params()
+        self.params = self.formula.symbols.default_params()
+        self.paramtypes = self.formula.symbols.type_of_params()
 
     def copy_from(self,other):
         # copy the function overrides
@@ -85,10 +74,7 @@ class T:
 
     def initvalue(self,name,warp_param=None):
         ord = self.order_of_name(name)
-        if g_useMyFormula:
-            type = self.formule.symbols_name_type_(name)
-        else:
-            type = self.formula.symbols[name].type
+        type = self.formula.symbols[name].type
 
         if type == fracttypes.Complex:
             if warp_param == name:
@@ -154,20 +140,12 @@ class T:
         print >>file, "[endsection]"
 
     def func_names(self):
-        if g_useMyFormula:
-            return self.formule.symbols_func_names_()
-        else:
-            return self.formula.symbols.func_names()
+        return self.formula.symbols.func_names()
 
     def param_names(self):
-        if g_useMyFormula:
-            return self.formule.symbols_param_names_()
-        else:
-            return self.formula.symbols.param_names()
+        return self.formula.symbols.param_names()
 
     def params_of_type(self,type,readable=False):
-        if g_useMyFormula:
-            return self.formule.params_of_type_(type, readable)
         params = []
         op = self.formula.symbols.order_of_params()
         for name in op.keys():
@@ -180,27 +158,17 @@ class T:
         return params
 
     def get_func_value(self,func_to_get):
-        if g_useMyFormula:
-            return self.formule.get_func_value2_(func_to_get)
         fname = self.formula.symbols.demangle(func_to_get)
         func = self.formula.symbols[fname]
 
         return func[0].cname
 
     def get_named_param_value(self,name):
-        if g_useMyFormula:
-            op = self.formule.symbols_order_of_params_()
-            from fsymbol import mangle
-            ord = op.get(mangle(name))
-            return self.params[ord]
-
         op = self.formula.symbols.order_of_params()
         ord = op.get(self.formula.symbols.mangled_name(name))
         return self.params[ord]
 
     def order_of_name(self,name):
-        if g_useMyFormula:
-            return self.formule.order_of_name_(name)
         symbol_table = self.formula.symbols
         op = symbol_table.order_of_params()
         rn = symbol_table.mangled_name(name)
@@ -227,14 +195,6 @@ class T:
             self.funcFile, self.funcName)
 
     def set_named_item(self,name,val):
-        if g_useMyFormula:
-            flg = self.formule.symbol_type_(name)
-            if flg:
-                self.set_named_func(name,val)
-            else:
-                self.set_named_param(name,val)
-            return
-
         sym = self.formula.symbols[name].first()
         if isinstance(sym, fracttypes.Func):
             self.set_named_func(name,val)
@@ -247,10 +207,7 @@ class T:
             #print "Ignoring unknown param %s" % name
             return
 
-        if g_useMyFormula:
-            t = self.formule.symbols_name_type_(name)
-        else:
-            t = self.formula.symbols[name].type
+        t = self.formula.symbols[name].type
         if t == fracttypes.Complex:
             m = cmplx_re.match(val)
             if m != None:
@@ -306,11 +263,6 @@ class T:
             raise ValueError("Unknown param type %s for %s" % (t,name))
 
     def set_named_func(self,func_to_set,val):
-        if g_useMyFormula:
-            cname = self.get_func_value(func_to_set)
-            if cname == val:
-                return False
-            assert False
         fname = self.formula.symbols.demangle(func_to_set)
         func = self.formula.symbols.get(fname)
         return self.set_func(func[0],val)
@@ -376,29 +328,16 @@ class T:
         return self.formula.is_direct()
 
     def set_formula(self,file,func,gradient):
-        if '__inline__' in file:
-            pass
-        if g_useMyFormula:
-            sbody = ''
-            if '__inline__' in file:
-                import os
-                basefile = os.path.basename(file)
-                assert basefile in self.compiler.files
-                sbody = self.compiler.files[basefile].contents
+        formula = self.compiler.get_formula(file,func,self.prefix)
 
-            formula = MyFormula(file, func, self.prefix, sbody, self.compiler)
-            self.formule = formula
-        else:
-            formula = self.compiler.get_formula(file,func,self.prefix)
+        if formula == None:
+            raise ValueError("no such formula: %s:%s" % (file, func))
 
-            if formula == None:
-                raise ValueError("no such formula: %s:%s" % (file, func))
+        if formula.errors != []:
+            raise ValueError("invalid formula '%s':\n%s" % \
+                             (func, "\n".join(formula.errors)))
 
-            if formula.errors != []:
-                raise ValueError("invalid formula '%s':\n%s" % \
-                                 (func, "\n".join(formula.errors)))
-
-            self.formula = formula
+        self.formula = formula
         self.funcName = func
         self.funcFile = file
 
@@ -429,5 +368,4 @@ class T:
                 # don't interpolate
                 pass
 
-g_useMyFormula = False
 
