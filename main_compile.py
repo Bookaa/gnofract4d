@@ -11,10 +11,10 @@ def func2(sbody):
     if prefix_ == 'None':
         prefix_ = None
     print 'get <%s> <%s> <%s>' % (file_, func_, prefix_)
-    
+
     compiler = fc.instance
     compiler.leave_dirty = True
-    
+
     if sbody:
         formulas = compiler.parse_file(sbody)
         ff = fc.FormulaFile(formulas,sbody,None,'')
@@ -30,10 +30,10 @@ def func2(sbody):
     defaults_items = formula.defaults.items()
     symbols_func_names = formula.symbols.func_names()
     symbols_param_names = formula.symbols.param_names()
-    
+
     symbol_table = formula.symbols
     op = symbol_table.order_of_params()
-    
+
     dict2 = {}
     for a,b in formula.symbols.items():
         try:
@@ -47,6 +47,14 @@ def func2(sbody):
         try:
             typ = b.type
             dict3[a] = typ
+        except:
+            pass
+
+    dict4 = {}
+    for a,b in formula.symbols.items():
+        try:
+            sym = b.first()
+            dict4[a] = isinstance(sym, fracttypes.Func)
         except:
             pass
 
@@ -67,9 +75,11 @@ def func2(sbody):
              'op' : op,
              'cnames' : dict2,
              'types' : dict3,
-             'dict_params' : dict_params
+             'dict4' : dict4,
+             'dict_params' : dict_params,
+             'is4D' : formula.is4D(),
              }
-    
+
     import json
     sjson = json.dumps(dict_)
     print 'next is json'
@@ -86,13 +96,13 @@ def docompile():
     if stype == '2':
         return func2('')
     print 'stype : <%s>' % stype
-    
+
     hash = sys.stdin.readline().strip()
-    
+
     txt = sys.stdin.read()
     # print 'hash:<%s>' % hash
     # print 'txt:<%s>' % txt
-    
+
     compiler = fc.instance
     compiler.leave_dirty = True
 
@@ -101,7 +111,7 @@ def docompile():
     outputfile = t.load_and_compile(hash, txt)
     if outputfile:
         print 'success, compile to %s' % outputfile
-        
+
 
 
 if __name__ == '__main__':
