@@ -842,7 +842,6 @@ class T(Hidden):
         else:
             formula = form.formula
             params = formula.symbols.parameters()
-            formsettings.fn33(params)
             op = formula.symbols.order_of_params()
 
         keys = params.keys()
