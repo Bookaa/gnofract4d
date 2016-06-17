@@ -11,7 +11,7 @@ class T:
         self.endsect = "[endsection]"
         self.tr = string.maketrans("[] ","___")
         self.parent = parent
-        
+
     def warn(self,msg):
         if self.parent:
             self.parent.warn(msg)
@@ -36,7 +36,7 @@ class T:
                         if compressed:
                             line = line.rstrip()
                         vals.append(line)
-                        line = f.readline()                    
+                        line = f.readline()
                     val = "".join(vals)
 
                 if name == "compressed":
@@ -50,6 +50,7 @@ class T:
         # when reading in a name/value pair, we try to find a method
         # somewhere in the hierarchy of current class called parse_name
         # then call that
+        name = str(name)
         methname = "parse_" + sect + name.translate(self.tr)
         meth = None
 
@@ -59,11 +60,11 @@ class T:
             if meth != None:
                 break
             bases = klass.__bases__
-            if len(bases) > 0:                    
+            if len(bases) > 0:
                 klass = bases[0]
             else:
                 break
-            
+
         if meth:
             return meth(self,val,f)
         elif name != "":
@@ -91,8 +92,8 @@ class Compressor(gzip.GzipFile):
 
     def getvalue(self):
         b64 = base64.encodestring(self.sio.getvalue())
-        return "compressed=[\n%s\n]" % b64 
-    
+        return "compressed=[\n%s\n]" % b64
+
 class ParamBag(T):
     "A class for reading in and holding a bag of name-value pairs"
     def __init__(self):
@@ -109,5 +110,5 @@ class ParamBag(T):
 
         self.dict[sect + name] = val
 
-        
-            
+
+

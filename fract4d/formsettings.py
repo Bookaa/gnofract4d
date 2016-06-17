@@ -230,12 +230,14 @@ class T:
 
     def set_named_item(self,name,val):
         if g_useMyFormula:
-            if self.formule.me:
-                sym = self.formule.me.symbols[name].first()
+            flg = self.formule.symbol_type_(name)
+            if flg:
+                self.set_named_func(name,val)
             else:
-                assert False
-        else:
-            sym = self.formula.symbols[name].first()
+                self.set_named_param(name,val)
+            return
+
+        sym = self.formula.symbols[name].first()
         if isinstance(sym, fracttypes.Func):
             self.set_named_func(name,val)
         else:
@@ -248,10 +250,7 @@ class T:
             return
 
         if g_useMyFormula:
-            if self.formule.me:
-                t = self.formule.me.symbols[name].type
-            else:
-                assert False
+            t = self.formule.symbols_name_type_(name)
         else:
             t = self.formula.symbols[name].type
         if t == fracttypes.Complex:
@@ -315,7 +314,7 @@ class T:
                 func = self.formule.me.symbols.get(fname)
                 return self.set_func(func[0],val)
 
-            cname = self.formule.get_func_value(func_to_set)
+            cname = self.formule.get_func_value_(func_to_set)
             if cname == val:
                 return False
             assert False
@@ -441,14 +440,14 @@ g_useMyFormula = True
 
 class MyFormula:
     def __init__(self, file_, func_, prefix_, sbody, compiler):
-        if False:
+        if True:
             self.file_ = file_
             self.func_ = func_
             self.prefix_ = prefix_
             self.sbody = sbody
             self.dict_ = Call_subprocess_2(file_, func_, prefix_, sbody)
             import fsymbol
-            default_dict = fsymbol.createDefaultDict()
+            self.default_dict = fsymbol.createDefaultDict()
             self.me = None
         else:
             self.me = compiler.get_formula(file_,func_,prefix_)
@@ -632,6 +631,23 @@ class MyFormula:
     def is4D_(self):
         if self.me:
             return self.me.is4D()
+        return self.dict_['is4D']
+
+    def symbol_type_(self, name):
+        if self.me:
+            sym = self.me.symbols[name].first()
+            return isinstance(sym, fracttypes.Func)
+
+        types = self.dict_['dict4']
+        fname = demangle(name)
+        type1 = types.get(fname)
+        if type1 is not None:
+            return type1
+        import fsymbol
+        fname2 = fsymbol.mangle(fname)
+        type1 = types.get(fname2)
+        if type1 is not None:
+            return type1
         assert False
 
 def fn33(params):
