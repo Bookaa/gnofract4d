@@ -129,8 +129,8 @@ class T:
         else:
             print >>file, "[%s]=%d" % (self.sectname, sectnum)
 
-        # print >>file, "formulafile=%s" % self.funcFile
-        # print >>file, "function=%s" % self.funcName
+        print >>file, "formulafile=%s" % self.funcFile
+        print >>file, "function=%s" % self.funcName
 
         if True: # (self.compiler.is_inline(self.funcFile, self.funcName)):
             contents = self.compiler.get_formula_text(

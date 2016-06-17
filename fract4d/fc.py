@@ -281,18 +281,6 @@ class Compiler:
 
         return self.last_chance(filename)
 
-    def add_endlines(self,result,final_line):
-        "Add info on which is the final source line of each formula"
-        if None == result:
-            return
-
-        l = len(result.children)
-        for i in xrange(l):
-            if i == l - 1:
-                result.children[i].last_line = final_line
-            else:
-                result.children[i].last_line = result.children[i+1].pos-1
-
     def parse_file(self,s):
         # print 'input', type(s), len(s)
         if True:
