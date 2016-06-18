@@ -9,7 +9,11 @@ import weakref
 
 import fracttypes
 import gradient
-# import image
+#import image
+class image_T:
+    def __init__(self, dx, dy):
+        self.dx = dx
+        self.dy = dy
 
 # matches a complex number
 cmplx_re = re.compile(r'\((.*?),(.*?)\)')
@@ -30,7 +34,7 @@ class T:
             self.parent = weakref.ref(parent)
         else:
             self.parent = None
-            
+
     def set_prefix(self,prefix):
         self.prefix = prefix
         if prefix == None:
@@ -40,10 +44,10 @@ class T:
         elif prefix == "cf1":
             self.sectname = "inner"
         elif prefix[0] == 't':
-            self.sectname = "transform" 
+            self.sectname = "transform"
         else:
             raise ValueError("Unexpected prefix '%s' " % prefix)
-        
+
     def set_initparams_from_formula(self,g):
         self.params = self.formula.symbols.default_params()
         self.paramtypes = self.formula.symbols.type_of_params()
@@ -51,14 +55,15 @@ class T:
             if self.paramtypes[i] == fracttypes.Gradient:
                 self.params[i] = copy.copy(g)
             elif self.paramtypes[i] == fracttypes.Image:
-                im = image.T(1,1)
+                print 'image 11'
+                im = image_T(1,1)
                 #b = im.image_buffer()
                 #b[0] = chr(216)
                 #b[3] = chr(88)
                 #b[4] = chr(192)
                 #b[11] = chr(255)
-                self.params[i] = im 
-                
+                self.params[i] = im
+
     def reset_params(self):
         self.params = self.formula.symbols.default_params()
         self.paramtypes = self.formula.symbols.type_of_params()
@@ -75,7 +80,7 @@ class T:
     def initvalue(self,name,warp_param=None):
         ord = self.order_of_name(name)
         type = self.formula.symbols[name].type
-        
+
         if type == fracttypes.Complex:
             if warp_param == name:
                 return "warp"
@@ -103,7 +108,7 @@ class T:
             print >>file, "[%s]" % self.sectname
         else:
             print >>file, "[%s]=%d" % (self.sectname, sectnum)
-            
+
         print >>file, "formulafile=%s" % self.funcFile
         print >>file, "function=%s" % self.funcName
 
@@ -122,7 +127,7 @@ class T:
             print >>file, "%s=%s" % (name, self.initvalue(name,warp_param))
 
         print >>file, "[endsection]"
-        
+
     def func_names(self):
         return self.formula.symbols.func_names()
 
@@ -190,7 +195,7 @@ class T:
             #print "Ignoring unknown param %s" % name
             return
 
-        t = self.formula.symbols[name].type 
+        t = self.formula.symbols[name].type
         if t == fracttypes.Complex:
             m = cmplx_re.match(val)
             if m != None:
@@ -198,7 +203,7 @@ class T:
                 if self.params[ord] != re:
                     self.params[ord] = re
                     self.changed()
-                if self.params[ord+1] != im:                
+                if self.params[ord+1] != im:
                     self.params[ord+1] = im
                     self.changed()
             elif val == "warp":
@@ -230,7 +235,7 @@ class T:
 	       # an old release included a 'True' or 'False' string
 	       if val == "True": i = 1
                else: i = 0
-            if self.params[ord] != i:                
+            if self.params[ord] != i:
                 self.params[ord] = i
                 self.changed()
         elif t == fracttypes.Gradient:
@@ -239,7 +244,8 @@ class T:
             self.params[ord] = grad
             self.changed()
         elif t == fracttypes.Image:
-            im = image.T(2,2)
+            print 'image 22'
+            im = image_T(2,2)
             self.params[ord] = im
             self.changed()
         else:
@@ -248,7 +254,7 @@ class T:
     def set_named_func(self,func_to_set,val):
         fname = self.formula.symbols.demangle(func_to_set)
         func = self.formula.symbols.get(fname)
-        return self.set_func(func[0],val)            
+        return self.set_func(func[0],val)
 
     def zw_random(self,weirdness,size):
         factor = math.fabs(1.0 - math.log(size)) + 1.0
@@ -268,12 +274,12 @@ class T:
     def nudge_param(self,n,x,y):
         if x == 0 and y == 0:
             return False
-        
+
         self.params[n] += (0.025 * x)
         self.params[n+1] += (0.025 * y)
         self.changed()
         return True
-    
+
     def set_param(self,n,val):
         # set the N'th param to val, after converting from a string
         t = self.paramtypes[n]
@@ -286,7 +292,7 @@ class T:
             val = bool(val)
         else:
             raise ValueError("Unknown parameter type %s" % t)
-        
+
         if self.params[n] != val:
             self.params[n] = val
             self.changed()
@@ -309,7 +315,7 @@ class T:
 
     def is_direct(self):
         return self.formula.is_direct()
-    
+
     def set_formula(self,file,func,gradient):
         formula = self.compiler.get_formula(file,func,self.prefix)
 
@@ -337,7 +343,7 @@ class T:
         # update in-place our settings so that they are a mixture with the other
         if self.funcName != other.funcName or self.funcFile != other.funcFile:
             raise ValueError("Cannot blend parameters between different formulas")
-        
+
         for i in xrange(len(self.params)):
             (a,b) = (self.params[i],other.params[i])
             if self.paramtypes[i] == fracttypes.Float:
@@ -351,5 +357,5 @@ class T:
                 # don't interpolate
                 pass
 
-        
-            
+
+
