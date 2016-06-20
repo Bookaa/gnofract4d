@@ -1398,7 +1398,7 @@ class MainWindow:
 
     def check_save_fractal(self):
         "Prompt user to save if necessary. Return whether to quit"        
-        while not self.f.is_saved():
+        while False and not self.f.is_saved():
             d = hig.SaveConfirmationAlert(
                 document_name=self.display_filename(),
                 parent=self.window)
