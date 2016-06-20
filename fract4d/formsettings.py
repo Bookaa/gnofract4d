@@ -332,6 +332,18 @@ class T:
 
         self.set_initparams_from_formula(gradient)
 
+    def set_formula_with_text(self,type, fomulatext, gradient):
+        formula, name = self.compiler.get_formula_with_text(type, fomulatext,self.prefix)
+
+        if formula == None:
+            raise ValueError("formula error")
+
+        self.formula = formula
+        self.funcName = name
+        # self.funcFile = file
+
+        self.set_initparams_from_formula(gradient)
+
     def load_param_bag(self,bag):
         for (name,val) in bag.dict.items():
             if name == "formulafile" or name=="function":

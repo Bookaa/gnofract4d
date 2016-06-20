@@ -261,10 +261,14 @@ class T(fctutils.T):
         which_transform = int(val)
         params = fctutils.ParamBag()
         params.load(f)
-        self.set_transform(
-            params.dict["formulafile"],
-            params.dict["function"],
-            which_transform)
+        print 'params.dict', params.dict
+        if False:
+            self.set_transform(
+                params.dict["formulafile"],
+                params.dict["function"],
+                which_transform)
+        else:
+            self.set_transform_with_text(params.dict['formula'], which_transform)
         self.transforms[which_transform].load_param_bag(params)
         
     def __del__(self):
@@ -570,6 +574,18 @@ class T(fctutils.T):
         self.formula_changed()
         self.changed()
         
+    def set_transform_with_text(self, formulatext, i):
+        fs = formsettings.T(self.compiler,self,self.get_transform_prefix())
+        import translate
+        type = translate.Transform
+        fs.set_formula_with_text(type, formulatext, self.get_gradient())
+        if len(self.transforms) <= i:
+            self.transforms.extend([None] * (i- len(self.transforms)+1))
+
+        self.transforms[i] = fs
+        self.formula_changed()
+        self.changed()
+        
     def remove_transform(self,i):
         self.transforms.pop(i)
         self.formula_changed()
@@ -609,13 +625,6 @@ class T(fctutils.T):
 
     def load_and_compile(self, hash, text):
         f = StringIO.StringIO(text)
-        if False:
-            hashline = f.readline()
-            if not hashline.startswith('hash='):
-                print 'file content errr'
-                return
-            hash = hashline.strip()[5:]
-        print 'hash:<%s>' % hash
         f.readline()
         self.load(f)
         outputfile = self.compiler.compile_all_hash(
