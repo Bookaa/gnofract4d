@@ -394,6 +394,20 @@ class Compiler:
         if ff == None : return None
         return ff.get_formula(formname)
 
+    def get_parsetree_with_text(self, formulatext):
+        dict_ = ParseFormulaFileRemote(formulatext)
+
+        result = absyn.Node(0,0)
+        result.SerialIn(dict_)
+        
+        ff = result
+
+        # ff = ParseFormulaFileRemote(formulatext) # self.parse_FormulaFile(formulatext)
+        assert len(ff.children) == 1
+        theformula = ff.children[0]
+        # theformula.text = formulatext
+        return theformula
+
     def guess_type_from_filename(self,filename):
         return FormulaTypes.guess_type_from_filename(filename)
 
@@ -405,6 +419,15 @@ class Compiler:
         if f != None:
             f = type(f,prefix)
         return f
+
+    def get_formula_with_text(self, type, formulatext, prefix=""):
+
+        f = self.get_parsetree_with_text(formulatext)
+
+        if f != None:
+            f2 = type(f,prefix)
+            return f2, f.leaf
+        return None, ''
 
     def get_gradient(self, filename, formname):
         g = gradient.Gradient()

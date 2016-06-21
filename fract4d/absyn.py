@@ -97,6 +97,8 @@ class Node:
             self.symmetry = dict_['symmetry']
         if 'last_line' in dict_:
             self.last_line = dict_['last_line']
+        if 'text' in dict_:
+            self.text = dict_['text']
         lst = dict_['children']
         if lst:
             for dict1 in lst:

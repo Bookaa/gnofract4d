@@ -281,10 +281,14 @@ class T(fctutils.T):
         which_transform = int(val)
         params = fctutils.ParamBag()
         params.load(f)
-        self.set_transform(
-            params.dict["formulafile"],
-            params.dict["function"],
-            which_transform)
+        if False:
+            self.set_transform(
+                params.dict["formulafile"],
+                params.dict["function"],
+                which_transform)
+        else:
+            self.set_transform_with_text(params.dict['formula'], which_transform)
+
         self.transforms[which_transform].load_param_bag(params)
 
     def __del__(self):
@@ -308,7 +312,12 @@ class T(fctutils.T):
             c.forms[i].copy_from(self.forms[i])
 
         for t in self.transforms:
-            c.append_transform(t.funcFile, t.funcName)
+            if t.funcFile is None:
+                pass
+            if False:
+                c.append_transform(t.funcFile, t.funcName)
+            else:
+                c.append_transform_(t.formula)
             c.transforms[-1].copy_from(t)
 
         c.solids = copy.copy(self.solids)
@@ -581,9 +590,28 @@ class T(fctutils.T):
         self.formula_changed()
         self.changed()
 
+    def append_transform_(self,formula):
+        fs = formsettings.T(self.compiler,self,self.get_transform_prefix())
+        fs.set_formula_(formula, self.get_gradient())
+        self.transforms.append(fs)
+        self.formula_changed()
+        self.changed()
+
     def set_transform(self,funcfile,funcname,i):
         fs = formsettings.T(self.compiler,self,self.get_transform_prefix())
         fs.set_formula(funcfile, funcname, self.get_gradient())
+        if len(self.transforms) <= i:
+            self.transforms.extend([None] * (i- len(self.transforms)+1))
+
+        self.transforms[i] = fs
+        self.formula_changed()
+        self.changed()
+
+    def set_transform_with_text(self, formulatext, i):
+        fs = formsettings.T(self.compiler,self,self.get_transform_prefix())
+        import translate
+        type = translate.Transform
+        fs.set_formula_with_text(type, formulatext, self.get_gradient())
         if len(self.transforms) <= i:
             self.transforms.extend([None] * (i- len(self.transforms)+1))
 

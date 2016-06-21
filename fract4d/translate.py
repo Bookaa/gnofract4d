@@ -1100,7 +1100,7 @@ class Transform(TBase):
     "For transforms (.uxf files)"
     def __init__(self,f,prefix,dump=None):
         TBase.__init__(self,prefix,dump)
-
+        self.basef = f
         try:
             self.main(f)
             if self.dumpPreCanon:

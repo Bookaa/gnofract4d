@@ -104,12 +104,14 @@ class T:
         else:
             print >>file, "[%s]=%d" % (self.sectname, sectnum)
 
-        print >>file, "formulafile=%s" % self.funcFile
-        print >>file, "function=%s" % self.funcName
+        #print >>file, "formulafile=%s" % self.funcFile
+        #print >>file, "function=%s" % self.funcName
 
-        if(self.compiler.is_inline(self.funcFile, self.funcName)):
-            contents = self.compiler.get_formula_text(
-                self.funcFile, self.funcName)
+        if True: #(self.compiler.is_inline(self.funcFile, self.funcName)):
+            if hasattr(self.formula, 'basef'):
+                contents = self.formula.basef.text
+            else:
+                contents = self.compiler.get_formula_text(self.funcFile, self.funcName)
             print >>file, "formula=[\n%s\n]" % contents
 
         names = self.func_names()
@@ -129,12 +131,11 @@ class T:
         else:
             print >>file, "[%s]=%d" % (self.sectname, sectnum)
 
-        #print >>file, "formulafile=%s" % self.funcFile
-        #print >>file, "function=%s" % self.funcName
-
         if True: # (self.compiler.is_inline(self.funcFile, self.funcName)):
-            contents = self.compiler.get_formula_text(
-                self.funcFile, self.funcName)
+            if hasattr(self.formula, 'basef'):
+                contents = self.formula.basef.text
+            else:
+                contents = self.compiler.get_formula_text(self.funcFile, self.funcName)
             print >>file, "formula=[\n%s\n]" % contents.strip()
 
         print >>file, "[endsection]"
@@ -340,6 +341,25 @@ class T:
         self.formula = formula
         self.funcName = func
         self.funcFile = file
+
+        self.set_initparams_from_formula(gradient)
+
+    def set_formula_(self,formula,gradient):
+        self.formula = formula
+        self.funcName = formula.basef.leaf
+        # self.funcFile = file
+
+        self.set_initparams_from_formula(gradient)
+
+    def set_formula_with_text(self,type, fomulatext, gradient):
+        formula, name = self.compiler.get_formula_with_text(type, fomulatext,self.prefix)
+
+        if formula == None:
+            raise ValueError("formula error")
+
+        self.formula = formula
+        self.funcName = name
+        # self.funcFile = file
 
         self.set_initparams_from_formula(gradient)
 
