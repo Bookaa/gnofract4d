@@ -1009,6 +1009,7 @@ class TBase:
 class T(TBase):
     def __init__(self,f,prefix="f", dump=None):
         TBase.__init__(self,"f",dump)
+        self.basef = f
 
         # magic vars always included in funcs
         self.symbols["__bailout"] = Var(Bool, 0)
@@ -1101,6 +1102,7 @@ class Transform(TBase):
     def __init__(self,f,prefix,dump=None):
         TBase.__init__(self,prefix,dump)
         self.basef = f
+
         try:
             self.main(f)
             if self.dumpPreCanon:
@@ -1133,6 +1135,7 @@ class ParFile(TBase):
     "For translating Fractint .par files"
     def __init__(self,f,dump=None):
         TBase.__init__(self,"g",dump)
+        self.basef = f
 
         self.grad = []
         self.main(f)
@@ -1163,6 +1166,7 @@ class GradientFunc(TBase):
     "For translating UltraFractal .ugr files"
     def __init__(self,f,prefix,dump=None):
         TBase.__init__(self,prefix,dump)
+        self.basef = f
 
         self.grad = []
         self.main(f)
@@ -1198,6 +1202,7 @@ class ColorFunc(TBase):
     "For translating .ucl files"
     def __init__(self,f,name,dump=None):
         TBase.__init__(self,name,dump)
+        self.basef = f
 
         self.create_standard_vars()
 

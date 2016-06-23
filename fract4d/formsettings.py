@@ -104,14 +104,12 @@ class T:
         else:
             print >>file, "[%s]=%d" % (self.sectname, sectnum)
 
-        #print >>file, "formulafile=%s" % self.funcFile
-        #print >>file, "function=%s" % self.funcName
-
         if True: #(self.compiler.is_inline(self.funcFile, self.funcName)):
             if hasattr(self.formula, 'basef'):
                 contents = self.formula.basef.text
             else:
-                contents = self.compiler.get_formula_text(self.funcFile, self.funcName)
+                assert False
+                # contents = self.compiler.get_formula_text(self.funcFile, self.funcName)
             print >>file, "formula=[\n%s\n]" % contents
 
         names = self.func_names()
@@ -135,7 +133,8 @@ class T:
             if hasattr(self.formula, 'basef'):
                 contents = self.formula.basef.text
             else:
-                contents = self.compiler.get_formula_text(self.funcFile, self.funcName)
+                assert False
+                # contents = self.compiler.get_formula_text(self.funcFile, self.funcName)
             print >>file, "formula=[\n%s\n]" % contents.strip()
 
         print >>file, "[endsection]"
