@@ -301,7 +301,7 @@ class Compiler:
 
         return self.last_chance(filename)
 
-    def add_endlines(self,result,final_line):
+    def add_endlines(self,s,result,final_line):
         "Add info on which is the final source line of each formula"
         if None == result:
             return
@@ -312,6 +312,14 @@ class Compiler:
                 result.children[i].last_line = final_line
             else:
                 result.children[i].last_line = result.children[i+1].pos-1
+
+        lines = s.splitlines()
+        for form in result.children:
+            start_line = form.pos-1
+            last_line = form.last_line
+            form.text = "\n".join(lines[start_line:last_line])
+            # print '-'*5, start_line, last_line
+            # print form.text
 
     def parse_file(self,s):
         self.lexer.lineno = 1
@@ -327,7 +335,7 @@ class Compiler:
                 absyn.PreprocessorError(str(err), -1)
             #print result.pretty()
 
-        self.add_endlines(result,self.lexer.lineno)
+        self.add_endlines(s,result,self.lexer.lineno)
 
         formulas = {}
         for formula in result.children:
@@ -348,7 +356,7 @@ class Compiler:
                 absyn.PreprocessorError(str(err), -1)
             #print result.pretty()
 
-        self.add_endlines(result,self.lexer.lineno)
+        self.add_endlines(s,result,self.lexer.lineno)
 
         return result
 

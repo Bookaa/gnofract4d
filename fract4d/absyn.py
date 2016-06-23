@@ -78,6 +78,8 @@ class Node:
             dict_['symmetry'] = self.symmetry
         if hasattr(self, 'last_line'):
             dict_['last_line'] = self.last_line
+        if hasattr(self, 'text'):
+            dict_['text'] = self.text
         import json
         if not lst:
             dict_['children'] = []
