@@ -16,7 +16,7 @@ else:
 
 import gtk
 
-from fract4d import fractmain, image
+from fract4d import fractmain, image, options
 from fract4dgui import main_window
 
 files = [
@@ -69,8 +69,9 @@ class Benchmark:
         last_time = now()
         for file in files:
             main.load(file)
+            main.compile(options.T())
             im = image.T(self.w,self.h)
-            main.draw(im)
+            main.f.draw(im)
             im.save(file + ".png")
             new_time = now()
             times.append(new_time - last_time)
