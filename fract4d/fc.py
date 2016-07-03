@@ -461,9 +461,13 @@ class Compiler:
         if not self.leave_dirty:
             self.clear_cache()
 
+g_compile_cmds = '../gnofract4d.compiler/main_compile.py'
+if not os.path.isfile(g_compile_cmds):
+    g_compile_cmds = '../' + g_compile_cmds
+
 def Call_subprocess_compile(hash, desc):
     from subprocess import PIPE, Popen
-    p = Popen(["python", '../gnofract4d.compiler/main_compile.py', '1'], stdin=PIPE, stdout=PIPE)
+    p = Popen(["python", g_compile_cmds, '1'], stdin=PIPE, stdout=PIPE)
     print >>p.stdin, hash
     print >>p.stdin, desc
     print p.communicate("\n")[0]
@@ -474,7 +478,7 @@ def ParseFormulaFileRemote(s):
     sFile = json.dumps(s)
     print 'send length', len(sFile)
     from subprocess import PIPE, Popen
-    p = Popen(["python", '../gnofract4d.compiler/main_compile.py', '4'], stdin=PIPE, stdout=PIPE)
+    p = Popen(["python", g_compile_cmds, '4'], stdin=PIPE, stdout=PIPE)
     print >>p.stdin, sFile
     while True:
         s = p.stdout.readline().strip()

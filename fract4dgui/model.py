@@ -59,7 +59,7 @@ class Model:
             return m.group()
         return "eek"
     
-    def dump_history(self):
+    def nouse_dump_history(self):
         i=0
         print "(redo,undo)"
         for he in self.seq.history:
