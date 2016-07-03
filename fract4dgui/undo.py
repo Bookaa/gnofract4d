@@ -3,17 +3,17 @@ import gtk
 import gobject
 
 class HistoryEntry:
-    def __init__(self,redo,redo_data,undo,undo_data):
-        self.undo_action = undo
+    def __init__(self,redo_data,undo_data):
+        #self.undo_action = undo
         self.undo_data = undo_data
-        self.redo_action = redo
+        #self.redo_action = redo
         self.redo_data = redo_data
 
-    def undo(self):
-        self.undo_action(self.undo_data)
+    def undo(self, undo_action):
+        undo_action(self.undo_data)
 
-    def redo(self):
-        self.redo_action(self.redo_data)
+    def redo(self, redo_action):
+        redo_action(self.redo_data)
         
 class Sequence(gobject.GObject):
     __gsignals__ = {
@@ -23,10 +23,11 @@ class Sequence(gobject.GObject):
         gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,))
         }
     
-    def __init__(self):
+    def __init__(self, redoundo_action):
         gobject.GObject.__init__(self)
         self.pos = 0 # the position after the current item
         self.history = []
+        self.redoundo_action = redoundo_action
 
     def can_undo(self):
         return self.pos > 0
@@ -38,15 +39,14 @@ class Sequence(gobject.GObject):
         self.emit('can-undo', self.can_undo())
         self.emit('can-redo', self.can_redo())
         
-    def do(self,redo_action,redo_data,undo_action,undo_data):
+    def do(self,redo_data,undo_data):
         # replace everything from here on with the new item
         if self.pos < len(self.history):
-            undo_action = self.history[self.pos].undo_action 
             undo_data = self.history[self.pos].undo_data 
 
         del self.history[self.pos:]
         self.history.append(
-            HistoryEntry(redo_action,redo_data,undo_action,undo_data))
+            HistoryEntry(redo_data,undo_data))
         self.pos = len(self.history)
 
         self.send_signals()
@@ -55,13 +55,13 @@ class Sequence(gobject.GObject):
         if not self.can_undo():
             raise ValueError("Can't Undo at start of sequence")
         self.pos -= 1
-        self.history[self.pos].undo()
+        self.history[self.pos].undo(self.redoundo_action)
         self.send_signals()
 
     def redo(self):
         if not self.can_redo():
             raise ValueError("Can't Redo at end of sequence")
-        self.history[self.pos].redo()
+        self.history[self.pos].redo(self.redoundo_action)
         self.pos += 1
         
         self.send_signals()

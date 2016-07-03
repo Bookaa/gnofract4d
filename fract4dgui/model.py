@@ -10,12 +10,21 @@ import re
 class Model:
     def __init__(self,f):
         # undo history
-        self.seq = undo.Sequence()
+        def set_fractal(val):
+            self.f.freeze()
+            #print "redo:", current[:100]
+            self.f.deserialize(val)
+            if self.f.thaw():
+                self.block_callbacks()
+                self.f.changed()
+                self.unblock_callbacks()
+
+        self.seq = undo.Sequence(set_fractal)
 
         # used to prevent undo/redo from triggering new commands
         self.callback_in_progress = False
-        self.f = f
-        self.old_f = self.f.serialize()
+        self.f = f  # it is gtkfractal.T
+        self.old_f = self.f.serialize() # type unicode
         self.f.connect('parameters-changed',self.onParametersChanged)
 
     def block_callbacks(self):
@@ -36,22 +45,13 @@ class Model:
         
         current = self.f.serialize()
 
-        def set_fractal(val):
-            self.f.freeze()
-            #print "redo:", current[:100]
-            self.f.deserialize(val)
-            if self.f.thaw():
-                self.block_callbacks()
-                self.f.changed()
-                self.unblock_callbacks()
-                
-        self.seq.do(set_fractal,current,set_fractal,self.old_f)
+        self.seq.do(current,self.old_f)
         self.old_f = current
 
         #print "after:"
         #print self.dump_history()
         
-    def extract_x_from_dump(self,dump):
+    def nouse_extract_x_from_dump(self,dump):
         "Get (x=number) from file"
         x_re = re.compile(r'x=.*')
         m = x_re.search(dump)
@@ -68,17 +68,17 @@ class Model:
             else:
                 print "   ",
             print "(%s,%s)" % \
-                  (self.extract_x_from_dump(he.redo_data),
-                   self.extract_x_from_dump(he.undo_data))
+                  (self.nouse_extract_x_from_dump(he.redo_data),
+                   self.nouse_extract_x_from_dump(he.undo_data))
             i += 1
         
     def undo(self):
         if self.seq.can_undo():
             #print "before undo:"
-            #print self.dump_history()
+            #print self.nouse_dump_history()
             self.seq.undo()
             #print "after undo:"
-            #print self.dump_history()
+            #print self.nouse_dump_history()
 
     def redo(self):
         if self.seq.can_redo():
