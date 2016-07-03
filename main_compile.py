@@ -1,15 +1,22 @@
 #!/usr/bin/env python
 
-import sys
-from fract4d import fc
-from fract4d import fractal, fracttypes
+import sys, os
+from fract4d import fc, fractal #, fracttypes
 import json
+
+compiler = fc.instance
+compiler.leave_dirty = True
+
+if os.path.isdir('./formulas'):
+    compiler.add_func_path("./fract4d")
+    compiler.add_func_path("./formulas")
+if os.path.isdir('../formulas'):
+    compiler.add_func_path("../fract4d")
+    compiler.add_func_path("../formulas")
 
 def func4():
     sFile = sys.stdin.readline().strip()
     print 'func4, get length', len(sFile)
-    compiler = fc.instance
-    compiler.leave_dirty = True
     src = json.loads(sFile)
     #print type(src), len(src)
 
@@ -27,9 +34,6 @@ def func1():
     return func1_(hash, txt)
     
 def func1_(hash, txt):
-
-    compiler = fc.instance
-    compiler.leave_dirty = True
 
     t = fractal.T(compiler)
 
