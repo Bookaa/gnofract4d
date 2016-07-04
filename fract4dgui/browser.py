@@ -2,20 +2,21 @@
 
 # a browser to examine fractal functions
 import string
-import os
 
 import gobject
 import gtk
 
-from fract4d import fc, gradient, browser_model
+from fract4d import browser_model
 
-import preferences, dialog, utils, gtkfractal, gradientCellRenderer
+import dialog, utils, gtkfractal
 
 def stricmp(a,b):
     return cmp(a.lower(),b.lower())
 
 def show(parent, f, type=browser_model.FRACTAL):
-    BrowserDialog.show(parent,f,type)
+    _browser = dialog.reveal(BrowserDialog,True, parent, None, f)
+    _browser.set_type(type)
+    _browser.populate_file_list()
 
 def update(file=None, formula=None):
     browser_model.instance.update(file,formula)
@@ -69,13 +70,6 @@ class BrowserDialog(dialog.T):
         self.create_panes()
         self.on_file_changed()
         
-    def show(parent, f, type):
-        _browser = dialog.T.reveal(BrowserDialog,True, parent, None, f)
-        _browser.set_type(type)
-        _browser.populate_file_list()
-
-    show = staticmethod(show)
-
     def onResponse(self,widget,id):
         if id == gtk.RESPONSE_CLOSE or \
                id == gtk.RESPONSE_NONE or \

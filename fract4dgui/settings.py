@@ -13,13 +13,14 @@ from fract4d import browser_model
 from fract4d.fc import FormulaTypes
 
 def show_settings(parent,alt_parent, f,dialog_mode):
-    SettingsDialog.show(parent,alt_parent, f,dialog_mode)
+    # SettingsDialog.show(parent,alt_parent, f,dialog_mode)
+    dialog.reveal(SettingsDialog,dialog_mode, parent, alt_parent, f)
 
 class SettingsDialog(dialog.T):
-    def show(parent, alt_parent, f,dialog_mode):
-        dialog.T.reveal(SettingsDialog,dialog_mode, parent, alt_parent, f)
+    #def show(parent, alt_parent, f,dialog_mode):
+    #    dialog.reveal(SettingsDialog,dialog_mode, parent, alt_parent, f)
 
-    show = staticmethod(show)
+    #show = staticmethod(show)
 
     def __init__(self, main_window, f):
         dialog.T.__init__(
