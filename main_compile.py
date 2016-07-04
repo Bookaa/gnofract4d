@@ -16,7 +16,7 @@ if os.path.isdir('../formulas'):
 
 def func4():
     sFile = sys.stdin.readline().strip()
-    print 'func4, get length', len(sFile)
+    # print 'func4, get length', len(sFile)
     src = json.loads(sFile)
     #print type(src), len(src)
 

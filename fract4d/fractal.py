@@ -261,7 +261,7 @@ class T(fctutils.T):
         which_transform = int(val)
         params = fctutils.ParamBag()
         params.load(f)
-        print 'params.dict', params.dict
+        # print 'params.dict', params.dict
         if False:
             self.set_transform(
                 params.dict["formulafile"],
