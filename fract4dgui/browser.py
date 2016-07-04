@@ -6,7 +6,7 @@ import string
 import gobject
 import gtk
 
-from fract4d import browser_model
+from fract4d import browser_model, fc
 
 import dialog, utils, gtkfractal
 
@@ -18,14 +18,20 @@ def show(parent, f, type=browser_model.FRACTAL):
     _browser.set_type(type)
     _browser.populate_file_list()
 
-def update(file=None, formula=None):
-    browser_model.instance.update(file,formula)
+class GG_Instance:
+    _instance = browser_model.T(fc.instance)
 
-def set_type(type):
-    browser_model.instance.set_type(type)
+    @classmethod
+    def update(cls, file=None, formula=None):
+        cls._instance.update(file,formula)
 
-def guess_type(file):
-    return browser_model.instance.guess_type(file)
+    @classmethod
+    def set_type(cls, type):
+        cls._instance.set_type(type)
+
+    @classmethod
+    def guess_type(cls, file):
+        return cls._instance.guess_type(file)
 
 class BrowserDialog(dialog.T):
     RESPONSE_EDIT = 1
@@ -45,7 +51,7 @@ class BrowserDialog(dialog.T):
 
         self.set_default_response(gtk.RESPONSE_OK)
 
-        self.model = browser_model.instance
+        self.model = GG_Instance._instance
         self.model.type_changed += self.on_type_changed
         self.model.file_changed += self.on_file_changed
         self.model.formula_changed += self.on_formula_changed

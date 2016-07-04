@@ -87,7 +87,7 @@ class MainWindow:
             'image-preferences-changed',
             self.on_prefs_changed)
 
-        browser.update(self.f.forms[0].funcFile, self.f.forms[0].funcName)
+        browser.GG_Instance.update(self.f.forms[0].funcFile, self.f.forms[0].funcName)
             
         self.create_ui()
         self.create_toolbar()
@@ -1377,7 +1377,7 @@ class MainWindow:
             self.f.loadFctFile(open(file))
             self.update_recent_files(file)
             self.set_filename(file)
-            browser.update(self.f.forms[0].funcFile, self.f.forms[0].funcName)
+            browser.GG_Instance.update(self.f.forms[0].funcFile, self.f.forms[0].funcName)
             return True
         except Exception, err:
             self.show_error_message(_("Error opening %s") % file,err)
@@ -1386,9 +1386,9 @@ class MainWindow:
     def load_formula(self,file):
         try:
             self.compiler.load_formula_file(file)
-            type = browser.guess_type(file)
-            browser.set_type(type)
-            browser.update(file)
+            type = browser.GG_Instance.guess_type(file)
+            browser.GG_Instance.set_type(type)
+            browser.GG_Instance.update(file)
             browser.show(self.window, self.f, type)
 
             return True

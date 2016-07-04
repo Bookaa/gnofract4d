@@ -161,4 +161,4 @@ class T:
         r = self.compiler.get_text(fname)
         return r
         
-instance = T(fc.instance)
+# instance = T(fc.instance)
