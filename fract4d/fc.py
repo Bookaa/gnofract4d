@@ -476,7 +476,7 @@ def ParseFormulaFileRemote(s):
     #print 'length1', len(s)
     import json
     sFile = json.dumps(s)
-    print 'send length', len(sFile)
+    # print 'send length', len(sFile)
     from subprocess import PIPE, Popen
     p = Popen(["python", g_compile_cmds, '4'], stdin=PIPE, stdout=PIPE)
     print >>p.stdin, sFile

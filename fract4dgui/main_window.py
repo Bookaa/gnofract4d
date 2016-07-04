@@ -81,7 +81,7 @@ class MainWindow:
             #print ex
             pass
             
-        self.model = model.Model(self.f)
+        self.undo_model = model.Undo_Model(self.f)
 
         preferences.userPrefs.connect(
             'image-preferences-changed',
@@ -691,9 +691,9 @@ class MainWindow:
         
         # this could be done with an actiongroup, but since it already works...
         undo = self.manager.get_widget(_("/MenuBar/EditMenu/EditUndo"))
-        self.model.seq.make_undo_sensitive(undo)
+        self.undo_model.seq.make_undo_sensitive(undo)
         redo = self.manager.get_widget(_("/MenuBar/EditMenu/EditRedo"))
-        self.model.seq.make_redo_sensitive(redo)
+        self.undo_model.seq.make_redo_sensitive(redo)
 
         self.recent_menuitems = [
             self.manager.get_widget("/MenuBar/FileMenu/Recent1"),
@@ -860,14 +860,14 @@ class MainWindow:
             _("Undo the last change"),
             self.undo)
 
-        self.model.seq.make_undo_sensitive(self.toolbar.get_children()[-1])
+        self.undo_model.seq.make_undo_sensitive(self.toolbar.get_children()[-1])
         
         self.toolbar.add_stock(
             gtk.STOCK_REDO,
             _("Redo the last undone change"),
             self.redo)
         
-        self.model.seq.make_redo_sensitive(self.toolbar.get_children()[-1])
+        self.undo_model.seq.make_redo_sensitive(self.toolbar.get_children()[-1])
 
         # explorer mode widgets
         self.toolbar.add_space()
@@ -1250,11 +1250,11 @@ class MainWindow:
         
     def undo(self,*args):
         """Undo the last operation."""
-        self.model.undo()
+        self.undo_model.undo()
         
     def redo(self,*args):
         """Redo an operation after undoing it."""
-        self.model.redo()
+        self.undo_model.redo()
         
     def reset(self,*args):
         """Reset all numeric parameters to their defaults."""

@@ -7,7 +7,7 @@ import re
 # We eavesdrop on parameter-changed notifications from the gtkfractal
 # and use those to compile the history
 
-class Model:
+class Undo_Model:
     def __init__(self,f):
         # undo history
         def set_fractal(val):
