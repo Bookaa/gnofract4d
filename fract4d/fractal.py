@@ -86,8 +86,11 @@ class T(fctutils.T):
 
         # default is just white outside
         self.default_gradient = gradient.Gradient()
-        self.default_gradient.segments[0].left_color = [1.0,1.0,1.0,1.0]
-        self.default_gradient.segments[0].right_color = [1.0,1.0,1.0,1.0]
+        if False:
+            self.default_gradient.segments[0].left_color = [1.0,1.0,1.0,1.0]
+            self.default_gradient.segments[0].right_color = [1.0,1.0,1.0,1.0]
+        else:
+            self.default_gradient.load(open(self.compiler.find_file('blend.map', 3)))
 
         # solid colors are black
         self.solids = [(0,0,0,255),(0,0,0,255)]

@@ -1041,7 +1041,7 @@ class T(Hidden):
                 self.width*3)
 
 class Preview(T):
-    def __init__(self,comp,width=120,height=90):
+    def __init__(self,comp,width=120*2,height=90*2):
         T.__init__(self,comp,None,width,height)
 
     def onButtonRelease(self,widget,event):

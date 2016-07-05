@@ -74,7 +74,7 @@ class MainWindow:
         try:
             # try to make default image more interesting
             self.f.set_cmap(fractconfig.instance.find_resource(
-                "basic.map",
+                "blend.map", #"basic.map",
                 "maps",
                 "maps"))
         except Exception, ex:
