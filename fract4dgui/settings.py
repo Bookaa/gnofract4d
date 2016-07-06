@@ -12,16 +12,145 @@ from table import Table
 from fract4d import browser_model
 from fract4d.fc import FormulaTypes
 
+from fract4d import fc, fractal
+import gtkfractal, toolbar
+
 def show_settings(parent,alt_parent, f,dialog_mode):
-    # SettingsDialog.show(parent,alt_parent, f,dialog_mode)
     dialog.reveal(SettingsDialog,dialog_mode, parent, alt_parent, f)
 
-class SettingsDialog(dialog.T):
-    #def show(parent, alt_parent, f,dialog_mode):
-    #    dialog.reveal(SettingsDialog,dialog_mode, parent, alt_parent, f)
+class LocationPage:
 
-    #show = staticmethod(show)
+    def __init__(self):
+        self.four_d_sensitives = []
+        self.location_dict = {}
+        self.use_preview = True
 
+    def create_toolbar_preview(self):
+        toolb = toolbar.T()
+
+        # preview
+
+        self.preview = gtkfractal.Preview(fc.instance)
+        self.preview.set_size(48*3,48*3)
+
+        self.f.connect('parameters-changed', self.update_preview)
+        self.f.connect('pointer-moved', self.update_preview_on_pointer)
+
+        toolb.add_widget(
+            self.preview.widget,
+            _("Preview"),
+            _("Shows what the next operation would do"))
+
+        return toolb
+
+    def create_toolbar(self):
+        toolb = toolbar.T()
+
+        # angles
+        toolb.add_space()
+
+        self.create_angle_widget(toolb, _("xy"), _("Angle in the XY plane"), fractal.T.XYANGLE, False)
+        self.create_angle_widget(toolb, _("xz"), _("Angle in the XZ plane"), fractal.T.XZANGLE, True)
+        self.create_angle_widget(toolb, _("xw"), _("Angle in the XW plane"), fractal.T.XWANGLE, True)
+        self.create_angle_widget(toolb, _("yz"), _("Angle in the YZ plane"), fractal.T.YZANGLE, True)
+        self.create_angle_widget(toolb, _("yw"), _("Angle in the YW plane"), fractal.T.YWANGLE, True)
+        self.create_angle_widget(toolb, _("zw"), _("Angle in the ZW plane"), fractal.T.ZWANGLE, True)
+
+        return toolb
+
+    def create_toolbar2(self):
+        toolb = toolbar.T()
+        # fourways
+
+        toolb.add_space()
+
+        self.add_fourway(toolb, _("pan"), _("Pan around the image"), 0, False)
+        self.add_fourway(toolb, _("warp"), _("Mutate the image by moving along the other 2 axes"), 2, True)
+
+        return toolb
+
+    def update_preview(self,f,flip2julia=False):
+        if self.use_preview:
+            self.preview.set_fractal(f.copy_f())
+            self.draw_preview()
+
+    def update_preview_on_pointer(self,f,button, x,y):
+        if self.use_preview and button == 2:
+            self.preview.set_fractal(f.copy_f())
+            self.preview.relocate(x,y,1.0)
+            self.preview.flip_to_julia()
+            self.draw_preview()
+
+    def create_angle_widget(self, toolb, name, tip, axis, is4dsensitive):
+        import angle
+        my_angle = angle.T(name)
+        my_angle.connect('value-slightly-changed', self.on_angle_slightly_changed)
+        my_angle.connect('value-changed', self.on_angle_changed)
+
+        self.f.connect('parameters-changed', self.update_angle_widget, my_angle)
+
+        my_angle.axis = axis
+
+        toolb.add_widget(my_angle.widget, tip, tip)
+
+        if is4dsensitive:
+            self.four_d_sensitives.append(my_angle.widget)
+
+    def update_angle_widget(self,f,widget):
+        widget.set_value(f.get_param(widget.axis))
+
+    def on_angle_slightly_changed(self,widget,val):
+        import math
+        self.preview.set_param(widget.axis, val)
+        angle_in_degrees = "%.2f" % (float(val)*180.0/math.pi)
+        # self.bar.set_text(angle_in_degrees)
+        entry = self.location_dict[widget.axis]
+        entry.set_text(angle_in_degrees)
+        self.draw_preview()
+
+    def on_angle_changed(self,widget,val):
+        self.f.set_param(widget.axis,val)
+
+    def draw_preview(self):
+        self.preview.draw_image(False)
+
+    def populate_warpmenu(self,f):
+        from fract4d import fracttypes
+        params = f.forms[0].params_of_type(fracttypes.Complex, True)
+        if params == []:
+            self.warpmenu.hide()
+        else:
+            utils.set_menu_from_list(self.warpmenu, ["None"] + params)
+            p = f.warp_param
+            if p == None: p = "None"
+            utils.set_selected_value(self.warpmenu, p)
+            self.warpmenu.show()
+
+    def add_fourway(self, toolb, name, tip, axis, is4dsensitive):
+        import fourway
+        my_fourway = fourway.T(name)
+        toolb.add_widget(my_fourway.widget, tip, None)
+
+        my_fourway.axis = axis
+
+        my_fourway.connect('value-changed', self.on_release_fourway)
+
+        if is4dsensitive:
+            self.four_d_sensitives.append(my_fourway.widget)
+
+    def on_release_fourway(self,widget,dx,dy):
+        self.f.nudge(dx/10.0, dy/10.0, widget.axis)
+        #self.preview.nudge(dx/10.0,dy/10.0, widget.axis)
+        #self.draw_preview()
+
+    def on_formula_change(self, f):
+        is4d = f.is4D()
+        for widget in self.four_d_sensitives:
+            widget.set_sensitive(is4d)
+        # ?? self.fourd_actiongroup.set_sensitive(is4d)
+
+
+class SettingsDialog(dialog.T, LocationPage):
     def __init__(self, main_window, f):
         dialog.T.__init__(
             self,
@@ -38,6 +167,8 @@ class SettingsDialog(dialog.T):
         self.vbox.pack_start(self.controls, True, True)
         self.tables = [None,None,None,None]
         self.selected_transform = None
+
+        LocationPage.__init__(self)
 
         self.create_formula_parameters_page()
         self.create_outer_page()
@@ -316,10 +447,22 @@ class SettingsDialog(dialog.T):
         self.select_segment(-1)
 
     def create_location_page(self):
+        vbox = gtk.VBox()
+        toolb = self.create_toolbar_preview()
+        vbox.pack_start(toolb, False, False, 0)
+        toolb = self.create_toolbar()
+        vbox.pack_start(toolb, False, False, 0)
+        toolb = self.create_toolbar2()
+        vbox.pack_start(toolb, False, False, 0)
+
         table = self.create_location_table()
+        vbox.pack_start(table, False, False, 0)
+
         label = gtk.Label(_("_Location"))
         label.set_use_underline(True)
-        self.notebook.append_page(table,label)
+        self.notebook.append_page(vbox,label)
+
+        self.draw_preview()
 
     def create_location_table(self):
         table = gtk.Table(5,2,False)
@@ -724,6 +867,8 @@ class SettingsDialog(dialog.T):
         table.attach(entry,1,2,row,row+1,gtk.EXPAND | gtk.FILL, 0, 2, 2)
         label.set_mnemonic_widget(entry)
 
+        self.location_dict[param] = entry
+        
         def set_entry(f):
             try:
                 current = float(entry.get_text())
