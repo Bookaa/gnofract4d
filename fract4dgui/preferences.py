@@ -69,8 +69,8 @@ gobject.type_register(Preferences)
 userPrefs = Preferences(fractconfig.instance)
     
 def show_preferences(parent,f):
-    PrefsDialog.show(parent,f)
-    
+    dialog.reveal(PrefsDialog, True, parent, None, f)
+
 class PrefsDialog(dialog.T):
     def __init__(self,main_window,f):
         global userPrefs
@@ -98,11 +98,6 @@ class PrefsDialog(dialog.T):
         self.create_flickr_page()
         
         self.set_size_request(500,-1)
-
-    def show(parent, f):
-        dialog.T.reveal(PrefsDialog, True, parent, None, f)
-
-    show = staticmethod(show)
 
     def show_error(self,message):
         d = gtk.MessageDialog(self, gtk.DIALOG_MODAL,

@@ -79,7 +79,7 @@ class T(gobject.GObject):
 gobject.type_register(T)
 
 def show(parent, alt_parent, f):
-    QueueDialog.show(parent, alt_parent, f)
+    dialog.reveal(QueueDialog,True, parent, alt_parent, f)
 
 instance = T()
 
@@ -142,10 +142,6 @@ class CellRendererProgress(gtk.GenericCellRenderer):
 gobject.type_register(CellRendererProgress)
 
 class QueueDialog(dialog.T):
-    def show(parent, alt_parent, f):
-        dialog.T.reveal(QueueDialog,True, parent, alt_parent, f)
-            
-    show = staticmethod(show)
 
     def __init__(self, main_window, f):
         dialog.T.__init__(

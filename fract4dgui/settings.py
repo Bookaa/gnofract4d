@@ -33,11 +33,29 @@ class LocationPage:
         self.preview = gtkfractal.Preview(fc.instance)
         self.preview.set_size(48*3,48*3)
 
+        self.preview2 = gtkfractal.Preview(fc.instance)
+        self.preview2.set_size(48*3,48*3)
+
+        ftable = gtk.Table(2,1,False)
+        ftable.attach(self.preview.widget,
+            0,1,0,1,
+            gtk.EXPAND | gtk.FILL,
+            gtk.EXPAND | gtk.FILL,
+            1,1)
+        ftable.attach(self.preview2.widget,
+            1,2,0,1,
+            gtk.EXPAND | gtk.FILL,
+            gtk.EXPAND | gtk.FILL,
+            1,1)
+
         self.f.connect('parameters-changed', self.update_preview)
         self.f.connect('pointer-moved', self.update_preview_on_pointer)
 
+        gradbox = gtk.VBox()
+        gradbox.add(ftable)
+
         toolb.add_widget(
-            self.preview.widget,
+            gradbox, #self.preview.widget,
             _("Preview"),
             _("Shows what the next operation would do"))
 
@@ -72,6 +90,10 @@ class LocationPage:
     def update_preview(self,f,flip2julia=False):
         if self.use_preview:
             self.preview.set_fractal(f.copy_f())
+            from fract4d import fractconfig
+            f2 = f.copy_f()
+            f2.set_cmap(fractconfig.instance.find_resource("default.map", "maps", "maps"))
+            self.preview2.set_fractal(f2)
             self.draw_preview()
 
     def update_preview_on_pointer(self,f,button, x,y):
@@ -79,6 +101,9 @@ class LocationPage:
             self.preview.set_fractal(f.copy_f())
             self.preview.relocate(x,y,1.0)
             self.preview.flip_to_julia()
+            self.preview2.set_fractal(f.copy_f())
+            self.preview2.relocate(x,y,1.0)
+            self.preview2.flip_to_julia()
             self.draw_preview()
 
     def create_angle_widget(self, toolb, name, tip, axis, is4dsensitive):
@@ -113,6 +138,7 @@ class LocationPage:
 
     def draw_preview(self):
         self.preview.draw_image(False)
+        self.preview2.draw_image(False)
 
     def populate_warpmenu(self,f):
         from fract4d import fracttypes

@@ -8,8 +8,8 @@ import gtk
 import dialog
 
 def show_autozoom(parent,f):
-    AutozoomDialog.show(parent,f)
-    
+    dialog.reveal(AutozoomDialog, True, parent, None, f)
+
 class AutozoomDialog(dialog.T):
     def __init__(self,main_window,f):
         dialog.T.__init__(
@@ -58,11 +58,6 @@ class AutozoomDialog(dialog.T):
         self.table.attach(self.minsize_entry,
                           1,2,1,2,
                           gtk.EXPAND | gtk.FILL, 0, 2, 2)
-
-    def show(parent, f):
-        dialog.T.reveal(AutozoomDialog, True, parent, None, f)
-
-    show = staticmethod(show)
 
     def onResponse(self,widget,id):
         self.zoombutton.set_active(False)

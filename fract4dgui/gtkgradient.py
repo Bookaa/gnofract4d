@@ -5,9 +5,9 @@ import random
 
 from fract4d import gradient
 
-def show_gradients(parent,f):
-    GradientDialog.show(parent,f)
-    
+def nouse_show_gradients(parent, f, grad):
+    dialog.reveal(GradientDialog,False, parent, None, f,grad)
+
 class GradientDialog(dialog.T):
     def __init__(self,main_window,f):
         global userPrefs
@@ -29,11 +29,6 @@ class GradientDialog(dialog.T):
         self.cur = -1 # no segment selected 
         #self.create_gradient_dialog()
 
-    def show(parent,f,grad):
-        dialog.T.reveal(GradientDialog,False, parent, None, f,grad)
-        
-    show = staticmethod(show)
-    
     def create_gradient_dialog(self):
         hData = self.grad.getDataFromHandle(self.grad.cur)
         HSVCo = gradient.RGBtoHSV(hData.col)

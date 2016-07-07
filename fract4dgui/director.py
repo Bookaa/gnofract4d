@@ -18,7 +18,7 @@ from fract4d import animation, fractconfig
 import PNGGen,AVIGen,DlgAdvOpt,director_prefs
 
 def show(parent,alt_parent, f,dialog_mode,conf_file=""):
-    DirectorDialog.show(parent,alt_parent, f,dialog_mode,conf_file)
+    dialog.reveal(DirectorDialog, dialog_mode, parent, alt_parent, f,conf_file)
 
 class UserCancelledError(Exception):
 	pass
@@ -30,11 +30,6 @@ class SanityCheckError(Exception):
 
 class DirectorDialog(dialog.T,hig.MessagePopper):
     RESPONSE_RENDER=1
-    def show(parent, alt_parent, f,dialog_mode,conf_file):
-        dialog.T.reveal(DirectorDialog, dialog_mode,
-                        parent, alt_parent, f,conf_file)
-
-    show = staticmethod(show)
 
     def check_for_keyframe_clash(self,keyframe,fct_dir):
         keydir=os.path.dirname(keyframe)

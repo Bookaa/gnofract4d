@@ -7,14 +7,10 @@ import browser
 import utils
 
 def show(parent,f):
-    PainterDialog.show(parent,f)
+    dialog.reveal(PainterDialog, True, parent, None, f)
 
 class PainterDialog(dialog.T):
-    def show(parent, f):
-        dialog.T.reveal(PainterDialog, True, parent, None, f)
 
-    show = staticmethod(show)
-    
     def __init__(self,main_window,f):
         dialog.T.__init__(
             self,
