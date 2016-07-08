@@ -256,7 +256,7 @@ class Compiler:
             # skip compilation - we already have this code
             return outputfile
 
-        print desc
+        # print desc
 
         Call_subprocess_compile(hash, desc)
 
@@ -470,7 +470,7 @@ def Call_subprocess_compile(hash, desc):
     p = Popen(["python", g_compile_cmds, '1'], stdin=PIPE, stdout=PIPE)
     print >>p.stdin, hash
     print >>p.stdin, desc
-    print p.communicate("\n")[0]
+    p.communicate("\n")[0]
 
 def ParseFormulaFileRemote(s):
     #print 'length1', len(s)
@@ -484,7 +484,7 @@ def ParseFormulaFileRemote(s):
         s = p.stdout.readline().strip()
         if s == 'next is json':
             break
-        print s
+        # print s
     sJson = p.communicate("\n")[0]
     dict_ = json.loads(sJson)
     return dict_

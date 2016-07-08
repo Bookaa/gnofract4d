@@ -10,9 +10,6 @@ from fract4d import browser_model, fc
 
 import dialog, utils, gtkfractal
 
-def stricmp(a,b):
-    return cmp(a.lower(),b.lower())
-
 def show(parent, f, type=browser_model.FRACTAL):
     _browser = dialog.reveal(BrowserDialog,True, parent, None, f)
     _browser.set_type(type)
@@ -43,8 +40,7 @@ class BrowserDialog(dialog.T):
         self.model.file_changed += self.on_file_changed
         self.model.formula_changed += self.on_formula_changed
         
-        self.formula_list = gtk.ListStore(
-            gobject.TYPE_STRING)
+        self.formula_list = gtk.ListStore(gobject.TYPE_STRING)
 
         self.file_list = gtk.ListStore(
             gobject.TYPE_STRING, #formname
@@ -54,11 +50,9 @@ class BrowserDialog(dialog.T):
         self.f = f
         self.compiler = f.compiler
 
-        self.ir = None
+        #self.ir = None
         self.main_window = main_window
-        self.set_size_request(600,500)
-        self.preview = gtkfractal.Preview(self.compiler)
-        self.preview.f.auto_tolerance = False
+        self.set_size_request(1400,960)
 
         self.create_panes()
         self.on_file_changed()
@@ -82,12 +76,6 @@ class BrowserDialog(dialog.T):
         self.f.refresh()
         self.set_file(self.model.current.fname) # update text window
 
-    def get_current_text(self):
-        buffer = self.sourcetext.get_buffer()
-        text = buffer.get_text(buffer.get_start_iter(),
-                               buffer.get_end_iter(), False)
-        return text
-
     def onApply(self):
         self.model.apply(self.f)
         
@@ -102,15 +90,13 @@ class BrowserDialog(dialog.T):
         self.model.set_type(type)
         
     def create_file_list(self):
-        sw = gtk.ScrolledWindow ()
+        sw = gtk.ScrolledWindow()
 
         sw.set_shadow_type (gtk.SHADOW_ETCHED_IN)
-        sw.set_policy (gtk.POLICY_NEVER,
-                       gtk.POLICY_AUTOMATIC)
+        sw.set_policy (gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
 
         self.filetreeview = gtk.TreeView (self.file_list)
-        self.filetreeview.set_tooltip_text(
-            _("A list of files containing fractal formulas"))
+        self.filetreeview.set_tooltip_text(_("A list of files containing fractal formulas"))
         
         sw.add(self.filetreeview)
 
@@ -118,10 +104,6 @@ class BrowserDialog(dialog.T):
         column = gtk.TreeViewColumn ('_File', renderer, text=0)
         
         self.filetreeview.append_column (column)
-
-        #renderer = gradientCellRenderer.GradientCellRenderer(self.model, self.compiler)
-        #column = gtk.TreeViewColumn (_('_Preview'), renderer)
-        #self.filetreeview.append_column (column)
 
         selection = self.filetreeview.get_selection()
         selection.connect('changed',self.file_selection_changed)
@@ -160,14 +142,47 @@ class BrowserDialog(dialog.T):
 
         form_names = self.model.current.formulas
 
+        if True:
+            n = len(form_names)
+            self.ftable.resize(4, (n/4)+1)
+            if n > self.attachnum:
+                for i in range(self.attachnum,n):
+                    if i < len(self.previews):
+                        preview = self.previews[i]
+                    else:
+                        preview = gtkfractal.Preview(self.compiler)
+                        self.previews.append(preview)
+                    self.ftable.attach(preview.widget,
+                        i%4,(i%4)+1,i/4,(i/4)+1,
+                        gtk.EXPAND | gtk.FILL,
+                        gtk.EXPAND | gtk.FILL,
+                        1,1)
+            if n < self.attachnum:
+                for i in range(n,self.attachnum):
+                    preview = self.previews[i]
+                    self.ftable.remove(preview.widget)
+                    # preview.hide()
+            self.attachnum = n
+
         i = 0
         for formula_name in form_names:
             iter = self.formula_list.append()
             self.formula_list.set(iter,0,formula_name)
+            if True:
+                preview = self.previews[i]
+                f2 = self.f.copy_f()
+                f2.set_formula(fname, formula_name, self.model.current_type)
+                preview.set_fractal(f2)
+
+                preview.draw_image(False)
+
             if formula_name == self.model.current.formula:
                 self.treeview.get_selection().select_iter(iter)
                 self.treeview.scroll_to_cell(i)
                 self.set_formula(formula_name)
+
+                self.preview = preview
+
             i += 1
             
     def create_formula_list(self):
@@ -195,18 +210,6 @@ class BrowserDialog(dialog.T):
         selection.connect('changed',self.formula_selection_changed)
         return sw
 
-    def create_scrolled_textview(self,tip):
-        sw = gtk.ScrolledWindow ()
-        sw.set_shadow_type (gtk.SHADOW_ETCHED_IN)
-        sw.set_policy (gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-
-        textview = gtk.TextView()
-        textview.set_tooltip_text(tip)
-        textview.set_editable(False)
-        
-        sw.add(textview)
-        return (textview,sw)
-
     def create_panes(self):
         # option menu for choosing Inner/Outer/Fractal
         self.funcTypeMenu = utils.create_option_menu(
@@ -218,8 +221,7 @@ class BrowserDialog(dialog.T):
 
         utils.set_selected(self.funcTypeMenu,self.model.current_type)
         
-        self.funcTypeMenu.set_tooltip_text(
-            _("Which formula of the current fractal to change"))
+        self.funcTypeMenu.set_tooltip_text(_("Which formula of the current fractal to change"))
 
         self.funcTypeMenu.connect('changed',self.set_type_cb)
 
@@ -249,31 +251,23 @@ class BrowserDialog(dialog.T):
         panes2.add2(formula_list)        
         panes1.add1(panes2)
 
-        # right-hand pane is details of current formula
-        notebook = gtk.Notebook()
+        if False:
+            self.panes1 = panes1
+            return
 
         # preview
-        label = gtk.Label(_('_Preview'))
-        label.set_use_underline(True)
-        notebook.append_page(self.preview.widget, label)
-        
-        # source
-        (self.sourcetext,sw) = self.create_scrolled_textview(
-            _("The contents of the currently selected formula file"))
-        
-        label = gtk.Label(_('_Source'))
-        label.set_use_underline(True)
-        notebook.append_page(sw, label)
+        self.preview = None
+        self.previews = []
+        self.attachnum = 0
 
-        # messages
-        (self.msgtext, sw) = self.create_scrolled_textview(
-            _("Any compiler warnings or errors in the current function"))
-        
-        label = gtk.Label(_('_Messages'))
-        label.set_use_underline(True)
-        notebook.append_page(sw, label)
+        ftable = gtk.Table(4,9/4+1,True)
 
-        panes1.add2(notebook)
+        self.ftable = ftable
+
+        sw = gtk.ScrolledWindow()
+        sw.add_with_viewport(ftable)
+
+        panes1.add2(sw)
 
     def file_selection_changed(self,selection):
         self.model.current.formula = None
@@ -290,7 +284,6 @@ class BrowserDialog(dialog.T):
     def on_file_changed(self):
         text = self.model.get_contents()
         
-        self.display_text(text)
         self.populate_formula_list(self.model.current.fname)
         self.set_apply_sensitivity()
         
@@ -325,25 +318,8 @@ class BrowserDialog(dialog.T):
         if not formula:
             return
         
-        #update location of source buffer        
-        sourcebuffer = self.sourcetext.get_buffer()
-        iter = sourcebuffer.get_iter_at_line(formula.pos-1)
-        self.sourcetext.scroll_to_iter(iter,0.0,True,0.0,0.0)
-
         # update IR tree
-        self.ir = self.compiler.get_formula(file,form_name)
-
-        # update messages
-        buffer = self.msgtext.get_buffer()
-        msg = ""
-        if self.ir.errors != []:
-            msg += _("Errors:\n") + string.join(self.ir.errors,"\n") + "\n"
-        if self.ir.warnings != []:
-            msg += _("Warnings:\n") + string.join(self.ir.warnings,"\n")
-        if msg == "":
-            msg = _("No messages")
-            
-        buffer.set_text(msg,-1)
+        # self.ir = self.compiler.get_formula(file,form_name)
 
         self.set_apply_sensitivity()
 
@@ -355,11 +331,5 @@ class BrowserDialog(dialog.T):
         if can_apply:
             self.model.apply(self.preview)
             self.preview.draw_image(False, False)
-        
-    def display_text(self,text):
-        # convert from latin-1 (encoding is undefined, but that seems closish)
-        # to utf-8 to keep pango happy
-        latin_text = unicode(text,'latin-1')
-        utf8_text = latin_text.encode('utf-8')
-        self.sourcetext.get_buffer().set_text(utf8_text,-1)
-        
+
+
