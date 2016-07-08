@@ -623,6 +623,8 @@ class MainWindow:
             # explorer is a toggle, see above
             ('ToolsBrowserAction', None, _('Formula _Browser'),
              '<control>B', _('Browse available formulas'), self.browser),
+            ('ToolsBrowserAction2', None, _('Formula Browser with Preview'),
+             None, _('Browse available formulas'), self.browser2),
             ('ToolsDirectorAction', None, _('_Director'),
              '<control>D', _('Create animations'), self.director),
             ('ToolsRandomizeAction', icons.randomize.stock_name, _('_Randomize Colors'),
@@ -709,6 +711,11 @@ class MainWindow:
     def browser(self,*args):
         """Display formula browser."""
         browser.show(self.window,self.f)
+
+    def browser2(self,*args):
+        """Display formula browser."""
+        import browser2
+        browser2.show(self.window,self.f)
 
     def randomize_colors(self,*args):
         """Create a new random color scheme."""

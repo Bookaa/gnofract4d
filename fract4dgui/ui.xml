@@ -45,6 +45,7 @@
       <menuitem name="ToolsAutozoom" action="ToolsAutozoomAction"/>
       <menuitem name="ToolsExplorer" action="ToolsExplorerAction"/>
       <menuitem name="ToolsBrowser" action="ToolsBrowserAction"/>
+      <menuitem name="ToolsBrowser2" action="ToolsBrowserAction2"/>
       <menuitem name="ToolsDirector" action="ToolsDirectorAction"/>
       <menuitem name="ToolsRandomize" action="ToolsRandomizeAction"/>
       <menuitem name="ToolsPainter" action="ToolsPainterAction"/>
