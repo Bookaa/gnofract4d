@@ -27,8 +27,7 @@ class BrowserDialog(dialog.T):
             _("Formula Browser with Preview"),
             main_window,
             gtk.DIALOG_DESTROY_WITH_PARENT,
-            (#_("Co_mpile"), BrowserDialog.RESPONSE_COMPILE,
-             gtk.STOCK_REFRESH, BrowserDialog.RESPONSE_REFRESH,
+            (gtk.STOCK_REFRESH, BrowserDialog.RESPONSE_REFRESH,
              gtk.STOCK_APPLY, gtk.RESPONSE_APPLY,
              gtk.STOCK_OK, gtk.RESPONSE_OK,
              gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE))
@@ -49,6 +48,7 @@ class BrowserDialog(dialog.T):
 
         self.f = f
         self.compiler = f.compiler
+        self.last_preview = None
 
         #self.ir = None
         self.main_window = main_window
@@ -173,15 +173,12 @@ class BrowserDialog(dialog.T):
                 f2 = self.f.copy_f()
                 f2.set_formula(fname, formula_name, self.model.current_type)
                 preview.set_fractal(f2)
-
                 preview.draw_image(False)
 
             if formula_name == self.model.current.formula:
                 self.treeview.get_selection().select_iter(iter)
                 self.treeview.scroll_to_cell(i)
                 self.set_formula(formula_name)
-
-                self.preview = preview
 
             i += 1
             
@@ -193,18 +190,13 @@ class BrowserDialog(dialog.T):
 
         self.treeview = gtk.TreeView (self.formula_list)
 
-        self.treeview.set_tooltip_text(
-            _("A list of formulas in the selected file"))
+        self.treeview.set_tooltip_text(_("A list of formulas in the selected file"))
 
         sw.add(self.treeview)
 
         renderer = gtk.CellRendererText ()
         column = gtk.TreeViewColumn (_('F_ormula'), renderer, text=0)
         self.treeview.append_column (column)
-        #renderer = gradientCellRenderer.GradientCellRenderer(self.model, self.compiler)
-        #column = gtk.TreeViewColumn (_('_Preview'), renderer)
-        #column.add_attribute(renderer, "formname", 0)
-        #self.treeview.append_column (column)
 
         selection = self.treeview.get_selection()
         selection.connect('changed',self.formula_selection_changed)
@@ -251,12 +243,7 @@ class BrowserDialog(dialog.T):
         panes2.add2(formula_list)        
         panes1.add1(panes2)
 
-        if False:
-            self.panes1 = panes1
-            return
-
         # preview
-        self.preview = None
         self.previews = []
         self.attachnum = 0
 
@@ -318,9 +305,6 @@ class BrowserDialog(dialog.T):
         if not formula:
             return
         
-        # update IR tree
-        # self.ir = self.compiler.get_formula(file,form_name)
-
         self.set_apply_sensitivity()
 
     def set_apply_sensitivity(self):
@@ -328,8 +312,32 @@ class BrowserDialog(dialog.T):
         self.set_response_sensitive(gtk.RESPONSE_APPLY,can_apply)
         self.set_response_sensitive(gtk.RESPONSE_OK,can_apply)
 
+        if self.last_preview:
+            preview, fname, formula_name = self.last_preview
+
+            f2 = self.f.copy_f()
+            f2.set_formula(fname, formula_name, self.model.current_type)
+            preview.set_fractal(f2)
+            preview.draw_image(False)
+
         if can_apply:
-            self.model.apply(self.preview)
-            self.preview.draw_image(False, False)
+            fname = self.model.current.fname
+            form_names = self.model.current.formulas
+            i = 0;
+            for formula_name in form_names:
+                if formula_name == self.model.current.formula:
+                    break
+                i += 1
+            preview = self.previews[i]
+
+            f2 = self.f.copy_f()
+            f2.set_formula(fname, formula_name, self.model.current_type)
+            f2.set_cmap('maps/basic.map')
+            preview.set_fractal(f2)
+
+            self.model.apply(preview)
+            preview.draw_image(False, False)
+
+            self.last_preview = preview, fname, formula_name
 
 
