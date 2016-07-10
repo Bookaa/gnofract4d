@@ -711,7 +711,7 @@ class T(Hidden):
 
         fway.connect('value-changed',self.fourway_released, order, form)
 
-        if self.parent:
+        if False and self.parent:
             fway.connect(
                 'value-slightly-changed',
                 self.parent.on_drag_param_fourway, order, param_type)

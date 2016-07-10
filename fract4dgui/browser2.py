@@ -12,8 +12,8 @@ import dialog, utils, gtkfractal
 
 def show(parent, f, type=browser_model.FRACTAL):
     _browser = dialog.reveal(BrowserDialog,True, parent, None, f)
-    GG_Instance.update(f.forms[0].funcFile, f.forms[0].funcName)
     _browser.set_type(type)
+    GG_Instance.update(f.forms[0].funcFile, f.forms[0].funcName)
     _browser.populate_file_list()
 
 # from browser import GG_Instance
@@ -127,6 +127,7 @@ class BrowserDialog(dialog.T):
 
     def populate_file_list(self):
         # find all appropriate files and add to file list
+        formula = self.model.current.formula
         self.file_list.clear()
 
         files = self.model.current.files
@@ -148,21 +149,22 @@ class BrowserDialog(dialog.T):
             if sel:
                 sel.unselect_all()
                 sel.select_iter(current_iter)
-                self.populate_formula_list(self.model.current.fname)
+                self.populate_formula_list(self.model.current.fname, formula)
         else:
             self.formula_list.clear()
             self.formula_selection_changed(None)
         
-    def populate_formula_list(self,fname):
+    def populate_formula_list(self, fname, formula):
         self.formula_list.clear()
 
         form_names = self.model.current.formulas
 
+        # formula = self.model.current.formula
         for i, formula_name in enumerate(form_names):
             iter = self.formula_list.append()
             self.formula_list.set(iter,0,formula_name)
 
-            if formula_name == self.model.current.formula:
+            if formula_name == formula:
                 self.treeview.get_selection().select_iter(iter)
                 self.treeview.scroll_to_cell(i)
                 self.set_formula(formula_name)
@@ -277,7 +279,7 @@ class BrowserDialog(dialog.T):
     def on_file_changed(self):
         text = self.model.get_contents()
         
-        self.populate_formula_list(self.model.current.fname)
+        self.populate_formula_list(self.model.current.fname, self.model.current.formula)
         self.set_apply_sensitivity()
         
     def clear_selection(self):
