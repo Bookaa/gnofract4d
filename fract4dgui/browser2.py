@@ -12,6 +12,7 @@ import dialog, utils, gtkfractal
 
 def show(parent, f, type=browser_model.FRACTAL):
     _browser = dialog.reveal(BrowserDialog,True, parent, None, f)
+    GG_Instance.update(f.forms[0].funcFile, f.forms[0].funcName)
     _browser.set_type(type)
     _browser.populate_file_list()
 
@@ -48,8 +49,6 @@ class BrowserDialog(dialog.T):
              gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE))
 
         self.set_default_response(gtk.RESPONSE_OK)
-
-        GG_Instance.update(f.forms[0].funcFile, f.forms[0].funcName)
 
         self.model = GG_Instance._instance
         self.model.type_changed += self.on_type_changed

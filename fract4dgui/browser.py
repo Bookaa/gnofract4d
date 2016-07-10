@@ -15,6 +15,7 @@ def stricmp(a,b):
 
 def show(parent, f, type=browser_model.FRACTAL):
     _browser = dialog.reveal(BrowserDialog,True, parent, None, f)
+    GG_Instance.update(f.forms[0].funcFile, f.forms[0].funcName)
     _browser.set_type(type)
     _browser.populate_file_list()
 
