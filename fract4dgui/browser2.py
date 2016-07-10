@@ -15,7 +15,22 @@ def show(parent, f, type=browser_model.FRACTAL):
     _browser.set_type(type)
     _browser.populate_file_list()
 
-from browser import GG_Instance
+# from browser import GG_Instance
+class GG_Instance:
+    _instance = browser_model.T(fc.instance)
+
+    @classmethod
+    def update(cls, file=None, formula=None):
+        cls._instance.update(file,formula)
+
+    @classmethod
+    def set_type(cls, type):
+        cls._instance.set_type(type)
+
+    @classmethod
+    def guess_type(cls, file):
+        return cls._instance.guess_type(file)
+
 
 class BrowserDialog(dialog.T):
     RESPONSE_EDIT = 1
@@ -33,6 +48,8 @@ class BrowserDialog(dialog.T):
              gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE))
 
         self.set_default_response(gtk.RESPONSE_OK)
+
+        GG_Instance.update(f.forms[0].funcFile, f.forms[0].funcName)
 
         self.model = GG_Instance._instance
         self.model.type_changed += self.on_type_changed
@@ -52,7 +69,7 @@ class BrowserDialog(dialog.T):
 
         #self.ir = None
         self.main_window = main_window
-        self.set_size_request(1400,960)
+        self.set_size_request(1340,840)
 
         self.create_panes()
         self.on_file_changed()
@@ -142,46 +159,32 @@ class BrowserDialog(dialog.T):
 
         form_names = self.model.current.formulas
 
-        if True:
-            n = len(form_names)
-            self.ftable.resize(4, (n/4)+1)
-            if n > self.attachnum:
-                for i in range(self.attachnum,n):
-                    if i < len(self.previews):
-                        preview = self.previews[i]
-                    else:
-                        preview = gtkfractal.Preview(self.compiler)
-                        self.previews.append(preview)
-                    self.ftable.attach(preview.widget,
-                        i%4,(i%4)+1,i/4,(i/4)+1,
-                        gtk.EXPAND | gtk.FILL,
-                        gtk.EXPAND | gtk.FILL,
-                        1,1)
-            if n < self.attachnum:
-                for i in range(n,self.attachnum):
-                    preview = self.previews[i]
-                    self.ftable.remove(preview.widget)
-                    # preview.hide()
-            self.attachnum = n
-
-        i = 0
-        for formula_name in form_names:
+        for i, formula_name in enumerate(form_names):
             iter = self.formula_list.append()
             self.formula_list.set(iter,0,formula_name)
-            if True:
-                preview = self.previews[i]
-                f2 = self.f.copy_f()
-                f2.set_formula(fname, formula_name, self.model.current_type)
-                preview.set_fractal(f2)
-                preview.draw_image(False)
 
             if formula_name == self.model.current.formula:
                 self.treeview.get_selection().select_iter(iter)
                 self.treeview.scroll_to_cell(i)
                 self.set_formula(formula_name)
 
-            i += 1
-            
+
+        if fname == self.lastfname:
+            return
+
+        self.lastfname = fname
+        self.last_preview = None
+
+        for i, formula_name in enumerate(form_names):
+            if formula_name == self.model.current.formula:
+                break
+        else:
+            i = 0
+
+        firstpos = (i / 16) * 16
+
+        self.DoDraw16(firstpos)
+
     def create_formula_list(self):
         sw = gtk.ScrolledWindow ()
         sw.set_shadow_type (gtk.SHADOW_ETCHED_IN)
@@ -245,14 +248,18 @@ class BrowserDialog(dialog.T):
 
         # preview
         self.previews = []
-        self.attachnum = 0
+        self.lastfname = ''
+        self.firstpos = 0
 
-        ftable = gtk.Table(4,9/4+1,True)
+        self.ftable = gtk.Table(4,4,True)
 
-        self.ftable = ftable
+        for i in range(16):
+            preview = gtkfractal.Preview(self.compiler)
+            self.previews.append((preview,''))
+            self.ftable.attach(preview.widget, i%4,(i%4)+1,i/4,(i/4)+1) #, 0, 0, 1, 1)
 
         sw = gtk.ScrolledWindow()
-        sw.add_with_viewport(ftable)
+        sw.add_with_viewport(self.ftable)
 
         panes1.add2(sw)
 
@@ -312,32 +319,79 @@ class BrowserDialog(dialog.T):
         self.set_response_sensitive(gtk.RESPONSE_APPLY,can_apply)
         self.set_response_sensitive(gtk.RESPONSE_OK,can_apply)
 
-        if self.last_preview:
-            preview, fname, formula_name = self.last_preview
-
-            f2 = self.f.copy_f()
-            f2.set_formula(fname, formula_name, self.model.current_type)
-            preview.set_fractal(f2)
-            preview.draw_image(False)
 
         if can_apply:
             fname = self.model.current.fname
             form_names = self.model.current.formulas
-            i = 0;
-            for formula_name in form_names:
+            for i, formula_name in enumerate(form_names):
                 if formula_name == self.model.current.formula:
                     break
-                i += 1
-            preview = self.previews[i]
+            else:
+                print 'why not find current'
+                i = 0
+            firstpos = (i / 16) * 16
+            i = i % 16
+            if firstpos != self.firstpos:
+                print 'firstpos change', self.firstpos, firstpos
+                self.DoDraw16(firstpos)
+                return
+
+
+            if self.last_preview:
+                preview, formula_name1 = self.last_preview
+
+                f2 = self.f.copy_f()
+                f2.set_formula(fname, formula_name1, self.model.current_type)
+                preview.set_fractal(f2)
+                preview.draw_image(False)
+                print 'last', fname, formula_name1
+            preview, formula_name1 = self.previews[i]
+            if formula_name != formula_name1:
+                print 'why not coe:', formula_name, formula_name1
 
             f2 = self.f.copy_f()
-            f2.set_formula(fname, formula_name, self.model.current_type)
+            f2.set_formula(fname, formula_name1, self.model.current_type)
             f2.set_cmap('maps/basic.map')
             preview.set_fractal(f2)
 
             self.model.apply(preview)
             preview.draw_image(False, False)
 
-            self.last_preview = preview, fname, formula_name
+            self.last_preview = preview, formula_name1
+            print 'current', fname, formula_name1, self.model.current_type
+
+    def DoDraw16(self, firstpos):
+        self.firstpos = firstpos
+
+        form_names = self.model.current.formulas
+
+        fname = self.model.current.fname
+        ii=0
+        for i, formula_name in enumerate(form_names):
+            if i < firstpos:
+                continue
+            ii = i - firstpos
+            if ii >= 16:
+                continue
+            if True:
+                preview, _ = self.previews[ii]
+                try:
+                    f2 = self.f.copy_f()
+                    f2.set_formula(fname, formula_name, self.model.current_type)
+                    if formula_name == self.model.current.formula:
+                        f2.set_cmap('maps/basic.map')
+                        self.last_preview = preview, formula_name
+                    preview.set_fractal(f2)
+                except:
+                    print 'error 3'
+                    pass
+                preview.widget.show_all()
+                preview.draw_image(False)
+                self.previews[ii] = (preview, formula_name)
+        ii += 1
+        while ii < 16:
+            preview, _ = self.previews[ii]
+            ii += 1
+            preview.widget.hide_all()
 
 
