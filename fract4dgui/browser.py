@@ -34,7 +34,64 @@ class GG_Instance:
     def guess_type(cls, file):
         return cls._instance.guess_type(file)
 
-class BrowserDialog(dialog.T):
+class FileListFormulaList:
+    def __init__(self):
+        self.formula_list = gtk.ListStore(gobject.TYPE_STRING)
+
+        self.file_list = gtk.ListStore(gobject.TYPE_STRING)
+
+        # need self.file_selection_changed
+        # need self.formula_selection_changed
+
+    def create_file_list(self):
+        sw = gtk.ScrolledWindow()
+
+        sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+        sw.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+
+        self.filetreeview = gtk.TreeView(self.file_list)
+        self.filetreeview.set_tooltip_text(_("A list of files containing fractal formulas"))
+
+        sw.add(self.filetreeview)
+
+        renderer = gtk.CellRendererText()
+        column = gtk.TreeViewColumn('_File', renderer, text=0)
+
+        self.filetreeview.append_column(column)
+
+        #renderer = gradientCellRenderer.GradientCellRenderer(self.model, self.compiler)
+        #column = gtk.TreeViewColumn (_('_Preview'), renderer)
+        #self.filetreeview.append_column (column)
+
+        selection = self.filetreeview.get_selection()
+        selection.connect('changed',self.file_selection_changed)
+        return sw
+
+    def create_formula_list(self):
+        sw = gtk.ScrolledWindow()
+        sw.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+        sw.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+
+        self.treeview = gtk.TreeView(self.formula_list)
+
+        self.treeview.set_tooltip_text(_("A list of formulas in the selected file"))
+
+        sw.add(self.treeview)
+
+        renderer = gtk.CellRendererText()
+        column = gtk.TreeViewColumn(_('F_ormula'), renderer, text=0)
+        self.treeview.append_column(column)
+        #renderer = gradientCellRenderer.GradientCellRenderer(self.model, self.compiler)
+        #column = gtk.TreeViewColumn (_('_Preview'), renderer)
+        #column.add_attribute(renderer, "formname", 0)
+        #self.treeview.append_column (column)
+
+        selection = self.treeview.get_selection()
+        selection.connect('changed',self.formula_selection_changed)
+        return sw
+
+
+class BrowserDialog(dialog.T, FileListFormulaList):
     RESPONSE_EDIT = 1
     RESPONSE_REFRESH = 2
     RESPONSE_COMPILE = 3
@@ -56,19 +113,12 @@ class BrowserDialog(dialog.T):
         self.model.type_changed += self.on_type_changed
         self.model.file_changed += self.on_file_changed
         self.model.formula_changed += self.on_formula_changed
-        
-        self.formula_list = gtk.ListStore(
-            gobject.TYPE_STRING)
 
-        self.file_list = gtk.ListStore(
-            gobject.TYPE_STRING, #formname
-            gobject.TYPE_STRING,
-            gobject.TYPE_INT)
+        FileListFormulaList.__init__(self)
 
         self.f = f
         self.compiler = f.compiler
 
-        self.ir = None
         self.main_window = main_window
         self.set_size_request(600,500)
         self.preview = gtkfractal.Preview(self.compiler)
@@ -114,32 +164,6 @@ class BrowserDialog(dialog.T):
         
     def set_type(self,type):
         self.model.set_type(type)
-        
-    def create_file_list(self):
-        sw = gtk.ScrolledWindow ()
-
-        sw.set_shadow_type (gtk.SHADOW_ETCHED_IN)
-        sw.set_policy (gtk.POLICY_NEVER,
-                       gtk.POLICY_AUTOMATIC)
-
-        self.filetreeview = gtk.TreeView (self.file_list)
-        self.filetreeview.set_tooltip_text(
-            _("A list of files containing fractal formulas"))
-        
-        sw.add(self.filetreeview)
-
-        renderer = gtk.CellRendererText ()
-        column = gtk.TreeViewColumn ('_File', renderer, text=0)
-        
-        self.filetreeview.append_column (column)
-
-        #renderer = gradientCellRenderer.GradientCellRenderer(self.model, self.compiler)
-        #column = gtk.TreeViewColumn (_('_Preview'), renderer)
-        #self.filetreeview.append_column (column)
-
-        selection = self.filetreeview.get_selection()
-        selection.connect('changed',self.file_selection_changed)
-        return sw
 
     def populate_file_list(self):
         # find all appropriate files and add to file list
@@ -151,11 +175,11 @@ class BrowserDialog(dialog.T):
         current_iter = None
         index,i = 0,0
         for fname in files:
-            iter = self.file_list.append ()
+            iter = self.file_list.append()
             if fname == self.model.current.fname:
                 current_iter = iter
                 index = i
-            self.file_list.set (iter, 0, fname)
+            self.file_list.set(iter, 0, fname)
             i += 1
             
         # re-select current file, if any
@@ -184,31 +208,6 @@ class BrowserDialog(dialog.T):
                 self.treeview.scroll_to_cell(i)
                 self.set_formula(formula_name)
             i += 1
-            
-    def create_formula_list(self):
-        sw = gtk.ScrolledWindow ()
-        sw.set_shadow_type (gtk.SHADOW_ETCHED_IN)
-        sw.set_policy (gtk.POLICY_NEVER,
-                       gtk.POLICY_AUTOMATIC)
-
-        self.treeview = gtk.TreeView (self.formula_list)
-
-        self.treeview.set_tooltip_text(
-            _("A list of formulas in the selected file"))
-
-        sw.add(self.treeview)
-
-        renderer = gtk.CellRendererText ()
-        column = gtk.TreeViewColumn (_('F_ormula'), renderer, text=0)
-        self.treeview.append_column (column)
-        #renderer = gradientCellRenderer.GradientCellRenderer(self.model, self.compiler)
-        #column = gtk.TreeViewColumn (_('_Preview'), renderer)
-        #column.add_attribute(renderer, "formname", 0)
-        #self.treeview.append_column (column)
-
-        selection = self.treeview.get_selection()
-        selection.connect('changed',self.formula_selection_changed)
-        return sw
 
     def create_scrolled_textview(self,tip):
         sw = gtk.ScrolledWindow ()
@@ -254,14 +253,14 @@ class BrowserDialog(dialog.T):
         self.vbox.pack_start(panes1, True, True)
         panes1.set_border_width(5)
 
-        file_list = self.create_file_list()
-        formula_list = self.create_formula_list()
+        file_list_ = self.create_file_list()
+        formula_list_ = self.create_formula_list()
         
         panes2 = gtk.HPaned()
         # left-hand pane displays file list
-        panes2.add1(file_list)
+        panes2.add1(file_list_)
         # middle is formula list for that file
-        panes2.add2(formula_list)        
+        panes2.add2(formula_list_)
         panes1.add1(panes2)
 
         # right-hand pane is details of current formula
@@ -346,15 +345,15 @@ class BrowserDialog(dialog.T):
         self.sourcetext.scroll_to_iter(iter,0.0,True,0.0,0.0)
 
         # update IR tree
-        self.ir = self.compiler.get_formula(file,form_name)
+        ir = self.compiler.get_formula(file,form_name)
 
         # update messages
         buffer = self.msgtext.get_buffer()
         msg = ""
-        if self.ir.errors != []:
-            msg += _("Errors:\n") + string.join(self.ir.errors,"\n") + "\n"
-        if self.ir.warnings != []:
-            msg += _("Warnings:\n") + string.join(self.ir.warnings,"\n")
+        if ir.errors != []:
+            msg += _("Errors:\n") + string.join(ir.errors,"\n") + "\n"
+        if ir.warnings != []:
+            msg += _("Warnings:\n") + string.join(ir.warnings,"\n")
         if msg == "":
             msg = _("No messages")
             

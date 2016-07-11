@@ -32,8 +32,10 @@ class GG_Instance:
     def guess_type(cls, file):
         return cls._instance.guess_type(file)
 
+from browser import FileListFormulaList
 
-class BrowserDialog(dialog.T):
+
+class BrowserDialog(dialog.T, FileListFormulaList):
     RESPONSE_EDIT = 1
     RESPONSE_REFRESH = 2
     RESPONSE_COMPILE = 3
@@ -54,19 +56,13 @@ class BrowserDialog(dialog.T):
         self.model.type_changed += self.on_type_changed
         self.model.file_changed += self.on_file_changed
         self.model.formula_changed += self.on_formula_changed
-        
-        self.formula_list = gtk.ListStore(gobject.TYPE_STRING)
 
-        self.file_list = gtk.ListStore(
-            gobject.TYPE_STRING, #formname
-            gobject.TYPE_STRING,
-            gobject.TYPE_INT)
+        FileListFormulaList.__init__(self)
 
         self.f = f
         self.compiler = f.compiler
         self.last_preview = None
 
-        #self.ir = None
         self.main_window = main_window
         self.set_size_request(1340,840)
 
@@ -104,26 +100,6 @@ class BrowserDialog(dialog.T):
         
     def set_type(self,type):
         self.model.set_type(type)
-        
-    def create_file_list(self):
-        sw = gtk.ScrolledWindow()
-
-        sw.set_shadow_type (gtk.SHADOW_ETCHED_IN)
-        sw.set_policy (gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-
-        self.filetreeview = gtk.TreeView (self.file_list)
-        self.filetreeview.set_tooltip_text(_("A list of files containing fractal formulas"))
-        
-        sw.add(self.filetreeview)
-
-        renderer = gtk.CellRendererText ()
-        column = gtk.TreeViewColumn ('_File', renderer, text=0)
-        
-        self.filetreeview.append_column (column)
-
-        selection = self.filetreeview.get_selection()
-        selection.connect('changed',self.file_selection_changed)
-        return sw
 
     def populate_file_list(self):
         # find all appropriate files and add to file list
@@ -135,11 +111,11 @@ class BrowserDialog(dialog.T):
         current_iter = None
         index,i = 0,0
         for fname in files:
-            iter = self.file_list.append ()
+            iter = self.file_list.append()
             if fname == self.model.current.fname:
                 current_iter = iter
                 index = i
-            self.file_list.set (iter, 0, fname)
+            self.file_list.set(iter, 0, fname)
             i += 1
             
         # re-select current file, if any
@@ -185,26 +161,6 @@ class BrowserDialog(dialog.T):
         firstpos = (i / 16) * 16
 
         self.DoDraw16(firstpos)
-
-    def create_formula_list(self):
-        sw = gtk.ScrolledWindow ()
-        sw.set_shadow_type (gtk.SHADOW_ETCHED_IN)
-        sw.set_policy (gtk.POLICY_NEVER,
-                       gtk.POLICY_AUTOMATIC)
-
-        self.treeview = gtk.TreeView (self.formula_list)
-
-        self.treeview.set_tooltip_text(_("A list of formulas in the selected file"))
-
-        sw.add(self.treeview)
-
-        renderer = gtk.CellRendererText ()
-        column = gtk.TreeViewColumn (_('F_ormula'), renderer, text=0)
-        self.treeview.append_column (column)
-
-        selection = self.treeview.get_selection()
-        selection.connect('changed',self.formula_selection_changed)
-        return sw
 
     def create_panes(self):
         # option menu for choosing Inner/Outer/Fractal
@@ -320,7 +276,6 @@ class BrowserDialog(dialog.T):
         self.set_response_sensitive(gtk.RESPONSE_APPLY,can_apply)
         self.set_response_sensitive(gtk.RESPONSE_OK,can_apply)
 
-
         if can_apply:
             fname = self.model.current.fname
             form_names = self.model.current.formulas
@@ -333,10 +288,9 @@ class BrowserDialog(dialog.T):
             firstpos = (i / 16) * 16
             i = i % 16
             if firstpos != self.firstpos:
-                print 'firstpos change', self.firstpos, firstpos
+                # print 'firstpos change', self.firstpos, firstpos
                 self.DoDraw16(firstpos)
                 return
-
 
             if self.last_preview:
                 preview, formula_name1 = self.last_preview
@@ -344,8 +298,8 @@ class BrowserDialog(dialog.T):
                 f2 = self.f.copy_f()
                 f2.set_formula(fname, formula_name1, self.model.current_type)
                 preview.set_fractal(f2)
+                f2.reset()
                 preview.draw_image(False)
-                print 'last', fname, formula_name1
             preview, formula_name1 = self.previews[i]
             if formula_name != formula_name1:
                 print 'why not coe:', formula_name, formula_name1
@@ -353,13 +307,14 @@ class BrowserDialog(dialog.T):
             f2 = self.f.copy_f()
             f2.set_formula(fname, formula_name1, self.model.current_type)
             f2.set_cmap('maps/basic.map')
+            f2.reset()
             preview.set_fractal(f2)
 
             self.model.apply(preview)
             preview.draw_image(False, False)
 
             self.last_preview = preview, formula_name1
-            print 'current', fname, formula_name1, self.model.current_type
+            # print 'current', fname, formula_name1, self.model.current_type
 
     def DoDraw16(self, firstpos):
         self.firstpos = firstpos
@@ -382,6 +337,7 @@ class BrowserDialog(dialog.T):
                     if formula_name == self.model.current.formula:
                         f2.set_cmap('maps/basic.map')
                         self.last_preview = preview, formula_name
+                    f2.reset()
                     preview.set_fractal(f2)
                 except:
                     print 'error 3'
