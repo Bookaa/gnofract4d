@@ -168,6 +168,9 @@ class Hidden(gobject.GObject):
     def set_formula(self, fname, formula,index=0):
         self.f.set_formula(fname, formula,index)
 
+    def set_formula_text(self, buftext, formtype, formindex):
+        self.f.set_formula_text(buftext, formtype, formindex)
+
     def onData(self,fd,condition):
         self.msgbuf = self.msgbuf + self.io_subsys.read(fd, 8 - len(self.msgbuf))
 

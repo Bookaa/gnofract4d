@@ -716,15 +716,18 @@ class SettingsDialog(dialog.T, LocationPage):
             return
 
         #print "text is '%s'" % buftext
-        (fileName, formName) = self.f.compiler.add_inline_formula(
-            buftext, formtype)
-        #print "%s#%s" % (fileName, formName)
-        try:
-            self.f.set_formula(fileName, formName,formindex)
-        except Exception, exn:
-            self.show_error_message(
-                _("Errors in formula"),
-                exn)
+        if False:
+            (fileName, formName) = self.f.compiler.add_inline_formula(buftext, formtype)
+            #print "%s#%s" % (fileName, formName)
+            try:
+                self.f.set_formula(fileName, formName,formindex)
+            except Exception, exn:
+                self.show_error_message(_("Errors in formula"), exn)
+        else:
+            try:
+                self.f.set_formula_text(buftext, formtype, formindex)
+            except Exception, exn:
+                self.show_error_message(_("Errors in formula"), exn)
 
     def show_error_message(self,message,exception=None):
         if exception == None:

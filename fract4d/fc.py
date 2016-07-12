@@ -60,11 +60,11 @@ class FormulaTypes:
     # indexed by FormulaTypes above
     extensions = [ "frm", "cfrm", "uxf", "ggr", "pal"]
 
+    @staticmethod
     def extension_from_type(t):
         return FormulaTypes.extensions[t]
 
-    extension_from_type = staticmethod(extension_from_type)
-
+    @staticmethod
     def guess_type_from_filename(filename):
         if FormulaTypes.matches[FormulaTypes.FRACTAL].search(filename):
             return translate.T
@@ -75,16 +75,14 @@ class FormulaTypes:
         elif FormulaTypes.matches[FormulaTypes.GRADIENT].search(filename):
             return translate.GradientFunc
 
-    guess_type_from_filename = staticmethod(guess_type_from_filename)
-
+    @staticmethod
     def guess_formula_type_from_filename(filename):
         for i in xrange(FormulaTypes.NTYPES):
             if FormulaTypes.matches[i].search(filename):
                 return i
         raise ValueError("Unknown file type for '%s'" % filename)
 
-    guess_formula_type_from_filename = staticmethod(guess_formula_type_from_filename)
-
+    @staticmethod
     def guess_gradient_subtype_from_filename(filename):
         filename = filename.lower()
         if filename.endswith(".ugr"):
@@ -97,15 +95,12 @@ class FormulaTypes:
             return FormulaTypes.GRAD_CS
         raise ValueError("Unknown gradient type for '%s'" % filename)
 
-    guess_gradient_subtype_from_filename = staticmethod(
-        guess_gradient_subtype_from_filename)
-
+    @staticmethod
     def isFormula(filename):
         for matcher in FormulaTypes.matches:
             if matcher.search(filename):
                 return True
         return False
-    isFormula = staticmethod(isFormula)
 
 class FormulaFile:
     def __init__(self, formulas, contents,mtime,filename):
@@ -226,16 +221,22 @@ class Compiler:
         # formbody contains a string containing the contents of a formula
         formulas = self.parse_file(formbody)
 
-        fname = self.nextInlineFile(formtype)
-        ff = FormulaFile(formulas,formbody,0,fname)
-        ff.file_backed = False
-        self.files[fname] = ff
-        names = ff.get_formula_names()
-        if len(names) == 0:
-            formName = "error"
-        else:
-            formName = names[0]
-        return (fname, formName)
+        # fname = self.nextInlineFile(formtype)
+        # ff = FormulaFile(formulas,formbody,0,fname)
+        # ff.file_backed = False
+        # self.files[fname] = ff
+        #names = ff.get_formula_names()
+        #if len(names) == 0:
+        #    formName = "error"
+        #    form = None
+        #else:
+        #    formName = names[0]
+        #    form = formulas.values()[0]
+        if len(formulas) == 1:
+            formName = formulas.keys()[0]
+            form = formulas.values()[0]
+            return (formName, form)
+        return ('error', None)
 
     def last_chance(self,filename):
         '''does nothing here, but can be overridden by GUI to prompt user.'''
@@ -410,6 +411,23 @@ class Compiler:
 
     def guess_type_from_filename(self,filename):
         return FormulaTypes.guess_type_from_filename(filename)
+
+    def get_formula_3(self, form, formtype, prefix):
+        if formtype == 0:
+            type = translate.T
+        elif formtype == 1:
+            type = translate.ColorFunc
+        elif formtype == 2:
+            type = translate.Transform
+        elif formtype == 3:
+            type = translate.GradientFunc
+
+        f = form
+
+        if f != None:
+            return type(f, prefix)
+
+        return f
 
     def get_formula(self, filename, formname,prefix=""):
         type = self.guess_type_from_filename(filename)

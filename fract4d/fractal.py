@@ -311,7 +311,13 @@ class T(fctutils.T):
         c.bailfunc = self.bailfunc
 
         for i in range(3):
-            c.set_formula(self.forms[i].funcFile,self.forms[i].funcName,i)
+            if not self.forms[i].funcFile:
+                theform = self.forms[i]
+                text = theform.formula.basef.text
+                formtype = [0,1,1][i]
+                c.set_formula_text(text, formtype, i)
+            else:
+                c.set_formula(self.forms[i].funcFile,self.forms[i].funcName,i)
             c.forms[i].copy_from(self.forms[i])
 
         for t in self.transforms:
@@ -531,6 +537,18 @@ class T(fctutils.T):
         self.forms[index].set_formula(formulafile,func,self.get_gradient())
 
         if index == 0:
+            self.set_bailfunc()
+            self.warp_param = None
+        self.formula_changed()
+        self.changed()
+
+    def set_formula_text(self, buftext, formtype, formindex):
+        #(fileName, formName) = self.compiler.add_inline_formula(buftext, formtype)
+        assert self.compiler is self.forms[formindex].compiler
+        #self.forms[formindex].set_formula(fileName, formName, self.get_gradient())
+        self.forms[formindex].set_formula_text_1(buftext, formtype, self.get_gradient())
+
+        if formindex == 0:
             self.set_bailfunc()
             self.warp_param = None
         self.formula_changed()
@@ -1101,6 +1119,8 @@ if __name__ == '__main__':
     g_comp = fc.Compiler()
     g_comp.add_func_path("formulas")
     g_comp.add_func_path("../formulas")
+    from fc import FormulaTypes
+    g_comp.add_path("../maps", FormulaTypes.GRADIENT)
     g_comp.add_func_path(
             os.path.join(sys.exec_prefix, "share/gnofract4d/formulas"))
 

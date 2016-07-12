@@ -190,6 +190,10 @@ class T:
             pass
 
     def text(self):
+        try:
+            return self.formula.basef.text
+        except:
+            pass
         "Return the text of this formula"
         return self.compiler.get_formula_text(
             self.funcFile, self.funcName)
@@ -343,6 +347,25 @@ class T:
 
         self.set_initparams_from_formula(gradient)
 
+    def set_formula_text_1(self, buftext, formtype, gradient):
+        (func, form) = self.compiler.add_inline_formula(buftext, formtype)
+        #self.set_formula(file,func,gradient)
+        formula = self.compiler.get_formula_3(form, formtype, self.prefix)
+        # formula = self.compiler.get_formula(file,func,self.prefix)
+
+        if formula == None:
+            raise ValueError("no such formula: %s:%s" % (file, func))
+
+        if formula.errors != []:
+            raise ValueError("invalid formula '%s':\n%s" % \
+                             (func, "\n".join(formula.errors)))
+
+        self.formula = formula
+        self.funcName = func
+        self.funcFile = None
+
+        self.set_initparams_from_formula(gradient)
+
     def set_formula_(self,formula,gradient):
         self.formula = formula
         self.funcName = formula.basef.leaf
@@ -350,7 +373,7 @@ class T:
 
         self.set_initparams_from_formula(gradient)
 
-    def set_formula_with_text(self,type, fomulatext, gradient):
+    def set_formula_with_text(self, type, fomulatext, gradient):
         formula, name = self.compiler.get_formula_with_text(type, fomulatext,self.prefix)
 
         if formula == None:
