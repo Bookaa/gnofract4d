@@ -64,5 +64,16 @@ def reveal(type, dialog_mode, parent, alt_parent, *args):
     
     return _dialogs[type]
 
+
+def reveal_True(type, parent, *args):
+    if not _dialogs.get(type):
+        _dialogs[type] = type(parent, *args)
+
+    _dialogs[type].show_all()
+    _dialogs[type].present()
+
+    return _dialogs[type]
+
+
 def get(type):
     return _dialogs.get(type)

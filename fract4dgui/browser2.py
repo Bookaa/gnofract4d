@@ -10,9 +10,10 @@ from fract4d import browser_model, fc
 
 import dialog, utils, gtkfractal
 
-def show(parent, f, type=browser_model.FRACTAL):
-    _browser = dialog.reveal(BrowserDialog,True, parent, None, f)
-    _browser.set_type(type)
+def show(parent, f):
+    type = browser_model.FRACTAL
+    _browser = dialog.reveal_True(BrowserDialog, parent, f)
+    GG_Instance.set_type(type)
     GG_Instance.update(f.forms[0].funcFile, f.forms[0].funcName)
     _browser.populate_file_list()
 
@@ -92,15 +93,12 @@ class BrowserDialog(dialog.T, FileListFormulaList):
         self.model.apply(self.f)
         
     def set_type_cb(self,optmenu):
-        self.set_type(utils.get_selected(optmenu))
+        self.model.set_type(utils.get_selected(optmenu))
 
     def on_type_changed(self):
         utils.set_selected(self.funcTypeMenu, self.model.current_type)
         self.populate_file_list()
         
-    def set_type(self,type):
-        self.model.set_type(type)
-
     def populate_file_list(self):
         # find all appropriate files and add to file list
         formula = self.model.current.formula
