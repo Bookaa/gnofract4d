@@ -250,35 +250,26 @@ class T(fctutils.T):
     def parse__inner_(self,val,f):
         params = fctutils.ParamBag()
         params.load(f)
-        (file,func) = self.normalize_formulafile(
-            params,2,fc.FormulaTypes.COLORFUNC)
-        self.set_inner(file,func)
+        (file,func) = self.normalize_formulafile(params,2,fc.FormulaTypes.COLORFUNC)
+        self.set_formula_text(func.text, 1, 2)
+        # self.set_inner(file,func)
         self.forms[2].load_param_bag(params)
 
     def parse__outer_(self,val,f):
         params = fctutils.ParamBag()
         params.load(f)
-        (file, func) = self.normalize_formulafile(
-            params,1,fc.FormulaTypes.COLORFUNC)
-        self.set_outer(file,func)
+        (file, func) = self.normalize_formulafile(params,1,fc.FormulaTypes.COLORFUNC)
+        self.set_formula_text(func.text, 1, 1)
+        # self.set_outer(file,func)
         self.forms[1].load_param_bag(params)
 
     def parse__function_(self,val,f):
         params = fctutils.ParamBag()
         params.load(f)
-        (file,func) = self.normalize_formulafile(
-            params,0,fc.FormulaTypes.FRACTAL)
+        (file,func) = self.normalize_formulafile(params,0,fc.FormulaTypes.FRACTAL)
 
-        self.set_formula(file,func,0)
-
-        for (name,val) in params.dict.items():
-            if name == "formulafile" or name == "function" or name == "formula" or name=="":
-                continue
-            elif name == "a" or name =="b" or name == "c":
-                # back-compat for older versions
-                self.forms[0].set_named_param("@" + name, val)
-            else:
-                self.forms[0].set_named_item(name,val)
+        self.set_formula_text(func.text, 0, 0)
+        # self.set_formula(file,func,0)
 
     def parse__transform_(self,val,f):
         which_transform = int(val)
