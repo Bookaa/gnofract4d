@@ -73,7 +73,6 @@ typedef struct {
     pf_obj parent;
     struct s_param p[PF_MAXPARAMS];
     double pos_params[N_PARAMS];
-    %(struct_members)s
 } pf_real ;
 
 #ifdef WIN32
@@ -96,7 +95,6 @@ static void pf_init(
     for(i = 0; i < nparams; ++i)
     {
         pfo->p[i] = params[i];
-        /* printf("param %%d = %%.17g\\n",i,params[i]); */
     }
     for(i = 0; i < N_PARAMS; ++i)
     {
@@ -115,8 +113,8 @@ static void pf_get_defaults(
       int nparams
     )
 {
-    pf_real *t__pfo = (pf_real *)t__p_stub;
     /*
+    pf_real *t__pfo = (pf_real *)t__p_stub;
     %(default)s
     %(return_syms)s
     */
@@ -324,7 +322,7 @@ struct s_pf_vtable {
     void (*get_defaults)(
 	struct s_pf_data *p,
 	double *pos_params,
-        struct s_param *params,
+    struct s_param *params,
 	int nparams
 	);
 
@@ -332,7 +330,7 @@ struct s_pf_vtable {
     void (*init)(
 	struct s_pf_data *p,
 	double *pos_params,
-        struct s_param *params,
+    struct s_param *params,
 	int nparams
 	);
 
@@ -591,7 +589,8 @@ extern "C" {
             #print "override %s for %s" % (override, key)
             out.append(Decl(override))
 
-    def output_struct_members(self,ir,user_overrides):            
+    def output_struct_members(self,ir,user_overrides):
+        return
         overrides = {
             "t__h_zwpixel" : "",
             "pixel" : "",
