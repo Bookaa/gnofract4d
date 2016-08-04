@@ -27,7 +27,19 @@ class Formatter:
     def __getitem__(self,key):
         try:
             out = self.tree.output_sections[key]
-            str_output = string.join(map(lambda x : x.format(), out),"\n")
+            s2 = {'var_inits' : '\n    ',
+                  'loop' : '\n        ',
+                  'loop_inserts' : '\n        ',
+                  'bailout' : '\n        ',
+                  'bailout_inserts' : '\n        ',
+                  'cf0_loop' : '\n        ',
+                  'cf1_loop' : '\n        ',
+                  'cf0_final' : '\n        ',
+                  'cf1_final' : '\n        ',
+                  't_transform' : '\n    ',
+                  'init' : '\n    ',
+                  }.get(key, '\n')
+            str_output = string.join(map(lambda x : x.format(), out), s2)
             return str_output
 
         except KeyError, err:
@@ -88,36 +100,27 @@ static void pf_init(
     pf_real *pfo = (pf_real *)p_stub;
     int i;
     
-    if(nparams > PF_MAXPARAMS)
+    if (nparams > PF_MAXPARAMS)
     {
         nparams = PF_MAXPARAMS;
     }
-    for(i = 0; i < nparams; ++i)
+    for (i = 0; i < nparams; ++i)
     {
         pfo->p[i] = params[i];
     }
-    for(i = 0; i < N_PARAMS; ++i)
+    for (i = 0; i < N_PARAMS; ++i)
     {
         pfo->pos_params[i] = pos_params[i];
     }    
 }
 
 static void pf_get_defaults(
-      // "object" pointer
-      struct s_pf_data *t__p_stub,
-      // in params
-      double *pos_params,
-      // out params
-      struct s_param *params,
-      // in param
-      int nparams
+      struct s_pf_data *t__p_stub,  // "object" pointer
+      double *pos_params,       // in params
+      struct s_param *params,   // out params
+      int nparams               // in param
     )
 {
-    /*
-    pf_real *t__pfo = (pf_real *)t__p_stub;
-    %(default)s
-    %(return_syms)s
-    */
 }
 
 static void pf_calc(
@@ -152,7 +155,7 @@ static void pf_calc(
     
     *t__p_pDirectColorFlag = %(dca_init)s;
     
-    if(t__warp_param != -1)
+    if (t__warp_param != -1)
     {
         t__pfo->p[t__warp_param].doubleval = t__h_zwpixel_re;
         t__pfo->p[t__warp_param+1].doubleval = t__h_zwpixel_im;
@@ -182,33 +185,31 @@ static void pf_calc(
         %(bailout)s
     
         %(bailout_inserts)s
-        if(!%(bailout_var)s) break;
+        if (!%(bailout_var)s) break;
         %(check_period)s
         %(cf0_loop)s
         %(cf1_loop)s
     
         t__h_numiter++;
-    }while(t__h_numiter < maxiter);
+    } while (t__h_numiter < maxiter);
     
     /* fate of 0 = escaped, 1 = trapped */
     t__h_inside = (t__h_numiter >= maxiter);
     *t__p_pFate = (t__h_numiter >= maxiter);
 
-    loop_done:
+loop_done:
     %(pre_final_inserts)s
     %(final)s
     %(done_inserts)s
     
     *t__p_pnIters = t__h_numiter;
-    if(t__h_inside == 0)
+    if (t__h_inside == 0)
     {
         %(cf0_final)s
-            ;
     }
     else
     {
         %(cf1_final)s
-            ;
     }
     *t__p_pFate = t__h_fate | (t__h_inside ? FATE_INSIDE : 0);
     *t__p_pDist = t__h_index;
@@ -219,8 +220,7 @@ static void pf_calc(
     return;
 }
 
-static void pf_kill(
-    struct s_pf_data *p_stub)
+static void pf_kill(struct s_pf_data *p_stub)
 {
     arena_delete((arena_t)(p_stub->arena));
     free(p_stub);
@@ -650,6 +650,7 @@ extern "C" {
         return out
 
     def output_return_syms(self,ir):
+        return
         out = []
         for (key,sym) in ir.symbols.items():
             if self.symbols.is_param(key) and isinstance(sym,fracttypes.Var):
@@ -670,6 +671,8 @@ extern "C" {
     
     def output_all(self,t):
         for k in t.canon_sections.keys():
+            if k == 'default':
+                continue
             self.output_section(t,k)
 
     def output_decls(self,t,overrides={}):
@@ -703,49 +706,49 @@ extern "C" {
         # can only do periodicity if formula uses z
         if self.symbols.data.has_key("z"):
             inserts["decl_period"] = '''
-                double old_z_re;
-                double old_z_im;
-                int period_iters = 0;
-                int save_mask = 9;
-                int save_incr = 1;
-                int next_save_incr = 4;
-                '''
+    double old_z_re;
+    double old_z_im;
+    int period_iters = 0;
+    int save_mask = 9;
+    int save_incr = 1;
+    int next_save_incr = 4;
+    '''
             inserts["init_period"] = '''
-                old_z_re = z_re;
-                old_z_im = z_im;'''
+    old_z_re = z_re;
+    old_z_im = z_im;'''
 
             inserts["check_period"] = '''
-                if ( t__h_numiter >= min_period_iter)
+        if ( t__h_numiter >= min_period_iter)
+        {
+            if( (t__h_numiter & save_mask) == 0)
+            {
+                /* save a value */
+                old_z_re = z_re;
+                old_z_im = z_im;
+
+                if(--save_incr == 0)
                 {
-                    if( (t__h_numiter & save_mask) == 0)
-                    {
-                        /* save a value */
-                        old_z_re = z_re;
-                        old_z_im = z_im;
-
-                        if(--save_incr == 0)
-                        {
-                            /* lengthen period check */
-                            save_mask = (save_mask << 1) + 1;
-                            save_incr = next_save_incr;
-                        }
-                    }
-                    else
-                    {
-                        /* compare to an older value */
-                        if ( (fabs(z_re - old_z_re) < period_tolerance)
-                           &&(fabs(z_im - old_z_im) < period_tolerance))
-                        {
-                            period_iters = t__h_numiter;
-                            //t__h_numiter = maxiter; 
-                            t__h_inside = 1;
-                            *t__p_pFate = 1;
-
-                            goto loop_done;
-                        }
-                    }
+                    /* lengthen period check */
+                    save_mask = (save_mask << 1) + 1;
+                    save_incr = next_save_incr;
                 }
-                '''
+            }
+            else
+            {
+                /* compare to an older value */
+                if ( (fabs(z_re - old_z_re) < period_tolerance)
+                   &&(fabs(z_im - old_z_im) < period_tolerance))
+                {
+                    period_iters = t__h_numiter;
+                    //t__h_numiter = maxiter;
+                    t__h_inside = 1;
+                    *t__p_pFate = 1;
+
+                    goto loop_done;
+                }
+            }
+        }
+        '''
         else:
             inserts["decl_period"]=""
             inserts["init_period"]=""
