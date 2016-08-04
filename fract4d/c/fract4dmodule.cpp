@@ -678,13 +678,14 @@ pf_calc(PyObject *self, PyObject *args)
 #endif
     for(int i = 0; i < repeats; ++i)
     {
-	pfh->pfo->vtbl->calc(
-	    pfh->pfo,params,
-	    nIters, -1, 
-	    nIters, 1.0E-9,
-	    x,y,aa,
-	    &outIters,&outFate,&outDist,&outSolid,
-	    &fDirectColorFlag, &colors[0]);
+        pfh->pfo->vtbl->calc(
+            pfh->pfo,params,
+            nIters, -1,
+            nIters, 1.0E-9,
+            x,y,aa,
+            &outIters,&outFate,&outDist,&outSolid,
+            &fDirectColorFlag, &colors[0]);
+        arena_clear((arena_t)pfh->pfo->arena);
     }
     assert(outFate != -777);
     pyret = Py_BuildValue("iidi",outIters,outFate,outDist,outSolid);
