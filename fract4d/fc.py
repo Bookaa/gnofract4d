@@ -339,6 +339,7 @@ class Compiler:
                 else:
                     formulas = {}
             else:
+                print 'formula file:', filename
                 formulas = self.parse_file(s)
 
             ff = FormulaFile(formulas,s,mtime,filename)
@@ -484,13 +485,22 @@ if not os.path.isfile(g_compile_cmds):
     g_compile_cmds = '../' + g_compile_cmds
 
 def Call_subprocess_compile(hash, desc):
+    # open('33.txt','w').write(desc)
     from subprocess import PIPE, Popen
     p = Popen(["python", g_compile_cmds, '1'], stdin=PIPE, stdout=PIPE)
     print >>p.stdin, hash
     print >>p.stdin, desc
+    p.stdin.close()
+    p.stdin = None
+    while True:
+        s = p.stdout.readline().strip()
+        if s == 'func1_will_return':
+            break
+        print s
     p.communicate("\n")[0]
 
 def ParseFormulaFileRemote(s):
+    # open('22.txt','w').write(s)
     #print 'length1', len(s)
     import json
     sFile = json.dumps(s)
@@ -502,7 +512,7 @@ def ParseFormulaFileRemote(s):
         s = p.stdout.readline().strip()
         if s == 'next is json':
             break
-        # print s
+        print s
     sJson = p.communicate("\n")[0]
     dict_ = json.loads(sJson)
     return dict_

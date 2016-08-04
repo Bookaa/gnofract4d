@@ -52,7 +52,7 @@ class T(fctutils.T):
     DEFAULT_FORMULA_FILE="gf4d.frm"
     DEFAULT_FORMULA_FUNC="Mandelbrot"
     paramnames = ["x","y","z","w","size","xy","xz","xw","yz","yw","zw"]
-    def __init__(self,compiler,site=None):
+    def __init__(self, compiler, site):
         fctutils.T.__init__(self)
 
         self.format_version = 2.8
@@ -106,7 +106,8 @@ class T(fctutils.T):
         self.reset()
 
         # interaction with fract4dc library
-        self.site = site or fract4dc.site_create(self)
+        assert site
+        self.site = site # or fract4dc.site_create(self)
 
         # colorfunc lookup
         self.colorfunc_names = [
