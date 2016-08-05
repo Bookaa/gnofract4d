@@ -28,12 +28,7 @@ private:
     ColorMap *m_cmap;
     IFractalSite *m_site;
 public:
-    pf_wrapper(
-	pf_obj *pfo,
-	ColorMap *cmap,
-	IFractalSite *site
-	) : 
-	m_pfo(pfo), m_cmap(cmap), m_site(site)
+    pf_wrapper(pf_obj *pfo,	ColorMap *cmap,	IFractalSite *site	) :	m_pfo(pfo), m_cmap(cmap), m_site(site)
 	{
 
 	}
@@ -44,12 +39,12 @@ public:
     virtual void calc(
         // in params
         const double *params, int nIters, 
-	// periodicity
-	int min_period_iters, double period_tolerance,
-	// warping
-	int warp_param,
-	// only used for debugging
-	int x, int y, int aa,
+        // periodicity
+        int min_period_iters, double period_tolerance,
+        // warping
+        int warp_param,
+        // only used for debugging
+        int x, int y, int aa,
         // out params
         rgba_t *color, int *pnIters, float *pIndex, fate_t *pFate) const
 	{
@@ -60,60 +55,61 @@ public:
 	    double colors[4] = {0.0};
 	    int inside = 0;
 
-	    m_pfo->vtbl->calc(
-		m_pfo, params, 
-		nIters, warp_param, 
-		min_period_iters, period_tolerance,
-		x, y, aa,
-		pnIters, &fate, &dist, &solid,
-		&fUseColors, &colors[0]);
+        // bookaa : ignore warp_param, min_period_iters, period_tolerance,
 
-	    if(fate & FATE_INSIDE)
+	    m_pfo->vtbl->calc(
+            m_pfo, params,
+            nIters, //warp_param,
+            //min_period_iters, period_tolerance,
+            x, y, aa,
+            pnIters, &fate, &dist, &solid,
+            &fUseColors, &colors[0]);
+
+	    if (fate & FATE_INSIDE)
 	    {
-		*pnIters = -1;
-		inside = 1;
+            *pnIters = -1;
+            inside = 1;
 	    }
 
-	    if(fUseColors)
+	    if (fUseColors)
 	    {
-		*color = m_cmap->lookup_with_dca(solid, inside, colors);
-		fate |= FATE_DIRECT;
+            *color = m_cmap->lookup_with_dca(solid, inside, colors);
+            fate |= FATE_DIRECT;
 	    }
 	    else
 	    {
-		*color = m_cmap->lookup_with_transfer(dist,solid, inside);
+		    *color = m_cmap->lookup_with_transfer(dist,solid, inside);
 	    }
 
 	    if (solid)
 	    {
-		fate |= FATE_SOLID;
+		    fate |= FATE_SOLID;
 	    }
 
 	    *pFate = (fate_t) fate;
 	    *pIndex = (float) dist;
 
 	    int color_iters = (fate & FATE_INSIDE) ? -1 : *pnIters;
-	    m_site->pixel_changed(
-		params,nIters, min_period_iters,
-		x,y,aa,
-		dist,fate,color_iters,
-		color->r, color->g, color->b, color->a);
+	    m_site->pixel_changed(params,nIters, min_period_iters,
+            x,y,aa,
+            dist,fate,color_iters,
+            color->r, color->g, color->b, color->a);
 	}
     inline rgba_t recolor(double dist, fate_t fate, rgba_t current) const
 	{	    
 	    int solid = 0;
 	    int inside = 0;
-	    if(fate & FATE_DIRECT)
+	    if (fate & FATE_DIRECT)
 	    {
-		return current;
+		    return current;
 	    }
-	    if(fate & FATE_SOLID)
+	    if (fate & FATE_SOLID)
 	    {
-		solid = 1;
+		    solid = 1;
 	    }
-	    if(fate & FATE_INSIDE)
+	    if (fate & FATE_INSIDE)
 	    {
-		inside = 1;
+		    inside = 1;
 	    }
 	    return m_cmap->lookup_with_transfer(dist,solid, inside);
 	}
@@ -125,9 +121,9 @@ pointFunc *pointFunc::create(
     ColorMap *cmap,
     IFractalSite *site)
 {
-    if(NULL == pfo || NULL == cmap)
+    if (NULL == pfo || NULL == cmap)
     {
-	return NULL;
+	    return NULL;
     }
 
     return new pf_wrapper(pfo,cmap,site);

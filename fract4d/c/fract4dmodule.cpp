@@ -680,8 +680,8 @@ pf_calc(PyObject *self, PyObject *args)
     {
         pfh->pfo->vtbl->calc(
             pfh->pfo,params,
-            nIters, -1,
-            nIters, 1.0E-9,
+            nIters, // -1,
+            // nIters, // 1.0E-9,
             x,y,aa,
             &outIters,&outFate,&outDist,&outSolid,
             &fDirectColorFlag, &colors[0]);
