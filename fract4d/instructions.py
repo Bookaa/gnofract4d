@@ -7,17 +7,22 @@ from fracttypes import TranslationError, typeObjectList
 
 class ComplexArg:
     ' a pair of args'
-    def __init__(self,re,im):
+    def __init__(self, name, re, im):
+        self.name = name
         self.re = re
         self.im = im
     def format(self):
-        [self.re.format(), self.im.format()]
+        # return [self.re.format(), self.im.format()]
+        if self.name == '':
+            pass
+        return self.name
     def __str__(self):
         return "Complex(%s,%s)" % (self.re, self.im)
 
 class HyperArg:
     'four args'
-    def __init__(self,re,im1,im2,im3):
+    def __init__(self,name,re,im1,im2,im3):
+        self.name = name
         self.parts = [re, im1, im2, im3]
     def format(self):
         return [x.format() for x in self.parts]
@@ -231,7 +236,13 @@ class Move(Insn):
     def source(self):
         return [self.src]
     def format(self):
-        result = "%s = %s;" % (self.dst[0].format(), self.src[0].format()) 
+        if isinstance(self.dst[0], ComplexArg) and isinstance(self.src[0], ComplexArg):
+            src = self.src[0]; dst = self.dst[0]
+            if src.name == '':
+                return '%s.setit(%s, %s);' % (dst.name, src.re.format(), src.im.format())
+        result = "%s = %s;" % (self.dst[0].format(), self.src[0].format())
+        if result == 'None = None;':
+            result = "%s = %s;" % (self.dst[0].format(), self.src[0].format())
         if self.trace:
             result += "printf(\"%s = %s\\n\",%s);" % (
                 self.dst[0].format(),

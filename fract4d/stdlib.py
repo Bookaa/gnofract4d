@@ -6,10 +6,10 @@ from fracttypes import *
 
 class Constants:
     def __init__(self):
-        self.i = ComplexArg(ConstFloatArg(0.0),ConstFloatArg(1.0))
-        self.iby2 = ComplexArg(ConstFloatArg(0.0),ConstFloatArg(0.5))
-        self.minus_i = ComplexArg(ConstFloatArg(0.0),ConstFloatArg(-1.0))  
-        self.one = ComplexArg(ConstFloatArg(1.0),ConstFloatArg(0.0))
+        self.i = ComplexArg('',ConstFloatArg(0.0),ConstFloatArg(1.0))
+        self.iby2 = ComplexArg('',ConstFloatArg(0.0),ConstFloatArg(0.5))
+        self.minus_i = ComplexArg('',ConstFloatArg(0.0),ConstFloatArg(-1.0))
+        self.one = ComplexArg('',ConstFloatArg(1.0),ConstFloatArg(0.0))
 
 const = Constants()
     
@@ -127,14 +127,14 @@ def hyper_cc_h(gen,t,srcs):
 
 def add_cc_c(gen,t,srcs):
     # add 2 complex numbers
-    dst = ComplexArg(
+    dst = ComplexArg('',
         gen.emit_binop('+',reals(srcs), Float),
         gen.emit_binop('+',imags(srcs), Float))
     return dst
 
 def add_hh_h(gen,t,srcs):
     # add 2 hyper numbers
-    dst = HyperArg(
+    dst = HyperArg('',
         gen.emit_binop('+',parts(0,srcs), Float),
         gen.emit_binop('+',parts(1,srcs), Float),
         gen.emit_binop('+',parts(2,srcs), Float),
@@ -400,7 +400,7 @@ def sqr_c_c(gen,t,srcs):
     a2 = gen.emit_binop('*', [src.re, src.re], Float)
     b2 = gen.emit_binop('*', [src.im, src.im], Float)
     ab = gen.emit_binop('*', [src.re, src.im], Float)
-    dst = ComplexArg(
+    dst = ComplexArg('',
         gen.emit_binop('-', [a2, b2], Float),
         gen.emit_binop('*', [ ConstFloatArg(2.0), ab], Float))
     return dst

@@ -43,7 +43,7 @@ class FloatType(Type):
         if var.param_slot == -1:
             return ["%.17f" % var.value]
         else:
-            return ["t__pfo->p[%d].doubleval" % var.param_slot]
+            return ["p[%d].doubleval" % var.param_slot] # t__pfo->p
 
 class ComplexType(Type):
     def __init__(self,**kwds):
@@ -56,8 +56,8 @@ class ComplexType(Type):
                 "%.17f" % var.value[1]]     
         else:
             return [
-                "t__pfo->p[%d].doubleval" % var.param_slot,
-                "t__pfo->p[%d].doubleval" % (var.param_slot+1)]
+                "p[%d].doubleval" % var.param_slot,     # t__pfo->p
+                "p[%d].doubleval" % (var.param_slot+1)] # t__pfo->p
 
 class QuadType(Type):
     def __init__(self,**kwds):
@@ -68,8 +68,8 @@ class QuadType(Type):
             return [ "%.17f" % x for x in var.value]
         else:
             return [
-                "t__pfo->p[%d].doubleval" % \
-                x for x in xrange(var.param_slot,var.param_slot+4)]
+                "p[%d].doubleval" % \
+                x for x in xrange(var.param_slot,var.param_slot+4)] # t__pfo->p
 
 class IntType(Type):
     def __init__(self,**kwds):
@@ -80,7 +80,7 @@ class IntType(Type):
             return [ "%d" % var.value] 
         else:
             return [
-                "t__pfo->p[%d].intval" % var.param_slot]
+                "p[%d].intval" % var.param_slot]    # t__pfo->p
 
 class GradientType(Type):
     def __init__(self,**kwds):
@@ -91,7 +91,7 @@ class GradientType(Type):
             raise TranslationError(
                 "Internal Compiler Error: gradient not initialized as a param")
         else:
-            return [ "t__pfo->p[%d].gradient" % var.param_slot]
+            return [ "p[%d].gradient" % var.param_slot] # t__pfo->p
 
         return []
 
@@ -104,7 +104,7 @@ class ImageType(Type):
             raise TranslationError(
                 "Internal Compiler Error: image not initialized as a param")
         else:
-            return [ "t__pfo->p[%d].image" % var.param_slot]
+            return [ "p[%d].image" % var.param_slot]    # t__pfo->p
 
         return []
 

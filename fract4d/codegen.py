@@ -44,7 +44,7 @@ class Formatter:
 
         except KeyError, err:
             #print "missed %s" % key
-            return self.lookup.get(key,"")
+            return self.lookup.get(key,"// %s" % key)
 
 class T:
     'code generator'
@@ -150,6 +150,7 @@ static void pf_calc(
     )
 {
     pf_real *t__pfo = (pf_real *)t__p_stub;
+    s_param* p = t__pfo->p;
 
     complex_t pixel = {t__params[0], t__params[1]};
     complex_t t__h_zwpixel = {t__params[2], t__params[3]};
@@ -164,8 +165,8 @@ static void pf_calc(
     
     if (t__warp_param != -1)
     {
-        t__pfo->p[t__warp_param].doubleval = t__h_zwpixel.re;
-        t__pfo->p[t__warp_param+1].doubleval = t__h_zwpixel.im;
+        p[t__warp_param].doubleval = t__h_zwpixel.re;
+        p[t__warp_param+1].doubleval = t__h_zwpixel.im;
         t__h_zwpixel.re = t__h_zwpixel.im = 0.0;
     }
     
@@ -175,14 +176,10 @@ static void pf_calc(
     int t__h_numiter = 0;
     
     %(t_transform)s
-    
     %(init)s
-    
     %(init_inserts)s
-    
     %(cf0_init)s
     %(cf1_init)s
-    
     %(init_period)s
     do
     {
@@ -586,7 +583,8 @@ extern "C" {
             out += self.decl_with_init_from_sym(sym)
         else:
             #print "override %s for %s" % (override, key)
-            out.append(Decl(override))
+            if override != '':
+                out.append(Decl(override))
         
     def output_decl(self,key,sym,out,overrides):
         if not isinstance(sym,fracttypes.Var):
@@ -882,8 +880,9 @@ extern "C" {
         dst = self.generate_code(t.children[0])
         src = self.generate_code(t.children[1])
         if t.datatype == Complex:
-            self.emit_move(src.re,dst.re)
-            self.emit_move(src.im,dst.im)
+            self.emit_move(src,dst)
+            # self.emit_move(src.re,dst.re)
+            # self.emit_move(src.im,dst.im)
         elif t.datatype == Hyper or t.datatype == Color:
             for i in xrange(4):
                 self.emit_move(src.parts[i],dst.parts[i])
@@ -944,11 +943,11 @@ extern "C" {
     def var(self,t):
         name = self.symbols.realName(t.name)
         if t.datatype == fracttypes.Complex:
-            return ComplexArg(
+            return ComplexArg(name,
                 self.temp(name + ".re", fracttypes.Float),
                 self.temp(name + ".im", fracttypes.Float))
         elif t.datatype == fracttypes.Hyper or t.datatype == fracttypes.Color:
-            return HyperArg(
+            return HyperArg(name,
                 self.temp(name + ".re", fracttypes.Float),
                 self.temp(name + ".i", fracttypes.Float),
                 self.temp(name + ".j", fracttypes.Float),
