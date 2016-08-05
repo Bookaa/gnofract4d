@@ -443,7 +443,7 @@ class Compiler:
                 return outputfile
 
         if cfile == None:
-            cfile = self.cache.makefilename(hash,".c")
+            cfile = self.cache.makefilename(hash,".cpp")
             if 'win' in sys.platform:
                 objfile = self.cache.makefilename(hash, ".obj")
 

@@ -17,7 +17,7 @@ import fracttypes
 
 from fracttypes import Bool, Int, Float, Complex, Hyper, Color, IntArray, FloatArray, ComplexArray, VoidArray
 from instructions import *
-    
+
 class Formatter:
     ' fed to print to fill the output template'
     def __init__(self, codegen, tree, lookup):
@@ -123,6 +123,18 @@ static void pf_get_defaults(
 {
 }
 
+struct complex_t {
+    double re;
+    double im;
+
+    void setit(double re_, double im_) {
+        this->re = re_;
+        this->im = im_;
+    }
+};
+struct hyper_t {
+    double re, i, j, k;
+};
 static void pf_calc(
     // "object" pointer
     struct s_pf_data *t__p_stub,
@@ -139,27 +151,22 @@ static void pf_calc(
 {
     pf_real *t__pfo = (pf_real *)t__p_stub;
 
-    double pixel_re = t__params[0];
-    double pixel_im = t__params[1];
-    double t__h_zwpixel_re = t__params[2];
-    double t__h_zwpixel_im = t__params[3];
+    complex_t pixel = {t__params[0], t__params[1]};
+    complex_t t__h_zwpixel = {t__params[2], t__params[3]};
     
     double t__h_index = 0.0;
     int t__h_solid = 0;
     int t__h_fate = 0;
     int t__h_inside = 0;
-    double t__h_color_re = 0.0;
-    double t__h_color_i = 0.0;
-    double t__h_color_j = 0.0;
-    double t__h_color_k = 0.0;
-    
+    hyper_t t__h_color = {0.0, 0.0, 0.0, 0.0};
+
     *t__p_pDirectColorFlag = %(dca_init)s;
     
     if (t__warp_param != -1)
     {
-        t__pfo->p[t__warp_param].doubleval = t__h_zwpixel_re;
-        t__pfo->p[t__warp_param+1].doubleval = t__h_zwpixel_im;
-        t__h_zwpixel_re = t__h_zwpixel_im = 0.0;
+        t__pfo->p[t__warp_param].doubleval = t__h_zwpixel.re;
+        t__pfo->p[t__warp_param+1].doubleval = t__h_zwpixel.im;
+        t__h_zwpixel.re = t__h_zwpixel.im = 0.0;
     }
     
     /* variable declarations */
@@ -237,7 +244,7 @@ static struct s_pf_vtable vtbl =
 pf_obj *pf_new()
 {
     pf_real *p = (pf_real *)malloc(sizeof(pf_real));
-    if(!p) return NULL;
+    if (!p) return NULL;
     p->parent.vtbl = &vtbl;
     p->parent.arena = arena_create(100000,1);
     return (pf_obj*)p;
@@ -536,6 +543,9 @@ extern "C" {
 
     def decl_with_init_from_sym(self,sym):
         "Declare a variable for sym and initialize it"
+        if sym.part_names == ['_re', '_im']:
+            vals = sym.init_val()
+            return [Decl('complex_t %s = {%s, %s};' % (sym.cname,vals[0],vals[1]))]
         parts = sym.part_names
         vals = sym.init_val()
         decls = [None] * len(parts)
@@ -692,30 +702,28 @@ extern "C" {
 
         if self.is_direct():
             inserts["save_colors"] = '''
-            t__p_pColors[0] = t__h_color_re;
-            t__p_pColors[1] = t__h_color_i;
-            t__p_pColors[2] = t__h_color_j;
-            t__p_pColors[3] = t__h_color_k;
+            t__p_pColors[0] = t__h_color.re;
+            t__p_pColors[1] = t__h_color.i;
+            t__p_pColors[2] = t__h_color.j;
+            t__p_pColors[3] = t__h_color.k;
             '''
 
         if self.log_z:
-            inserts["init_inserts"] = 'printf("%d,%d,%.17g,%.17g : ", t__p_x, t__p_y, pixel_re, pixel_im);'
-            inserts["loop_inserts"] = 'printf("%.17g,%.17g ",z_re, z_im);'
+            inserts["init_inserts"] = 'printf("%d,%d,%.17g,%.17g : ", t__p_x, t__p_y, pixel.re, pixel.im);'
+            inserts["loop_inserts"] = 'printf("%.17g,%.17g ",z.re, z.im);'
             inserts["done_inserts"] = 'printf("\\n");'
             
         # can only do periodicity if formula uses z
         if self.symbols.data.has_key("z"):
             inserts["decl_period"] = '''
-    double old_z_re;
-    double old_z_im;
+    complex_t old_z;
     int period_iters = 0;
     int save_mask = 9;
     int save_incr = 1;
     int next_save_incr = 4;
     '''
             inserts["init_period"] = '''
-    old_z_re = z_re;
-    old_z_im = z_im;'''
+    old_z = z;'''
 
             inserts["check_period"] = '''
         if ( t__h_numiter >= min_period_iter)
@@ -723,8 +731,7 @@ extern "C" {
             if( (t__h_numiter & save_mask) == 0)
             {
                 /* save a value */
-                old_z_re = z_re;
-                old_z_im = z_im;
+                old_z = z;
 
                 if(--save_incr == 0)
                 {
@@ -736,8 +743,8 @@ extern "C" {
             else
             {
                 /* compare to an older value */
-                if ( (fabs(z_re - old_z_re) < period_tolerance)
-                   &&(fabs(z_im - old_z_im) < period_tolerance))
+                if ( (fabs(z.re - old_z.re) < period_tolerance)
+                   &&(fabs(z.im - old_z.im) < period_tolerance))
                 {
                     period_iters = t__h_numiter;
                     //t__h_numiter = maxiter;
@@ -938,14 +945,14 @@ extern "C" {
         name = self.symbols.realName(t.name)
         if t.datatype == fracttypes.Complex:
             return ComplexArg(
-                self.temp(name + "_re", fracttypes.Float),
-                self.temp(name + "_im", fracttypes.Float))
+                self.temp(name + ".re", fracttypes.Float),
+                self.temp(name + ".im", fracttypes.Float))
         elif t.datatype == fracttypes.Hyper or t.datatype == fracttypes.Color:
             return HyperArg(
-                self.temp(name + "_re", fracttypes.Float),
-                self.temp(name + "_i", fracttypes.Float),
-                self.temp(name + "_j", fracttypes.Float),
-                self.temp(name + "_k", fracttypes.Float))
+                self.temp(name + ".re", fracttypes.Float),
+                self.temp(name + ".i", fracttypes.Float),
+                self.temp(name + ".j", fracttypes.Float),
+                self.temp(name + ".k", fracttypes.Float))
         else:
             return self.temp(name,t.datatype)
     

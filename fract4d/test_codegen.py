@@ -2171,7 +2171,7 @@ Newton4(XYAXIS) {; Mark Peterson
         self.codegen.output_decls(t)
         c_code = self.codegen.output_c(t)
 
-        cFileName = self.codegen.writeToTempFile(c_code,".c")
+        cFileName = self.codegen.writeToTempFile(c_code,".cpp")
         oFileName = self.codegen.writeToTempFile(None,".so")
         #print c_code
         cmd = "gcc -Wall -fPIC -DPIC -shared %s -o %s -lm" % (cFileName, oFileName)
