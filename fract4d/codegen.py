@@ -139,9 +139,9 @@ static void pf_calc(
     // "object" pointer
     struct s_pf_data *t__p_stub,
     // in params
-    const double *t__params, int maxiter, int t__warp_param, 
+    const double *t__params, int maxiter, // int t__warp_param,
     // periodicity params
-    int min_period_iter, double period_tolerance,
+    // int min_period_iter, double period_tolerance,
     // only used for debugging
     int t__p_x, int t__p_y, int t__p_aa,
     // out params
@@ -149,6 +149,10 @@ static void pf_calc(
     int *t__p_pDirectColorFlag, double *t__p_pColors
     )
 {
+    int t__warp_param = -1;
+    double period_tolerance = 1.0E-9;
+    int min_period_iter = maxiter;
+
     pf_real *t__pfo = (pf_real *)t__p_stub;
     s_param* p = t__pfo->p;
 
@@ -324,18 +328,18 @@ struct s_pf_data;
 struct s_pf_vtable {
     /* fill in params with the default values for this formula */
     void (*get_defaults)(
-	struct s_pf_data *p,
-	double *pos_params,
-    struct s_param *params,
-	int nparams
+        struct s_pf_data *p,
+        double *pos_params,
+        struct s_param *params,
+        int nparams
 	);
 
     /* fill in fields in pf_data with appropriate stuff */
     void (*init)(
-	struct s_pf_data *p,
-	double *pos_params,
-    struct s_param *params,
-	int nparams
+        struct s_pf_data *p,
+        double *pos_params,
+        struct s_param *params,
+        int nparams
 	);
 
     /* calculate one point.
@@ -349,19 +353,17 @@ struct s_pf_vtable {
     void (*calc)(
 	struct s_pf_data *p,
         // in params
-        const double *params, int nIters, int warp_param, 
-	// tolerance params
-	int min_period_iter, double period_tolerance,
-	// only used for debugging
-	int x, int y, int aa,
+        const double *params, int nIters, // int warp_param,
+        // tolerance params
+        // int min_period_iter, double period_tolerance,
+        // only used for debugging
+        int x, int y, int aa,
         // out params
         int *pnIters, int *pFate, double *pDist, int *pSolid,
-	int *pDirectColorFlag, double *pColors
+	    int *pDirectColorFlag, double *pColors
 	);
     /* deallocate data in p */
-    void (*kill)(
-	struct s_pf_data *p
-	);
+    void (*kill)(struct s_pf_data *p);
 } ;
 
 struct s_pf_data {
@@ -405,24 +407,22 @@ extern "C" {
     void arena_delete(arena_t arena);
 
     void *arena_alloc(
-	arena_t arena, 
-	int element_size, 
-	int n_dimensions,
-	int *n_elements);
+        arena_t arena,
+        int element_size,
+        int n_dimensions,
+        int *n_elements);
 
     void array_get_int(
-	void *allocation, int n_dimensions, int *indexes, 
-	int *pRetVal, int *pInBounds);
+        void *allocation, int n_dimensions, int *indexes,
+        int *pRetVal, int *pInBounds);
 
     void array_get_double(
-	void *allocation, int n_dimensions, int *indexes, 
-	double *pRetVal, int *pInBounds);
+        void *allocation, int n_dimensions, int *indexes,
+        double *pRetVal, int *pInBounds);
 
-    int array_set_int(
-	void *allocation, int n_dimensions, int *indexes, int val);
+    int array_set_int(void *allocation, int n_dimensions, int *indexes, int val);
 
-    int array_set_double(
-	void *allocation, int n_dimensions, int *indexes, double val);
+    int array_set_double(void *allocation, int n_dimensions, int *indexes, double val);
     
     void *alloc_array1D(arena_t arena, int element_size, int size);
     void *alloc_array2D(arena_t arena, int element_size, int xsize, int ysize);
@@ -631,16 +631,13 @@ extern "C" {
             "t__h_numiter" : "",
             "t__h_index" : "",
             "maxiter" : "",
-            "t__h_tolerance" :
-            "double t__h_tolerance = period_tolerance;",
+            "t__h_tolerance" :  "double t__h_tolerance = period_tolerance;",
             "t__h_solid" : "",
             "t__h_color" : "",
             "t__h_fate" : "",
             "t__h_inside" : "",
-            "t__h_magn" : \
-                "double t__h_magn = log(4.0/t__pfo->pos_params[4])/log(2.0) + 1.0;",
-            "t__h_center" : \
-                """double t__h_center_re = t__pfo->pos_params[0];
+            "t__h_magn" : "double t__h_magn = log(4.0/t__pfo->pos_params[4])/log(2.0) + 1.0;",
+            "t__h_center" : """double t__h_center_re = t__pfo->pos_params[0];
                 double t__h_center_im = t__pfo->pos_params[1];"""
             }
         
