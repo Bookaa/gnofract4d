@@ -645,18 +645,36 @@ pf_defaults(PyObject *self, PyObject *args)
     return pyret;
 }
 
-static PyObject *
-pf_calc(PyObject *self, PyObject *args)
+PyObject* calc_nt(int repeats, struct pfHandle *pfh, double params[], int nIters, int x, int y, int aa)
 {
-    PyObject *pyobj, *pyret;
-    double params[4];
-    struct pfHandle *pfh; 
-    int nIters, x=0,y=0,aa=0;
-    int repeats = 1;
     int outIters=0, outFate=-777;
     double outDist=0.0;
     int outSolid=0;
     int fDirectColorFlag=0;
+    double colors[4] = {0.0, 0.0, 0.0, 0.0};
+    for (int i = 0; i < repeats; ++i)
+    {
+        pfh->pfo->vtbl->calc(
+            pfh->pfo,params,
+            nIters, // -1,
+            // nIters, // 1.0E-9,
+            x,y,aa,
+            &outIters,&outFate,&outDist,&outSolid,
+            &fDirectColorFlag, &colors[0]);
+        arena_clear((arena_t)pfh->pfo->arena);
+    }
+    assert(outFate != -777);
+    PyObject* pyret = Py_BuildValue("iidi",outIters,outFate,outDist,outSolid);
+    return pyret;
+}
+
+static PyObject *
+pf_calc(PyObject *self, PyObject *args)
+{
+    PyObject *pyobj;
+    double params[4];
+    int nIters, x=0, y=0, aa=0;
+    int repeats = 1;
 
     if (!PyArg_ParseTuple(args,"O(dddd)i|iiii",
 			 &pyobj,
@@ -671,28 +689,15 @@ pf_calc(PyObject *self, PyObject *args)
 	    return NULL;
     }
 
-    pfh = (struct pfHandle *)PyCObject_AsVoidPtr(pyobj);
+    struct pfHandle *pfh = (struct pfHandle *)PyCObject_AsVoidPtr(pyobj);
 #ifdef DEBUG_THREADS
     fprintf(stderr,"%p : PF : CALC\n",pfh);
 #endif
-    double colors[4] = {0.0, 0.0, 0.0, 0.0};
-    for (int i = 0; i < repeats; ++i)
-    {
-        pfh->pfo->vtbl->calc(
-            pfh->pfo,params,
-            nIters, // -1,
-            // nIters, // 1.0E-9,
-            x,y,aa,
-            &outIters,&outFate,&outDist,&outSolid,
-            &fDirectColorFlag, &colors[0]);
-        arena_clear((arena_t)pfh->pfo->arena);
-    }
-    assert(outFate != -777);
-    pyret = Py_BuildValue("iidi",outIters,outFate,outDist,outSolid);
+    PyObject* pyret = calc_nt(repeats, pfh, params, nIters, x, y, aa);
     return pyret; // Python can handle errors if this is NULL
 }
 
-/* 
+/*
  * cmaps
  */
 static PyObject *
@@ -1682,57 +1687,57 @@ static PyObject *
 pycalc(PyObject *self, PyObject *args, PyObject *kwds)
 {
     calc_args *cargs = parse_calc_args(args, kwds);
-    if(NULL == cargs)
+    if (NULL == cargs)
     {
-	return NULL;
+	    return NULL;
     }
 
-    if(cargs->async)
+    if (cargs->async)
     {
-	cargs->site->interrupt();
-	cargs->site->wait();
+        cargs->site->interrupt();
+        cargs->site->wait();
 
-	cargs->site->start(cargs);
+        cargs->site->start(cargs);
 
-	pthread_t tid;
+        pthread_t tid;
 
-	/* create low-priority attribute block */
-	pthread_attr_t lowprio_attr;
-	//struct sched_param lowprio_param;
-	pthread_attr_init(&lowprio_attr);
-	//lowprio_param.sched_priority = sched_get_priority_min(SCHED_OTHER);
-	//pthread_attr_setschedparam(&lowprio_attr, &lowprio_param);
+        /* create low-priority attribute block */
+        pthread_attr_t lowprio_attr;
+        //struct sched_param lowprio_param;
+        pthread_attr_init(&lowprio_attr);
+        //lowprio_param.sched_priority = sched_get_priority_min(SCHED_OTHER);
+        //pthread_attr_setschedparam(&lowprio_attr, &lowprio_param);
 
-	/* start the calculation thread */
-	pthread_create(&tid,&lowprio_attr,calculation_thread,(void *)cargs);
-	assert(tid != 0);
+        /* start the calculation thread */
+        pthread_create(&tid,&lowprio_attr,calculation_thread,(void *)cargs);
+        assert(tid != 0);
 
-	cargs->site->set_tid(tid);
+        cargs->site->set_tid(tid);
     }
     else
     {
-	Py_BEGIN_ALLOW_THREADS
-	// synchronous
-	calc(cargs->params,
-	     cargs->eaa,
-	     cargs->maxiter,
-	     cargs->nThreads,
-	     cargs->pfo,
-	     cargs->cmap,
-	     cargs->auto_deepen,
-	     cargs->auto_tolerance,
-	     cargs->tolerance,
-	     cargs->yflip, 
-	     cargs->periodicity, 
-	     cargs->dirty,
-	     0, // debug_flags
-	     cargs->render_type,
-	     cargs->warp_param,
-	     cargs->im,
-	     cargs->site);
+        Py_BEGIN_ALLOW_THREADS
+        // synchronous
+        calc(cargs->params,
+             cargs->eaa,
+             cargs->maxiter,
+             cargs->nThreads,
+             cargs->pfo,
+             cargs->cmap,
+             cargs->auto_deepen,
+             cargs->auto_tolerance,
+             cargs->tolerance,
+             cargs->yflip,
+             cargs->periodicity,
+             cargs->dirty,
+             0, // debug_flags
+             cargs->render_type,
+             cargs->warp_param,
+             cargs->im,
+             cargs->site);
 
-	delete cargs;
-	Py_END_ALLOW_THREADS
+        delete cargs;
+        Py_END_ALLOW_THREADS
     }
 
     Py_INCREF(Py_None);
