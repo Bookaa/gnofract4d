@@ -19,20 +19,20 @@
 class fractFunc {
  public:
     fractFunc(
-	d *params,
-	int eaa,
-	int maxiter,
-	int nThreads_,
-	bool auto_deepen,
-	bool auto_tolerance,
-	double period_tolerance,
-	bool yflip,
-	bool periodicity,
-	render_type_t render_type,
-	int warp_param,
-	IFractWorker *fw,
-	IImage *_im, 
-	IFractalSite *_site);
+        d *params,
+        int eaa,
+        int maxiter,
+        int nThreads_,
+        bool auto_deepen,
+        bool auto_tolerance,
+        double period_tolerance,
+        bool yflip,
+        bool periodicity,
+        render_type_t render_type,
+        int warp_param,
+        IFractWorker *fw,
+        IImage *_im, 
+        IFractalSite *_site);
     ~fractFunc();
 
     // additional flags controlling debugging & profiling options
@@ -51,33 +51,33 @@ class fractFunc {
     // callback wrappers
     inline void iters_changed(int iters)
     {
-	site->iters_changed(iters);
+        site->iters_changed(iters);
     }
     inline void tolerance_changed(double tolerance)
     {
-	site->tolerance_changed(tolerance);
+        site->tolerance_changed(tolerance);
     }
     inline void image_changed(int x1, int x2, int y1, int y2)
     {
-	site->image_changed(x1,x2,y1,y2);
+        site->image_changed(x1,x2,y1,y2);
     }
     inline void progress_changed(float progress)
     {
-	float adjusted_progress = min_progress + progress * delta_progress;
-	site->progress_changed(adjusted_progress);
+        float adjusted_progress = min_progress + progress * delta_progress;
+        site->progress_changed(adjusted_progress);
     }
     inline void stats_changed()
     {
-	stats.add(worker->get_stats());
-	site->stats_changed(stats);	    
+        stats.add(worker->get_stats());
+        site->stats_changed(stats);         
     }
     inline void status_changed(int status_val)
     {
-	site->status_changed(status_val);
+        site->status_changed(status_val);
     }
     inline bool try_finished_cond()
     {
-	return site->is_interrupted();
+        return site->is_interrupted();
     }
 
     // used for calculating (x,y,z,w) pixel coords
@@ -98,18 +98,18 @@ class fractFunc {
     // do every nth pixel twice as deep as the others to
     // see if we need to auto-deepen
     enum { 
-	AUTO_DEEPEN_FREQUENCY = 30,
-	AUTO_TOLERANCE_FREQUENCY = 30
+        AUTO_DEEPEN_FREQUENCY = 30,
+        AUTO_TOLERANCE_FREQUENCY = 30
     };
 
     // flags for controlling auto-improvement
     enum {
-	SHOULD_DEEPEN = 1,
-	SHOULD_SHALLOWEN = 2, // yes, I know this isn't a word
-	SHOULD_LOOSEN = 4,
-	SHOULD_TIGHTEN = 8,
-	SHOULD_IMPROVE = (SHOULD_DEEPEN | SHOULD_TIGHTEN),
-	SHOULD_RELAX = (SHOULD_SHALLOWEN | SHOULD_LOOSEN)
+        SHOULD_DEEPEN = 1,
+        SHOULD_SHALLOWEN = 2, // yes, I know this isn't a word
+        SHOULD_LOOSEN = 4,
+        SHOULD_TIGHTEN = 8,
+        SHOULD_IMPROVE = (SHOULD_DEEPEN | SHOULD_TIGHTEN),
+        SHOULD_RELAX = (SHOULD_SHALLOWEN | SHOULD_LOOSEN)
     };
 
     // params from ctor    
@@ -138,9 +138,9 @@ class fractFunc {
 
     pixel_stat_t stats;
     void set_progress_range(float min, float max) { 
-	min_progress = min;
-	delta_progress = max-min;
-	assert(delta_progress > 0.0);
+        min_progress = min;
+        delta_progress = max-min;
+        assert(delta_progress > 0.0);
     }
 
     // private drawing methods
@@ -172,7 +172,7 @@ enum {
 extern "C" {
 #endif
 
-extern void calc(	
+extern void calc_4(
     d *params,
     int eaa,
     int maxiter,

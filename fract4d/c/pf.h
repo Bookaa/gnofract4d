@@ -70,19 +70,19 @@ struct s_pf_data;
 struct s_pf_vtable {
     /* fill in params with the default values for this formula */
     void (*get_defaults)(
-	struct s_pf_data *p,
-	double *pos_params,
+        struct s_pf_data *p,
+        double *pos_params,
         struct s_param *params,
-	int nparams
-	);
+        int nparams
+        );
 
     /* fill in fields in pf_data with appropriate stuff */
     void (*init)(
-	struct s_pf_data *p,
-	double *pos_params,
+        struct s_pf_data *p,
+        double *pos_params,
         struct s_param *params,
-	int nparams
-	);
+        int nparams
+        );
 
     /* calculate one point.
        perform up to nIters iterations,
@@ -92,22 +92,24 @@ struct s_pf_vtable {
        More fates may be generated in future
        dist : index into color table from 0.0 to 1.0
     */
+    //void (*calc)(int repeats, struct s_pf_data *, double params[], int nIters, int x, int y, int aa, struct st_out_iidi* outs);
+
     void (*calc)(
-	struct s_pf_data *p,
+        struct s_pf_data *p,
         // in params
-        const double *params, int nIters, //int warp_param,
-	// tolerance params
-	// int min_period_iter, double period_tolerance,
-	// only used for debugging
-	int x, int y, int aa,
+        const double *params, int nIters, int warp_param,
+        // tolerance params
+        int min_period_iter, double period_tolerance,
+        // only used for debugging
+        int x, int y, int aa,
         // out params
         int *pnIters, int *pFate, double *pDist, int *pSolid,
-	int *pDirectColorFlag, double *pColors
-	);
+        int *pDirectColorFlag, double *pColors
+        );
     /* deallocate data in p */
     void (*kill)(
-	struct s_pf_data *p
-	);
+        struct s_pf_data *p
+        );
 } ;
 
 struct s_pf_data {

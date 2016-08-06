@@ -28,7 +28,7 @@ MTFractWorker::MTFractWorker(
         if(!ptf[i].init(pfo,cmap,im,site))
         {
             // failed to create - mark this dead 
-            m_ok = false;	    
+            m_ok = false;
         }
     }
 
@@ -53,7 +53,7 @@ MTFractWorker::set_fractFunc(fractFunc *ff_)
 {
     for(int i = 0; i < nWorkers; ++i)
     {
-	ptf[i].set_fractFunc(ff_);
+        ptf[i].set_fractFunc(ff_);
     }
 }
 
@@ -62,11 +62,11 @@ MTFractWorker::row_aa(int x, int y, int n)
 {
     if(nWorkers > 1 && n > 8)
     {
-	send_row_aa(x,y,n);
+        send_row_aa(x,y,n);
     }
     else
     {
-	ptf->row_aa(x,y,n);
+        ptf->row_aa(x,y,n);
     }
 }
 
@@ -75,11 +75,11 @@ MTFractWorker::row(int x, int y, int n)
 {
     if(nWorkers > 1 && n > 8)
     {
-	send_row(x,y,n);
+        send_row(x,y,n);
     }
     else
     {
-	ptf->row(x,y,n);
+        ptf->row(x,y,n);
     }
 }
 
@@ -94,11 +94,11 @@ MTFractWorker::box_row(int w, int y, int rsize)
 {
     if(nWorkers > 1)
     {
-	send_box_row(w,y,rsize);
+        send_box_row(w,y,rsize);
     }
     else
     {
-	ptf->box_row(w,y,rsize);
+        ptf->box_row(w,y,rsize);
     }
 }
 
@@ -107,11 +107,11 @@ MTFractWorker::qbox_row(int w, int y, int rsize, int drawsize)
 {
     if(nWorkers > 1)
     {
-	send_qbox_row(w,y,rsize, drawsize);
+        send_qbox_row(w,y,rsize, drawsize);
     }
     else
     {
-	ptf->qbox_row(w,y,rsize, drawsize);
+        ptf->qbox_row(w,y,rsize, drawsize);
     }
 }
 
@@ -145,8 +145,8 @@ MTFractWorker::get_stats() const
 
     for(int i = 0; i < nWorkers; ++i)
     {
-	const pixel_stat_t& stat = ptf[i].get_stats();
-	stats.add(stat);
+        const pixel_stat_t& stat = ptf[i].get_stats();
+        stats.add(stat);
     }
     return stats;
 }

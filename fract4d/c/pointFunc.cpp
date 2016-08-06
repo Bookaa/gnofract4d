@@ -36,7 +36,7 @@ public:
 	{
 	    /* we don't own the member pointers, so we don't delete them */
 	}
-    virtual void calc(
+    virtual void calc_pf(
         // in params
         const double *params, int nIters, 
         // periodicity
@@ -55,12 +55,11 @@ public:
 	    double colors[4] = {0.0};
 	    int inside = 0;
 
-        // bookaa : ignore warp_param, min_period_iters, period_tolerance,
-
+        // frequently here printf("call calc in pointFunc.cpp\n");
 	    m_pfo->vtbl->calc(
             m_pfo, params,
-            nIters, //warp_param,
-            //min_period_iters, period_tolerance,
+            nIters, warp_param,
+            min_period_iters, period_tolerance,
             x, y, aa,
             pnIters, &fate, &dist, &solid,
             &fUseColors, &colors[0]);

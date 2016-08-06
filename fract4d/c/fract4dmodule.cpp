@@ -74,7 +74,7 @@ ensure_cmap_loaded()
     // can call its methods
     if(NULL != cmap_module_handle)
     {
-	return 1; // already loaded
+        return 1; // already loaded
     }
 
     char *filename = PyModule_GetFilename(pymod);
@@ -82,8 +82,8 @@ ensure_cmap_loaded()
     char *path_end = strrchr(filename,'/');
     if(path_end == NULL)
     {
-	filename = getcwd(cwd,sizeof(cwd));
-	path_end = filename + strlen(filename);
+        filename = getcwd(cwd,sizeof(cwd));
+        path_end = filename + strlen(filename);
     }
 
     int path_len = strlen(filename) - strlen(path_end);
@@ -98,9 +98,9 @@ ensure_cmap_loaded()
     cmap_module_handle = dlopen(new_filename, RTLD_GLOBAL | RTLD_NOW);
     if(NULL == cmap_module_handle)
     {
-	/* an error */
-	PyErr_SetString(PyExc_ValueError, dlerror());
-	return 0;
+        /* an error */
+        PyErr_SetString(PyExc_ValueError, dlerror());
+        return 0;
     }
     return 1;
 }
@@ -114,13 +114,13 @@ pf_load(PyObject *self, PyObject *args)
     #else
     if(!ensure_cmap_loaded())
     {
-	return NULL;
+        return NULL;
     }
 
     char *so_filename;
     if(!PyArg_ParseTuple(args,"s",&so_filename))
     {
-	return NULL;
+        return NULL;
     }
 
     void *dlHandle = dlopen(so_filename, RTLD_NOW);
@@ -129,9 +129,9 @@ pf_load(PyObject *self, PyObject *args)
 #endif
     if(NULL == dlHandle)
     {
-	/* an error */
-	PyErr_SetString(PyExc_ValueError,dlerror());
-	return NULL;
+        /* an error */
+        PyErr_SetString(PyExc_ValueError,dlerror());
+        return NULL;
     }
     return PyCObject_FromVoidPtr(dlHandle,pf_unload);
     #endif
@@ -170,20 +170,20 @@ pf_create(PyObject *self, PyObject *args)
 
     if(!PyArg_ParseTuple(args,"O",&pyobj))
     {
-	return NULL;
+        return NULL;
     }
     if(!PyCObject_Check(pyobj))
     {
-	PyErr_SetString(PyExc_ValueError,"Not a valid handle");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,"Not a valid handle");
+        return NULL;
     }
 
     dlHandle = PyCObject_AsVoidPtr(pyobj);
     pfn = (pf_obj *(*)(void))dlsym(dlHandle,"pf_new");
     if(NULL == pfn)
     {
-	PyErr_SetString(PyExc_ValueError,dlerror());
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,dlerror());
+        return NULL;
     }
     pf_obj *p = pfn();
 #endif
@@ -203,8 +203,8 @@ get_double_field(PyObject *pyitem, const char *name, double *pVal)
     PyObject *pyfield = PyObject_GetAttrString(pyitem,name);
     if(pyfield == NULL)
     {
-	PyErr_SetString(PyExc_ValueError, "Bad segment object");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError, "Bad segment object");
+        return NULL;
     }
     *pVal = PyFloat_AsDouble(pyfield);
     Py_DECREF(pyfield);
@@ -219,36 +219,36 @@ get_double_array(PyObject *pyitem, const char *name, double *pVal, int n)
     PyObject *pyfield = PyObject_GetAttrString(pyitem,name);
     if(pyfield == NULL)
     {
-	PyErr_SetString(PyExc_ValueError, "Bad segment object");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError, "Bad segment object");
+        return NULL;
     }
 
     if(!PySequence_Check(pyfield))
     {
-	PyErr_SetString(PyExc_ValueError, "Bad segment object");
-	Py_DECREF(pyfield);
-	return NULL;
+        PyErr_SetString(PyExc_ValueError, "Bad segment object");
+        Py_DECREF(pyfield);
+        return NULL;
     }
 
     if(!(PySequence_Size(pyfield) == n))
     {
-	PyErr_SetString(PyExc_ValueError, "Bad segment object");
-	Py_DECREF(pyfield);
-	return NULL;
+        PyErr_SetString(PyExc_ValueError, "Bad segment object");
+        Py_DECREF(pyfield);
+        return NULL;
     }
 
     for(int i = 0; i < n; ++i)
     {
-	PyObject *py_subitem = PySequence_GetItem(pyfield,i);
-	if(!py_subitem)
-	{
-	    PyErr_SetString(PyExc_ValueError, "Bad segment object");
-	    Py_DECREF(pyfield);
-	    return NULL; 
-	}
-	*(pVal+i)=PyFloat_AsDouble(py_subitem);
+        PyObject *py_subitem = PySequence_GetItem(pyfield,i);
+        if(!py_subitem)
+        {
+            PyErr_SetString(PyExc_ValueError, "Bad segment object");
+            Py_DECREF(pyfield);
+            return NULL; 
+        }
+        *(pVal+i)=PyFloat_AsDouble(py_subitem);
 
-	Py_DECREF(py_subitem);
+        Py_DECREF(py_subitem);
     }
 
     Py_DECREF(pyfield);
@@ -262,8 +262,8 @@ get_int_field(PyObject *pyitem, const char *name, int *pVal)
     PyObject *pyfield = PyObject_GetAttrString(pyitem,name);
     if(pyfield == NULL)
     {
-	PyErr_SetString(PyExc_ValueError, "Bad segment object");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError, "Bad segment object");
+        return NULL;
     }
     *pVal = PyInt_AsLong(pyfield);
     Py_DECREF(pyfield);
@@ -280,53 +280,53 @@ cmap_from_pyobject(PyObject *pyarray)
     len = PySequence_Size(pyarray);
     if(len == 0)
     {
-	PyErr_SetString(PyExc_ValueError,"Empty color array");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,"Empty color array");
+        return NULL;
     }
 
     cmap = new(std::nothrow)GradientColorMap();
 
     if(!cmap)
     {
-	PyErr_SetString(PyExc_MemoryError,"Can't allocate colormap");
-	return NULL;
+        PyErr_SetString(PyExc_MemoryError,"Can't allocate colormap");
+        return NULL;
     }
     if(! cmap->init(len))
     {
-	PyErr_SetString(PyExc_MemoryError,"Can't allocate colormap array");
-	delete cmap;
-	return NULL;
+        PyErr_SetString(PyExc_MemoryError,"Can't allocate colormap array");
+        delete cmap;
+        return NULL;
     }
 
     for(i = 0; i < len; ++i)
     {
-	double left, right, mid, left_col[4], right_col[4];
-	int bmode, cmode;
-	PyObject *pyitem = PySequence_GetItem(pyarray,i);
-	if(!pyitem)
-	{
-	    delete cmap;
-	    return NULL; 
-	}
+        double left, right, mid, left_col[4], right_col[4];
+        int bmode, cmode;
+        PyObject *pyitem = PySequence_GetItem(pyarray,i);
+        if(!pyitem)
+        {
+            delete cmap;
+            return NULL; 
+        }
 
-	if(!get_double_field(pyitem, "left", &left) ||
-	   !get_double_field(pyitem, "right", &right) ||
-	   !get_double_field(pyitem, "mid", &mid) ||
-	   !get_int_field(pyitem, "cmode", &cmode) ||
-	   !get_int_field(pyitem, "bmode", &bmode) ||
-	   !get_double_array(pyitem, "left_color", left_col, 4) ||
-	   !get_double_array(pyitem, "right_color", right_col, 4))
-	{
-	    Py_DECREF(pyitem);
-	    delete cmap;
-	    return NULL;
-	}
-	
-	cmap->set(i, left, right, mid,
-		  left_col,right_col,
-		  (e_blendType)bmode, (e_colorType)cmode);
+        if(!get_double_field(pyitem, "left", &left) ||
+           !get_double_field(pyitem, "right", &right) ||
+           !get_double_field(pyitem, "mid", &mid) ||
+           !get_int_field(pyitem, "cmode", &cmode) ||
+           !get_int_field(pyitem, "bmode", &bmode) ||
+           !get_double_array(pyitem, "left_color", left_col, 4) ||
+           !get_double_array(pyitem, "right_color", right_col, 4))
+        {
+            Py_DECREF(pyitem);
+            delete cmap;
+            return NULL;
+        }
+        
+        cmap->set(i, left, right, mid,
+                  left_col,right_col,
+                  (e_blendType)bmode, (e_colorType)cmode);
 
-	Py_DECREF(pyitem);
+        Py_DECREF(pyitem);
     }
     return cmap;
 }
@@ -344,19 +344,19 @@ cmap_create_gradient(PyObject *self, PyObject *args)
 
     if(!PyArg_ParseTuple(args,"O",&pyarray))
     {
-	return NULL;
+        return NULL;
     }
 
     if(!PySequence_Check(pyarray))
     {
-	return NULL;
+        return NULL;
     }
     
     ColorMap *cmap = cmap_from_pyobject(pyarray);
 
     if(NULL == cmap)
     {
-	return NULL;
+        return NULL;
     }
 
     pyret = PyCObject_FromVoidPtr(cmap,(void (*)(void *))cmap_delete);
@@ -370,31 +370,31 @@ parse_posparams(PyObject *py_posparams, double *pos_params)
     // check and parse pos_params
     if(!PySequence_Check(py_posparams))
     {
-	PyErr_SetString(PyExc_TypeError,
-			"Positional params should be an array of floats");
-	return false;
+        PyErr_SetString(PyExc_TypeError,
+                        "Positional params should be an array of floats");
+        return false;
     }
 
     int len = PySequence_Size(py_posparams);
     if(len != N_PARAMS)
     {
-	PyErr_SetString(
-	    PyExc_ValueError,
-	    "Wrong number of positional params");
-	return false;
+        PyErr_SetString(
+            PyExc_ValueError,
+            "Wrong number of positional params");
+        return false;
     }
     
     for(int i = 0; i < N_PARAMS; ++i)
     {
-	PyObject *pyitem = PySequence_GetItem(py_posparams,i);
-	if(pyitem == NULL || !PyFloat_Check(pyitem))
-	{
-	    PyErr_SetString(
-		PyExc_ValueError,
-		"All positional params must be floats");
-	    return false;
-	}
-	pos_params[i] = PyFloat_AsDouble(pyitem);
+        PyObject *pyitem = PySequence_GetItem(py_posparams,i);
+        if(pyitem == NULL || !PyFloat_Check(pyitem))
+        {
+            PyErr_SetString(
+                PyExc_ValueError,
+                "All positional params must be floats");
+            return false;
+        }
+        pos_params[i] = PyFloat_AsDouble(pyitem);
     }
     return true;
 }
@@ -407,116 +407,116 @@ parse_params(PyObject *pyarray, int *plen)
     // check and parse fractal params
     if(!PySequence_Check(pyarray))
     {
-	PyErr_SetString(PyExc_TypeError,
-			"parameters argument should be an array");
-	return NULL;
+        PyErr_SetString(PyExc_TypeError,
+                        "parameters argument should be an array");
+        return NULL;
     }
 
 
     int len = PySequence_Size(pyarray);
     if(len == 0)
     {
-	params = (struct s_param *)malloc(sizeof(struct s_param));
-	params[0].t = FLOAT;
-	params[0].doubleval = 0.0;
+        params = (struct s_param *)malloc(sizeof(struct s_param));
+        params[0].t = FLOAT;
+        params[0].doubleval = 0.0;
     }
     else if(len > PF_MAXPARAMS)
     {
-	PyErr_SetString(PyExc_ValueError,"Too many parameters");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,"Too many parameters");
+        return NULL;
     }
     else
     {
-	int i = 0;
-	params = (struct s_param *)malloc(len * sizeof(struct s_param));
-	if(!params) return NULL;
-	for(i = 0; i < len; ++i)
-	{
-	    PyObject *pyitem = PySequence_GetItem(pyarray,i);
-	    if(NULL == pyitem)
-	    {
-		free(params);
-		return NULL;
-	    }
-	    if(PyFloat_Check(pyitem))
-	    {
-		params[i].t = FLOAT;
-		params[i].doubleval = PyFloat_AsDouble(pyitem);
-		//fprintf(stderr,"%d = float(%g)\n",i,params[i].doubleval);
-	    }
-	    else if(PyInt_Check(pyitem))
-	    {
-		params[i].t = INT;
-		params[i].intval = PyInt_AS_LONG(pyitem);
-		//fprintf(stderr,"%d = int(%d)\n",i,params[i].intval);
-	    }
-	    else if(
-		PyObject_HasAttrString(pyitem,"cobject") &&
-		PyObject_HasAttrString(pyitem,"segments"))
-	    {
-		// looks like a colormap. Either we already have an object, which we can use now,
-		// or we need to construct one from a list of segments
-		PyObject *pycob = PyObject_GetAttrString(pyitem,"cobject");
-		if(pycob == Py_None || pycob == NULL)
-		{
-		    Py_XDECREF(pycob);
-		    PyObject *pysegs = PyObject_GetAttrString(
-			pyitem,"segments");
+        int i = 0;
+        params = (struct s_param *)malloc(len * sizeof(struct s_param));
+        if(!params) return NULL;
+        for(i = 0; i < len; ++i)
+        {
+            PyObject *pyitem = PySequence_GetItem(pyarray,i);
+            if(NULL == pyitem)
+            {
+                free(params);
+                return NULL;
+            }
+            if(PyFloat_Check(pyitem))
+            {
+                params[i].t = FLOAT;
+                params[i].doubleval = PyFloat_AsDouble(pyitem);
+                //fprintf(stderr,"%d = float(%g)\n",i,params[i].doubleval);
+            }
+            else if(PyInt_Check(pyitem))
+            {
+                params[i].t = INT;
+                params[i].intval = PyInt_AS_LONG(pyitem);
+                //fprintf(stderr,"%d = int(%d)\n",i,params[i].intval);
+            }
+            else if(
+                PyObject_HasAttrString(pyitem,"cobject") &&
+                PyObject_HasAttrString(pyitem,"segments"))
+            {
+                // looks like a colormap. Either we already have an object, which we can use now,
+                // or we need to construct one from a list of segments
+                PyObject *pycob = PyObject_GetAttrString(pyitem,"cobject");
+                if(pycob == Py_None || pycob == NULL)
+                {
+                    Py_XDECREF(pycob);
+                    PyObject *pysegs = PyObject_GetAttrString(
+                        pyitem,"segments");
 
-		    ColorMap *cmap;
-		    if (pysegs == Py_None || pysegs == NULL)
-		    {
-			cmap = NULL;
-		    }
-		    else
-		    {
-			cmap = cmap_from_pyobject(pysegs);
-		    }
-		    
-		    Py_XDECREF(pysegs);
+                    ColorMap *cmap;
+                    if (pysegs == Py_None || pysegs == NULL)
+                    {
+                        cmap = NULL;
+                    }
+                    else
+                    {
+                        cmap = cmap_from_pyobject(pysegs);
+                    }
+                    
+                    Py_XDECREF(pysegs);
 
-		    if(NULL == cmap)
-		    {
-			PyErr_SetString(PyExc_ValueError, "Invalid colormap object");
-			free(params);
-			return NULL;
-		    }
+                    if(NULL == cmap)
+                    {
+                        PyErr_SetString(PyExc_ValueError, "Invalid colormap object");
+                        free(params);
+                        return NULL;
+                    }
 
-		    pycob = PyCObject_FromVoidPtr(
-			cmap, (void (*)(void *))cmap_delete);
+                    pycob = PyCObject_FromVoidPtr(
+                        cmap, (void (*)(void *))cmap_delete);
 
-		    if(NULL != pycob)
-		    {
-			PyObject_SetAttrString(pyitem,"cobject",pycob);
-			// not quite correct, we are leaking some
-			// cmap objects 
-			Py_INCREF(pycob);
-		    }
-		}
-		params[i].t = GRADIENT;
-		params[i].gradient = PyCObject_AsVoidPtr(pycob);
-		//fprintf(stderr,"%d = gradient(%p)\n",i,params[i].gradient);
-		Py_XDECREF(pycob);
-	    }
-	    else if(
-		PyObject_HasAttrString(pyitem,"_img"))
-	    {
-		PyObject *pycob = PyObject_GetAttrString(pyitem,"_img");
-		params[i].t = PARAM_IMAGE;
-		params[i].image = PyCObject_AsVoidPtr(pycob);
-		Py_XDECREF(pycob);
-	    }
-	    else
-	    {
-		Py_XDECREF(pyitem);
-		PyErr_SetString(
-		    PyExc_ValueError,
-		    "All params must be floats, ints, images or gradients");
-		free(params);
-		return NULL;
-	    }
-	    Py_XDECREF(pyitem);
-	} 
+                    if(NULL != pycob)
+                    {
+                        PyObject_SetAttrString(pyitem,"cobject",pycob);
+                        // not quite correct, we are leaking some
+                        // cmap objects 
+                        Py_INCREF(pycob);
+                    }
+                }
+                params[i].t = GRADIENT;
+                params[i].gradient = PyCObject_AsVoidPtr(pycob);
+                //fprintf(stderr,"%d = gradient(%p)\n",i,params[i].gradient);
+                Py_XDECREF(pycob);
+            }
+            else if(
+                PyObject_HasAttrString(pyitem,"_img"))
+            {
+                PyObject *pycob = PyObject_GetAttrString(pyitem,"_img");
+                params[i].t = PARAM_IMAGE;
+                params[i].image = PyCObject_AsVoidPtr(pycob);
+                Py_XDECREF(pycob);
+            }
+            else
+            {
+                Py_XDECREF(pyitem);
+                PyErr_SetString(
+                    PyExc_ValueError,
+                    "All params must be floats, ints, images or gradients");
+                free(params);
+                return NULL;
+            }
+            Py_XDECREF(pyitem);
+        } 
     }
     *plen = len;
     return params;
@@ -531,28 +531,28 @@ pf_init(PyObject *self, PyObject *args)
     double pos_params[N_PARAMS];
 
     if(!PyArg_ParseTuple(
-	   args,"OOO",&pyobj,&py_posparams, &pyarray))
+           args,"OOO",&pyobj,&py_posparams, &pyarray))
     {
-	return NULL;
+        return NULL;
     }
     if(!PyCObject_Check(pyobj))
     {
-	PyErr_SetString(PyExc_ValueError,"Not a valid handle");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,"Not a valid handle");
+        return NULL;
     }
 
     pfh = (struct pfHandle *)PyCObject_AsVoidPtr(pyobj);
 
     if(!parse_posparams(py_posparams, pos_params))
     {
-	return NULL;
+        return NULL;
     }
 
     int len=0;
     params = parse_params(pyarray,&len);
     if(!params)
     {
-	return NULL;
+        return NULL;
     }
 
     /*finally all args are assembled */
@@ -572,28 +572,28 @@ params_to_python(struct s_param *params, int len)
     PyObject *pyret = PyList_New(len);
     if(!pyret)
     {
-	PyErr_SetString(PyExc_MemoryError, "Can't allocate defaults list");
-	return NULL;
+        PyErr_SetString(PyExc_MemoryError, "Can't allocate defaults list");
+        return NULL;
     }
     for(int i = 0; i < len; ++i)
     {
-	switch(params[i].t)
-	{
-	case FLOAT:
-	    PyList_SET_ITEM(pyret,i,PyFloat_FromDouble(params[i].doubleval));
-	    break;
-	case INT:
-	    PyList_SET_ITEM(pyret,i,PyInt_FromLong(params[i].intval));
-	    break;
-	case GRADIENT:
-	    Py_INCREF(Py_None);
-	    PyList_SET_ITEM(pyret,i,Py_None);
-	    break;
-	default:
-	    assert(0 && "Unexpected type for parameter");
-	    Py_INCREF(Py_None);
-	    PyList_SET_ITEM(pyret,i,Py_None);
-	}
+        switch(params[i].t)
+        {
+        case FLOAT:
+            PyList_SET_ITEM(pyret,i,PyFloat_FromDouble(params[i].doubleval));
+            break;
+        case INT:
+            PyList_SET_ITEM(pyret,i,PyInt_FromLong(params[i].intval));
+            break;
+        case GRADIENT:
+            Py_INCREF(Py_None);
+            PyList_SET_ITEM(pyret,i,Py_None);
+            break;
+        default:
+            assert(0 && "Unexpected type for parameter");
+            Py_INCREF(Py_None);
+            PyList_SET_ITEM(pyret,i,Py_None);
+        }
     }
     return pyret;
 }
@@ -607,36 +607,36 @@ pf_defaults(PyObject *self, PyObject *args)
     double pos_params[N_PARAMS];
 
     if(!PyArg_ParseTuple(
-	   args,"OOO",&pyobj,&py_posparams, &pyarray))
+           args,"OOO",&pyobj,&py_posparams, &pyarray))
     {
-	return NULL;
+        return NULL;
     }
     if(!PyCObject_Check(pyobj))
     {
-	PyErr_SetString(PyExc_ValueError,"Not a valid handle");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,"Not a valid handle");
+        return NULL;
     }
 
     pfh = (struct pfHandle *)PyCObject_AsVoidPtr(pyobj);
 
     if(!parse_posparams(py_posparams, pos_params))
     {
-	return NULL;
+        return NULL;
     }
 
     int len=0;
     params = parse_params(pyarray,&len);
     if(!params)
     {
-	return NULL;
+        return NULL;
     }
 
     /*finally all args are assembled */
     pfh->pfo->vtbl->get_defaults(
-	pfh->pfo,
-	pos_params,
-	params,
-	len);
+        pfh->pfo,
+        pos_params,
+        params,
+        len);
     
 
     PyObject *pyret = params_to_python(params,len);
@@ -645,27 +645,30 @@ pf_defaults(PyObject *self, PyObject *args)
     return pyret;
 }
 
-PyObject* calc_nt(int repeats, struct pfHandle *pfh, double params[], int nIters, int x, int y, int aa)
+struct st_out_iidi {
+    int outIters;
+    int outFate;
+    double outDist;
+    int outSolid;
+};
+
+void calc_nt(int repeats, struct pfHandle *pfh, double params[], int nIters, int x, int y, int aa, st_out_iidi* outs)
 {
-    int outIters=0, outFate=-777;
-    double outDist=0.0;
-    int outSolid=0;
+    // input always: st_out_iidi outs = {0, -777, 0.0, 0};
     int fDirectColorFlag=0;
     double colors[4] = {0.0, 0.0, 0.0, 0.0};
     for (int i = 0; i < repeats; ++i)
     {
         pfh->pfo->vtbl->calc(
             pfh->pfo,params,
-            nIters, // -1,
-            // nIters, // 1.0E-9,
+            nIters, -1,
+            nIters, 1.0E-9,
             x,y,aa,
-            &outIters,&outFate,&outDist,&outSolid,
+            &outs->outIters,&outs->outFate,&outs->outDist,&outs->outSolid,
             &fDirectColorFlag, &colors[0]);
         arena_clear((arena_t)pfh->pfo->arena);
     }
-    assert(outFate != -777);
-    PyObject* pyret = Py_BuildValue("iidi",outIters,outFate,outDist,outSolid);
-    return pyret;
+    assert(outs->outFate != -777);
 }
 
 static PyObject *
@@ -677,23 +680,27 @@ pf_calc(PyObject *self, PyObject *args)
     int repeats = 1;
 
     if (!PyArg_ParseTuple(args,"O(dddd)i|iiii",
-			 &pyobj,
-			 &params[0],&params[1],&params[2],&params[3],
-			 &nIters,&x,&y,&aa,&repeats))
+                         &pyobj,
+                         &params[0],&params[1],&params[2],&params[3],
+                         &nIters,&x,&y,&aa,&repeats))
     {
-	    return NULL;
+            return NULL;
     }
     if (!PyCObject_Check(pyobj))
     {
-	    PyErr_SetString(PyExc_ValueError,"Not a valid handle");
-	    return NULL;
+            PyErr_SetString(PyExc_ValueError,"Not a valid handle");
+            return NULL;
     }
 
     struct pfHandle *pfh = (struct pfHandle *)PyCObject_AsVoidPtr(pyobj);
 #ifdef DEBUG_THREADS
     fprintf(stderr,"%p : PF : CALC\n",pfh);
 #endif
-    PyObject* pyret = calc_nt(repeats, pfh, params, nIters, x, y, aa);
+    printf("call at 699 , repeats = %d \n", repeats);
+    st_out_iidi outs = {0, -777, 0.0, 0};
+    calc_nt(repeats, pfh, params, nIters, x, y, aa, &outs);
+    //pfh->pfo->vtbl->calc(repeats, pfh->pfo, params, nIters, x, y, aa, &outs);
+    PyObject* pyret = Py_BuildValue("iidi",outs.outIters,outs.outFate,outs.outDist,outs.outSolid);
     return pyret; // Python can handle errors if this is NULL
 }
 
@@ -710,52 +717,52 @@ cmap_create(PyObject *self, PyObject *args)
 
     if(!PyArg_ParseTuple(args,"O",&pyarray))
     {
-	return NULL;
+        return NULL;
     }
 
     if(!PySequence_Check(pyarray))
     {
-	return NULL;
+        return NULL;
     }
     
     len = PySequence_Size(pyarray);
     if(len == 0)
     {
-	PyErr_SetString(PyExc_ValueError,"Empty color array");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,"Empty color array");
+        return NULL;
     }
 
     cmap = new(std::nothrow)ListColorMap();
 
     if(!cmap)
     {
-	PyErr_SetString(PyExc_MemoryError,"Can't allocate colormap");
-	return NULL;
+        PyErr_SetString(PyExc_MemoryError,"Can't allocate colormap");
+        return NULL;
     }
     if(! cmap->init(len))
     {
-	PyErr_SetString(PyExc_MemoryError,"Can't allocate colormap array");
-	delete cmap;
-	return NULL;
+        PyErr_SetString(PyExc_MemoryError,"Can't allocate colormap array");
+        delete cmap;
+        return NULL;
     }
     for(i = 0; i < len; ++i)
     {
-	double d;
-	int r, g, b, a;
-	PyObject *pyitem = PySequence_GetItem(pyarray,i);
-	if(!pyitem)
-	{
-	    delete cmap;
-	    return NULL; 
-	}
-	if(!PyArg_ParseTuple(pyitem,"diiii",&d,&r,&g,&b,&a))
-	{
-	    Py_DECREF(pyitem);
-	    delete cmap;
-	    return NULL;
-	}
-	cmap->set(i,d,r,g,b,a);
-	Py_DECREF(pyitem);
+        double d;
+        int r, g, b, a;
+        PyObject *pyitem = PySequence_GetItem(pyarray,i);
+        if(!pyitem)
+        {
+            delete cmap;
+            return NULL; 
+        }
+        if(!PyArg_ParseTuple(pyitem,"diiii",&d,&r,&g,&b,&a))
+        {
+            Py_DECREF(pyitem);
+            delete cmap;
+            return NULL;
+        }
+        cmap->set(i,d,r,g,b,a);
+        Py_DECREF(pyitem);
     }
     pyret = PyCObject_FromVoidPtr(cmap,(void (*)(void *))cmap_delete);
 
@@ -771,13 +778,13 @@ pycmap_set_solid(PyObject *self, PyObject *args)
 
     if(!PyArg_ParseTuple(args,"Oiiiii",&pycmap,&which,&r,&g,&b,&a))
     {
-	return NULL;
+        return NULL;
     }
 
     cmap = (ColorMap *)PyCObject_AsVoidPtr(pycmap);
     if(!cmap)
     {
-	return NULL;
+        return NULL;
     }
 
     cmap->set_solid(which,r,g,b,a);
@@ -796,13 +803,13 @@ pycmap_set_transfer(PyObject *self, PyObject *args)
 
     if(!PyArg_ParseTuple(args,"Oii",&pycmap,&which,&transfer))
     {
-	return NULL;
+        return NULL;
     }
 
     cmap = (ColorMap *)PyCObject_AsVoidPtr(pycmap);
     if(!cmap)
     {
-	return NULL;
+        return NULL;
     }
 
     cmap->set_transfer(which,transfer);
@@ -821,13 +828,13 @@ cmap_pylookup(PyObject *self, PyObject *args)
 
     if(!PyArg_ParseTuple(args,"Od", &pyobj, &d))
     {
-	return NULL;
+        return NULL;
     }
 
     cmap = (ColorMap *)PyCObject_AsVoidPtr(pyobj);
     if(!cmap)
     {
-	return NULL;
+        return NULL;
     }
 
     color = cmap->lookup(d);
@@ -849,13 +856,13 @@ cmap_pylookup_with_flags(PyObject *self, PyObject *args)
 
     if(!PyArg_ParseTuple(args,"Odii", &pyobj, &d, &solid, &inside))
     {
-	return NULL;
+        return NULL;
     }
 
     cmap = (ColorMap *)PyCObject_AsVoidPtr(pyobj);
     if(!cmap)
     {
-	return NULL;
+        return NULL;
     }
 
     color = cmap->lookup_with_transfer(d,solid,inside);
@@ -877,172 +884,172 @@ class PySite :public IFractalSite
 {
 public:
     PySite(PyObject *site_)
-	{
-	    site = site_;
+        {
+            site = site_;
 
-	    has_pixel_changed_method = 
-		PyObject_HasAttrString(site,"pixel_changed");
+            has_pixel_changed_method = 
+                PyObject_HasAttrString(site,"pixel_changed");
 
 #ifdef DEBUG_CREATION
-	    fprintf(stderr,"%p : SITE : CTOR\n",this);
+            fprintf(stderr,"%p : SITE : CTOR\n",this);
 #endif
 
-	    // Don't incref, that causes a loop with parent fractal
-	    //Py_INCREF(site);
-	}
+            // Don't incref, that causes a loop with parent fractal
+            //Py_INCREF(site);
+        }
 
     virtual void iters_changed(int numiters)
-	{
-	    GET_LOCK;
-	    PyObject *ret = PyObject_CallMethod(
-		site,
-		const_cast<char *>("iters_changed"),
-		const_cast<char *>("i"),
-		numiters);
-	    Py_XDECREF(ret);
-	    RELEASE_LOCK;
-	}
+        {
+            GET_LOCK;
+            PyObject *ret = PyObject_CallMethod(
+                site,
+                const_cast<char *>("iters_changed"),
+                const_cast<char *>("i"),
+                numiters);
+            Py_XDECREF(ret);
+            RELEASE_LOCK;
+        }
     
     virtual void tolerance_changed(double tolerance)
-	{
-	    GET_LOCK;
-	    PyObject *ret = PyObject_CallMethod(
-		site,
-		const_cast<char *>("tolerance_changed"),
-		const_cast<char *>("d"),
-		tolerance);
-	    Py_XDECREF(ret);
-	    RELEASE_LOCK;
-	}
+        {
+            GET_LOCK;
+            PyObject *ret = PyObject_CallMethod(
+                site,
+                const_cast<char *>("tolerance_changed"),
+                const_cast<char *>("d"),
+                tolerance);
+            Py_XDECREF(ret);
+            RELEASE_LOCK;
+        }
     // we've drawn a rectangle of image
     virtual void image_changed(int x1, int y1, int x2, int y2)
-	{
-	    GET_LOCK;
-	    PyObject *ret = PyObject_CallMethod(
-		site,
-		const_cast<char *>("image_changed"),
-		const_cast<char *>("iiii"),
-		x1,y1,x2,y2);
-	    Py_XDECREF(ret);
-	    RELEASE_LOCK;
-	}
+        {
+            GET_LOCK;
+            PyObject *ret = PyObject_CallMethod(
+                site,
+                const_cast<char *>("image_changed"),
+                const_cast<char *>("iiii"),
+                x1,y1,x2,y2);
+            Py_XDECREF(ret);
+            RELEASE_LOCK;
+        }
     // estimate of how far through current pass we are
     virtual void progress_changed(float progress)
-	{
-	    double d = (double)progress;
+        {
+            double d = (double)progress;
 
-	    GET_LOCK;
-	    PyObject *ret = PyObject_CallMethod(
-		site,
-		const_cast<char *>("progress_changed"),
-		const_cast<char *>("d"),
-		d);
-	    Py_XDECREF(ret);
-	    RELEASE_LOCK;
-	}
+            GET_LOCK;
+            PyObject *ret = PyObject_CallMethod(
+                site,
+                const_cast<char *>("progress_changed"),
+                const_cast<char *>("d"),
+                d);
+            Py_XDECREF(ret);
+            RELEASE_LOCK;
+        }
 
     virtual void stats_changed(pixel_stat_t& stats)
-	{
-	    GET_LOCK;
-	    PyObject *ret = PyObject_CallMethod(
-		site,
-		const_cast<char *>("stats_changed"),
-		const_cast<char *>("[kkkkkkkkkk]"),
-		stats.s[0], stats.s[1], stats.s[2],stats.s[3],stats.s[4],
-		stats.s[5], stats.s[6], stats.s[7],stats.s[8],stats.s[9]);
-	    Py_XDECREF(ret);
-	    RELEASE_LOCK;			
-	}
+        {
+            GET_LOCK;
+            PyObject *ret = PyObject_CallMethod(
+                site,
+                const_cast<char *>("stats_changed"),
+                const_cast<char *>("[kkkkkkkkkk]"),
+                stats.s[0], stats.s[1], stats.s[2],stats.s[3],stats.s[4],
+                stats.s[5], stats.s[6], stats.s[7],stats.s[8],stats.s[9]);
+            Py_XDECREF(ret);
+            RELEASE_LOCK;                       
+        }
 
     // one of the status values above
     virtual void status_changed(int status_val)
-	{
-	    assert(this != NULL && site != NULL);
-	    //fprintf(stderr,"sc: %p %p\n",this,this->status_changed_cb);
+        {
+            assert(this != NULL && site != NULL);
+            //fprintf(stderr,"sc: %p %p\n",this,this->status_changed_cb);
 
-	    GET_LOCK;
-	    PyObject *ret = PyObject_CallMethod(
-		site,
-		const_cast<char *>("status_changed"),
-		const_cast<char *>("i"), 
-		status_val);
+            GET_LOCK;
+            PyObject *ret = PyObject_CallMethod(
+                site,
+                const_cast<char *>("status_changed"),
+                const_cast<char *>("i"), 
+                status_val);
 
-	    if(PyErr_Occurred())
-	    {
-		fprintf(stderr,"bad status 2\n");
-		PyErr_Print();
-	    }
-	    Py_XDECREF(ret);
-	    RELEASE_LOCK;
-	}
+            if(PyErr_Occurred())
+            {
+                fprintf(stderr,"bad status 2\n");
+                PyErr_Print();
+            }
+            Py_XDECREF(ret);
+            RELEASE_LOCK;
+        }
 
     // return true if we've been interrupted and are supposed to stop
     virtual bool is_interrupted()
-	{
-	    GET_LOCK;
-	    PyObject *pyret = PyObject_CallMethod(
-		site,
-		const_cast<char *>("is_interrupted"),NULL);
+        {
+            GET_LOCK;
+            PyObject *pyret = PyObject_CallMethod(
+                site,
+                const_cast<char *>("is_interrupted"),NULL);
 
-	    bool ret = false;
-	    if(pyret != NULL && PyInt_Check(pyret))
-	    {
-		long i = PyInt_AsLong(pyret);
-		//fprintf(stderr,"ret: %ld\n",i);
-		ret = (i != 0);
-	    }
+            bool ret = false;
+            if(pyret != NULL && PyInt_Check(pyret))
+            {
+                long i = PyInt_AsLong(pyret);
+                //fprintf(stderr,"ret: %ld\n",i);
+                ret = (i != 0);
+            }
 
-	    Py_XDECREF(pyret);
-	    RELEASE_LOCK;
-	    return ret;
-	}
+            Py_XDECREF(pyret);
+            RELEASE_LOCK;
+            return ret;
+        }
 
     // pixel changed
     virtual void pixel_changed(
-	const double *params, int maxIters, int nNoPeriodIters,
-	int x, int y, int aa,
-	double dist, int fate, int nIters,
-	int r, int g, int b, int a) 
-	{
-	    if(has_pixel_changed_method)
-	    {
-		GET_LOCK;
-		PyObject *pyret = PyObject_CallMethod(
-		    site,
-		    const_cast<char *>("pixel_changed"),
-		    const_cast<char *>("(dddd)iiiiidiiiiii"),
-		    params[0],params[1],params[2],params[3],
-		    x,y,aa,
-		    maxIters,nNoPeriodIters,
-		    dist,fate,nIters,
-		    r,g,b,a);
+        const double *params, int maxIters, int nNoPeriodIters,
+        int x, int y, int aa,
+        double dist, int fate, int nIters,
+        int r, int g, int b, int a) 
+        {
+            if(has_pixel_changed_method)
+            {
+                GET_LOCK;
+                PyObject *pyret = PyObject_CallMethod(
+                    site,
+                    const_cast<char *>("pixel_changed"),
+                    const_cast<char *>("(dddd)iiiiidiiiiii"),
+                    params[0],params[1],params[2],params[3],
+                    x,y,aa,
+                    maxIters,nNoPeriodIters,
+                    dist,fate,nIters,
+                    r,g,b,a);
 
-		Py_XDECREF(pyret);
-		RELEASE_LOCK;
-	    }
-	};
+                Py_XDECREF(pyret);
+                RELEASE_LOCK;
+            }
+        };
     virtual void interrupt() 
-	{
-	    // FIXME? interrupted = true;
-	}
+        {
+            // FIXME? interrupted = true;
+        }
     
     virtual void start(calc_args *tid_)
-	{
-	    tid = (pthread_t)tid_;
-	}
+        {
+            tid = (pthread_t)tid_;
+        }
 
     virtual void wait()
-	{
-	    pthread_join(tid,NULL);
-	}
+        {
+            pthread_join(tid,NULL);
+        }
 
     ~PySite()
-	{
+        {
 #ifdef DEBUG_CREATION
-	    fprintf(stderr,"%p : SITE : DTOR\n",this);
+            fprintf(stderr,"%p : SITE : DTOR\n",this);
 #endif
-	    //Py_DECREF(site);
-	}
+            //Py_DECREF(site);
+        }
 
     //PyThreadState *state;
 private:
@@ -1078,66 +1085,66 @@ struct calc_args
 
     PyObject *pycmap, *pypfo, *pyim, *pysite;
     calc_args()
-	{
+        {
 #ifdef DEBUG_CREATION
-	    fprintf(stderr,"%p : CA : CTOR\n",this);
+            fprintf(stderr,"%p : CA : CTOR\n",this);
 #endif
-	    pycmap = NULL;
-	    pypfo = NULL;
-	    pyim = NULL;
-	    pysite = NULL;
-	    dirty = 1;
-	    periodicity = true;
-	    yflip = false;
-	    auto_deepen = false;
-	    auto_tolerance = false;
-	    tolerance = 1.0E-9;
-	    eaa = AA_NONE;
-	    maxiter = 1024;
-	    nThreads = 1;
-	    render_type = RENDER_TWO_D;
-	    async = false;
-	    warp_param = -1;
-	}
+            pycmap = NULL;
+            pypfo = NULL;
+            pyim = NULL;
+            pysite = NULL;
+            dirty = 1;
+            periodicity = true;
+            yflip = false;
+            auto_deepen = false;
+            auto_tolerance = false;
+            tolerance = 1.0E-9;
+            eaa = AA_NONE;
+            maxiter = 1024;
+            nThreads = 1;
+            render_type = RENDER_TWO_D;
+            async = false;
+            warp_param = -1;
+        }
 
     void set_cmap(PyObject *pycmap_)
-	{
-	    pycmap = pycmap_;
-	    cmap = (ColorMap *)PyCObject_AsVoidPtr(pycmap);
-	    Py_XINCREF(pycmap);
-	}
+        {
+            pycmap = pycmap_;
+            cmap = (ColorMap *)PyCObject_AsVoidPtr(pycmap);
+            Py_XINCREF(pycmap);
+        }
 
     void set_pfo(PyObject *pypfo_)
-	{
-	    pypfo = pypfo_;
+        {
+            pypfo = pypfo_;
 
-	    pfo = ((pfHandle *)PyCObject_AsVoidPtr(pypfo))->pfo;
-	    Py_XINCREF(pypfo);
-	}
+            pfo = ((pfHandle *)PyCObject_AsVoidPtr(pypfo))->pfo;
+            Py_XINCREF(pypfo);
+        }
 
     void set_im(PyObject *pyim_)
-	{
-	    pyim = pyim_;
-	    im = (IImage *)PyCObject_AsVoidPtr(pyim);
-	    Py_XINCREF(pyim);
-	}
+        {
+            pyim = pyim_;
+            im = (IImage *)PyCObject_AsVoidPtr(pyim);
+            Py_XINCREF(pyim);
+        }
     void set_site(PyObject *pysite_)
-	{
-	    pysite = pysite_;
-	    site = (IFractalSite *)PyCObject_AsVoidPtr(pysite);
-	    Py_XINCREF(pysite);
-	}
+        {
+            pysite = pysite_;
+            site = (IFractalSite *)PyCObject_AsVoidPtr(pysite);
+            Py_XINCREF(pysite);
+        }
 
     ~calc_args()
-	{
+        {
 #ifdef DEBUG_CREATION
-	    fprintf(stderr,"%p : CA : DTOR\n",this);
+            fprintf(stderr,"%p : CA : DTOR\n",this);
 #endif
-	    Py_XDECREF(pycmap);
-	    Py_XDECREF(pypfo);
-	    Py_XDECREF(pyim);
-	    Py_XDECREF(pysite);
-	}
+            Py_XDECREF(pycmap);
+            Py_XDECREF(pypfo);
+            Py_XDECREF(pyim);
+            Py_XDECREF(pysite);
+        }
 };
 
 // write the callbacks to a file descriptor
@@ -1145,129 +1152,129 @@ class FDSite :public IFractalSite
 {
 public:
     FDSite(int fd_) : fd(fd_), tid((pthread_t)0), 
-		      interrupted(false), params(NULL) 
-	{
+                      interrupted(false), params(NULL) 
+        {
 #ifdef DEBUG_CREATION
-	    fprintf(stderr,"%p : FD : CTOR\n",this);
+            fprintf(stderr,"%p : FD : CTOR\n",this);
 #endif
-	    pthread_mutex_init(&write_lock,NULL);
-	}
+            pthread_mutex_init(&write_lock,NULL);
+        }
 
     inline void send(msg_type_t type, int size, void *buf)
-	{
-	    pthread_mutex_lock(&write_lock);
-	    if (write(fd,&type,sizeof(type))) {};
-	    if (write(fd,&size,sizeof(size))) {};
-	    if (write(fd,buf,size)) {};
-	    pthread_mutex_unlock(&write_lock);
-	}
+        {
+            pthread_mutex_lock(&write_lock);
+            if (write(fd,&type,sizeof(type))) {};
+            if (write(fd,&size,sizeof(size))) {};
+            if (write(fd,buf,size)) {};
+            pthread_mutex_unlock(&write_lock);
+        }
     virtual void iters_changed(int numiters)
-	{
-	    send(ITERS, sizeof(int), &numiters);
-	}
+        {
+            send(ITERS, sizeof(int), &numiters);
+        }
     virtual void tolerance_changed(double tolerance)
-	{
-	    send (TOLERANCE, sizeof(tolerance), &tolerance);
-	}
+        {
+            send (TOLERANCE, sizeof(tolerance), &tolerance);
+        }
 
     // we've drawn a rectangle of image
     virtual void image_changed(int x1, int y1, int x2, int y2)
-	{
-	    if(!interrupted)
-	    {
-		int buf[4] = { x1, y1, x2, y2 };
-		send(IMAGE, sizeof(buf), &buf[0]);
-	    }
-	}
+        {
+            if(!interrupted)
+            {
+                int buf[4] = { x1, y1, x2, y2 };
+                send(IMAGE, sizeof(buf), &buf[0]);
+            }
+        }
     // estimate of how far through current pass we are
     virtual void progress_changed(float progress)
-	{
-	    if(!interrupted)
-	    {
-		int percentdone = (int) (100.0 * progress); 
-		send(PROGRESS, sizeof(percentdone), &percentdone);
-	    }
-	}
+        {
+            if(!interrupted)
+            {
+                int percentdone = (int) (100.0 * progress); 
+                send(PROGRESS, sizeof(percentdone), &percentdone);
+            }
+        }
 
     virtual void stats_changed(pixel_stat_t& stats)
-	{
-	    if(!interrupted)
-	    {
-		send(STATS,sizeof(stats),&stats);
-	    }
-		
-	}
+        {
+            if(!interrupted)
+            {
+                send(STATS,sizeof(stats),&stats);
+            }
+                
+        }
 
     // one of the status values above
     virtual void status_changed(int status_val)
-	{
-	    send(STATUS,sizeof(status_val),&status_val);
-	}
+        {
+            send(STATUS,sizeof(status_val),&status_val);
+        }
 
     // return true if we've been interrupted and are supposed to stop
     virtual bool is_interrupted()
-	{
-	    //fprintf(stderr,"int: %d\n",interrupted);
-	    return interrupted;
-	}
+        {
+            //fprintf(stderr,"int: %d\n",interrupted);
+            return interrupted;
+        }
 
     // pixel changed
     virtual void pixel_changed(
-	const double *params, int maxIters, int nNoPeriodIters,
-	int x, int y, int aa,
-	double dist, int fate, int nIters,
-	int r, int g, int b, int a) 
-	{
-	    /*
-	    fprintf(stderr,"pixel: <%g,%g,%g,%g>(%d,%d,%d) = (%g,%d,%d)\n",
-		   params[0],params[1],params[2],params[3],
-		   x,y,aa,dist,fate,nIters);
-	    */
-	    return; // FIXME
-	};
+        const double *params, int maxIters, int nNoPeriodIters,
+        int x, int y, int aa,
+        double dist, int fate, int nIters,
+        int r, int g, int b, int a) 
+        {
+            /*
+            fprintf(stderr,"pixel: <%g,%g,%g,%g>(%d,%d,%d) = (%g,%d,%d)\n",
+                   params[0],params[1],params[2],params[3],
+                   x,y,aa,dist,fate,nIters);
+            */
+            return; // FIXME
+        };
 
     virtual void interrupt() 
-	{
+        {
 #ifdef DEBUG_THREADS
-	    fprintf(stderr,"%p : CA : INT(%p)\n", this, tid);
+            fprintf(stderr,"%p : CA : INT(%p)\n", this, tid);
 #endif
-	    interrupted = true;
-	}
+            interrupted = true;
+        }
     
     virtual void start(calc_args *params_) 
-	{
+        {
 #ifdef DEBUG_THREADS
-	    fprintf(stderr,"clear interruption\n");
+            fprintf(stderr,"clear interruption\n");
 #endif
-	    interrupted = false;
-	    params = params_;
-	}
+            interrupted = false;
+            params = params_;
+        }
 
     virtual void set_tid(pthread_t tid_) 
-	{
+        {
 #ifdef DEBUG_THREADS
-	    fprintf(stderr,"%p : CA : SET(%p)\n", this,tid_);
+            fprintf(stderr,"%p : CA : SET(%p)\n", this,tid_);
 #endif
-	    tid = tid_;
-	}
+            tid = tid_;
+        }
 
     virtual void wait()
-	{
-	    if(tid != 0)
-	    {
+        {
+            if(tid != 0)
+            {
 #ifdef DEBUG_THREADS
-		fprintf(stderr,"%p : CA : WAIT(%p)\n", this,tid);
+                fprintf(stderr,"%p : CA : WAIT(%p)\n", this,tid);
 #endif
-		pthread_join(tid,NULL);
-	    }
-	}
+                pthread_join(tid,NULL);
+            }
+        }
     ~FDSite()
-	{
+        {
 #ifdef DEBUG_CREATION
-	    fprintf(stderr,"%p : FD : DTOR\n",this);
+            fprintf(stderr,"%p : FD : DTOR\n",this);
 #endif
-	    close(fd);
-	}
+            close(fd);
+        }
 private:
     int fd;
     pthread_t tid;
@@ -1310,11 +1317,11 @@ pysite_create(PyObject *self, PyObject *args)
 {
     PyObject *pysite;
     if(!PyArg_ParseTuple(
-	   args,
-	   "O",
-	   &pysite))
+           args,
+           "O",
+           &pysite))
     {
-	return NULL;
+        return NULL;
     }
 
     IFractalSite *site = new PySite(pysite);
@@ -1331,7 +1338,7 @@ pyfdsite_create(PyObject *self, PyObject *args)
     int fd;
     if(!PyArg_ParseTuple(args,"i", &fd))
     {
-	return NULL;
+        return NULL;
     }
 
     IFractalSite *site = new FDSite(fd);
@@ -1346,17 +1353,17 @@ pystop_calc(PyObject *self, PyObject *args)
 {
     PyObject *pysite;
     if(!PyArg_ParseTuple(
-	   args,
-	   "O",
-	   &pysite))
+           args,
+           "O",
+           &pysite))
     {
-	return NULL;
+        return NULL;
     }
 
     IFractalSite *site = (IFractalSite *)PyCObject_AsVoidPtr(pysite);
     if(!site)
     {
-	return NULL;
+        return NULL;
     }
 
     site->interrupt();
@@ -1377,13 +1384,13 @@ fw_create(PyObject *self, PyObject *args)
     PyObject *pypfo, *pycmap, *pyim, *pysite;
 
     if(!PyArg_ParseTuple(args,"iOOOO",
-			 &nThreads,
-			 &pypfo,
-			 &pycmap,
-			 &pyim,
-			 &pysite))
+                         &nThreads,
+                         &pypfo,
+                         &pycmap,
+                         &pyim,
+                         &pysite))
     {
-	return NULL;
+        return NULL;
     }
 
     cmap = (ColorMap *)PyCObject_AsVoidPtr(pycmap);
@@ -1392,7 +1399,7 @@ fw_create(PyObject *self, PyObject *args)
     site = (IFractalSite *)PyCObject_AsVoidPtr(pysite);
     if(!cmap || !pfo || !im || !im->ok() || !site)
     {
-	return NULL;
+        return NULL;
     }
 
 
@@ -1400,13 +1407,13 @@ fw_create(PyObject *self, PyObject *args)
 
     if(!worker->ok())
     {
-	PyErr_SetString(PyExc_ValueError,"Error creating worker");
-	delete worker;
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,"Error creating worker");
+        delete worker;
+        return NULL;
     }
 
     PyObject *pyret = PyCObject_FromVoidPtr(
-	worker,(void (*)(void *))fw_delete);
+        worker,(void (*)(void *))fw_delete);
 
     return pyret;
 }
@@ -1418,10 +1425,10 @@ fw_pixel(PyObject *self, PyObject *args)
     int x,y,w,h;
 
     if(!PyArg_ParseTuple(args, "Oiiii",
-			 &pyworker,
-			 &x,&y,&w,&h))
+                         &pyworker,
+                         &x,&y,&w,&h))
     {
-	return NULL;
+        return NULL;
     }
     
     IFractWorker *worker = (IFractWorker *)PyCObject_AsVoidPtr(pyworker);
@@ -1438,10 +1445,10 @@ fw_pixel_aa(PyObject *self, PyObject *args)
     int x,y;
 
     if(!PyArg_ParseTuple(args, "Oii",
-			 &pyworker,
-			 &x,&y))
+                         &pyworker,
+                         &x,&y))
     {
-	return NULL;
+        return NULL;
     }
     
     IFractWorker *worker = (IFractWorker *)PyCObject_AsVoidPtr(pyworker);
@@ -1458,11 +1465,11 @@ fw_find_root(PyObject *self, PyObject *args)
     dvec4 eye, look;
 
     if(!PyArg_ParseTuple(args, "O(dddd)(dddd)",
-			 &pyworker,
-			 &eye[VX],&eye[VY], &eye[VZ], &eye[VW],
-			 &look[VX],&look[VY], &look[VZ], &look[VW]))
+                         &pyworker,
+                         &eye[VX],&eye[VY], &eye[VZ], &eye[VW],
+                         &look[VX],&look[VY], &look[VZ], &look[VW]))
     {
-	return NULL;
+        return NULL;
     }
     
     IFractWorker *worker = (IFractWorker *)PyCObject_AsVoidPtr(pyworker);
@@ -1470,8 +1477,8 @@ fw_find_root(PyObject *self, PyObject *args)
     int ok = worker->find_root(eye,look,root);
 
     return Py_BuildValue(
-	"i(dddd)",
-	ok,root[0], root[1], root[2], root[3]);
+        "i(dddd)",
+        ok,root[0], root[1], root[2], root[3]);
 }
 
 static PyObject *
@@ -1492,22 +1499,22 @@ ff_create(PyObject *self, PyObject *args)
     double tolerance;
 
     if(!PyArg_ParseTuple(
-	   args,
-	   "(ddddddddddd)iiiiOOiiiOOOid",
-	   &params[0],&params[1],&params[2],&params[3],
-	   &params[4],&params[5],&params[6],&params[7],
-	   &params[8],&params[9],&params[10],
-	   &eaa,&maxiter,&yflip,&nThreads,
-	   &pypfo,&pycmap,
-	   &auto_deepen,
-	   &periodicity,
-	   &render_type,
-	   &pyim, &pysite,
-	   &pyworker,
-	   &auto_tolerance, &tolerance
-	   ))
+           args,
+           "(ddddddddddd)iiiiOOiiiOOOid",
+           &params[0],&params[1],&params[2],&params[3],
+           &params[4],&params[5],&params[6],&params[7],
+           &params[8],&params[9],&params[10],
+           &eaa,&maxiter,&yflip,&nThreads,
+           &pypfo,&pycmap,
+           &auto_deepen,
+           &periodicity,
+           &render_type,
+           &pyim, &pysite,
+           &pyworker,
+           &auto_tolerance, &tolerance
+           ))
     {
-	return NULL;
+        return NULL;
     }
 
     cmap = (ColorMap *)PyCObject_AsVoidPtr(pycmap);
@@ -1518,28 +1525,28 @@ ff_create(PyObject *self, PyObject *args)
 
     if(!cmap || !pfo || !im || !site || !worker)
     {
-	return NULL;
+        return NULL;
     }
 
     fractFunc *ff = new fractFunc(
-	params, 
-	eaa,
-	maxiter,
-	nThreads,
-	auto_deepen,
-	auto_tolerance,
-	tolerance,
-	yflip,
-	periodicity,
-	render_type,
-	-1, // warp_param
-	worker,
-	im,
-	site);
+        params, 
+        eaa,
+        maxiter,
+        nThreads,
+        auto_deepen,
+        auto_tolerance,
+        tolerance,
+        yflip,
+        periodicity,
+        render_type,
+        -1, // warp_param
+        worker,
+        im,
+        site);
 
     if(!ff)
     {
-	return NULL;
+        return NULL;
     }
 
     ffHandle *ffh = new struct ffHandle;
@@ -1551,7 +1558,7 @@ ff_create(PyObject *self, PyObject *args)
 #endif
 
     PyObject *pyret = PyCObject_FromVoidPtr(
-	ffh,(void (*)(void *))ff_delete);
+        ffh,(void (*)(void *))ff_delete);
 
     Py_INCREF(pyworker);
 
@@ -1567,17 +1574,17 @@ calculation_thread(void *vdata)
 #ifdef DEBUG_THREADS
     fprintf(stderr,"%p : CA : CALC(%d)\n",args,pthread_self());
 #endif
-
-    calc(args->params,args->eaa,args->maxiter,
-	 args->nThreads,args->pfo,args->cmap,
-	 args->auto_deepen,
-	 args->auto_tolerance,
-	 args->tolerance,
-	 args->yflip, args->periodicity, args->dirty,
-	 0, // debug_flags
-	 args->render_type,
-	 args->warp_param,
-	 args->im,args->site);
+    // printf("call calc 1577 \n");
+    calc_4(args->params,args->eaa,args->maxiter,
+         args->nThreads,args->pfo,args->cmap,
+         args->auto_deepen,
+         args->auto_tolerance,
+         args->tolerance,
+         args->yflip, args->periodicity, args->dirty,
+         0, // debug_flags
+         args->render_type,
+         args->warp_param,
+         args->im,args->site);
 
 #ifdef DEBUG_THREADS 
     fprintf(stderr,"%p : CA : ENDCALC(%d)\n",args,pthread_self());
@@ -1595,68 +1602,68 @@ parse_calc_args(PyObject *args, PyObject *kwds)
     double *p = NULL;
 
     static const char *kwlist[] = {
-	"image",
-	"site",
-	"pfo",
-	"cmap",
-	"params",
-	"antialias",
-	"maxiter",
-	"yflip",
-	"nthreads",
-	"auto_deepen",
-	"periodicity",
-	"render_type",
-	"dirty", 
-	"async",
-	"warp_param",
-	"tolerance",
-	"auto_tolerance",
-	NULL};
+        "image",
+        "site",
+        "pfo",
+        "cmap",
+        "params",
+        "antialias",
+        "maxiter",
+        "yflip",
+        "nthreads",
+        "auto_deepen",
+        "periodicity",
+        "render_type",
+        "dirty", 
+        "async",
+        "warp_param",
+        "tolerance",
+        "auto_tolerance",
+        NULL};
 
     if(!PyArg_ParseTupleAndKeywords(
-	   args,
-	   kwds,
-	   "OOOOO|iiiiiiiiiidi",
-	   const_cast<char **>(kwlist),
+           args,
+           kwds,
+           "OOOOO|iiiiiiiiiidi",
+           const_cast<char **>(kwlist),
 
-	   &pyim, &pysite,
-	   &pypfo,&pycmap,
-	   &pyparams,
-	   &cargs->eaa,
-	   &cargs->maxiter,
-	   &cargs->yflip,
-	   &cargs->nThreads,
-	   &cargs->auto_deepen,
-	   &cargs->periodicity,
-	   &cargs->render_type,
-	   &cargs->dirty,
-	   &cargs->async,
-	   &cargs->warp_param,
-	   &cargs->tolerance,
-	   &cargs->auto_tolerance
-	   ))
+           &pyim, &pysite,
+           &pypfo,&pycmap,
+           &pyparams,
+           &cargs->eaa,
+           &cargs->maxiter,
+           &cargs->yflip,
+           &cargs->nThreads,
+           &cargs->auto_deepen,
+           &cargs->periodicity,
+           &cargs->render_type,
+           &cargs->dirty,
+           &cargs->async,
+           &cargs->warp_param,
+           &cargs->tolerance,
+           &cargs->auto_tolerance
+           ))
     {
-	goto error;
+        goto error;
     }
 
     p = cargs->params;
     if(!PyList_Check(pyparams) || PyList_Size(pyparams) != N_PARAMS)
     {
-	PyErr_SetString(PyExc_ValueError, "bad parameter list");
-	goto error;
+        PyErr_SetString(PyExc_ValueError, "bad parameter list");
+        goto error;
     }
 
     for(int i = 0; i < N_PARAMS; ++i)
     {
-	PyObject *elt = PyList_GetItem(pyparams, i);
-	if(!PyFloat_Check(elt))
-	{
-	    PyErr_SetString(PyExc_ValueError, "a param is not a float");
-	    goto error;
-	}
+        PyObject *elt = PyList_GetItem(pyparams, i);
+        if(!PyFloat_Check(elt))
+        {
+            PyErr_SetString(PyExc_ValueError, "a param is not a float");
+            goto error;
+        }
 
-	p[i] = PyFloat_AsDouble(elt);
+        p[i] = PyFloat_AsDouble(elt);
     }
 
     cargs->set_cmap(pycmap);
@@ -1666,14 +1673,14 @@ parse_calc_args(PyObject *args, PyObject *kwds)
     if(!cargs->cmap || !cargs->pfo || 
        !cargs->im   || !cargs->site)
     {
-	PyErr_SetString(PyExc_ValueError, "bad argument passed to calc");
-	goto error;
+        PyErr_SetString(PyExc_ValueError, "bad argument passed to calc");
+        goto error;
     }
 
     if(!cargs->im->ok())
     {
-	PyErr_SetString(PyExc_MemoryError, "image not allocated"); 
-	goto error;
+        PyErr_SetString(PyExc_MemoryError, "image not allocated"); 
+        goto error;
     }
 
     return cargs;
@@ -1689,7 +1696,7 @@ pycalc(PyObject *self, PyObject *args, PyObject *kwds)
     calc_args *cargs = parse_calc_args(args, kwds);
     if (NULL == cargs)
     {
-	    return NULL;
+        return NULL;
     }
 
     if (cargs->async)
@@ -1718,7 +1725,8 @@ pycalc(PyObject *self, PyObject *args, PyObject *kwds)
     {
         Py_BEGIN_ALLOW_THREADS
         // synchronous
-        calc(cargs->params,
+        printf("call calc 1728 \n");
+        calc_4(cargs->params,
              cargs->eaa,
              cargs->maxiter,
              cargs->nThreads,
@@ -1761,7 +1769,7 @@ image_create(PyObject *self, PyObject *args)
     int totalx = -1, totaly = -1;
     if(!PyArg_ParseTuple(args,"ii|ii",&x,&y,&totalx, &totaly))
     { 
-	return NULL;
+        return NULL;
     }
 
     IImage *i = new image();
@@ -1770,9 +1778,9 @@ image_create(PyObject *self, PyObject *args)
 
     if(! i->ok())
     {
-	PyErr_SetString(PyExc_MemoryError, "Image too large");
-	delete i;
-	return NULL;
+        PyErr_SetString(PyExc_MemoryError, "Image too large");
+        delete i;
+        return NULL;
     }
 
 #ifdef DEBUG_CREATION
@@ -1793,21 +1801,21 @@ image_resize(PyObject *self, PyObject *args)
 
     if(!PyArg_ParseTuple(args,"Oiiii",&pyim,&x,&y,&totalx,&totaly))
     { 
-	return NULL;
+        return NULL;
     }
 
     IImage *i = (IImage *)PyCObject_AsVoidPtr(pyim);
     if(NULL == i)
     {
-	return NULL;
+        return NULL;
     }
 
     i->set_resolution(x,y,totalx,totaly);
 
     if(! i->ok())
     {
-	PyErr_SetString(PyExc_MemoryError, "Image too large");
-	return NULL;
+        PyErr_SetString(PyExc_MemoryError, "Image too large");
+        return NULL;
     }
 
     Py_INCREF(Py_None);
@@ -1821,13 +1829,13 @@ image_dims(PyObject *self, PyObject *args)
 
     if(!PyArg_ParseTuple(args,"O",&pyim))
     { 
-	return NULL;
+        return NULL;
     }
 
     IImage *i = (IImage *)PyCObject_AsVoidPtr(pyim);
     if(NULL == i)
     {
-	return NULL;
+        return NULL;
     }
 
     int xsize, ysize, xoffset, yoffset, xtotalsize, ytotalsize;
@@ -1839,7 +1847,7 @@ image_dims(PyObject *self, PyObject *args)
     ytotalsize = i->totalYres();
 
     PyObject *pyret = Py_BuildValue(
-	"(iiiiii)", xsize,ysize,xtotalsize, ytotalsize, xoffset, yoffset);
+        "(iiiiii)", xsize,ysize,xtotalsize, ytotalsize, xoffset, yoffset);
 
     return pyret;
 }
@@ -1852,20 +1860,20 @@ image_set_offset(PyObject *self, PyObject *args)
 
     if(!PyArg_ParseTuple(args,"Oii",&pyim,&x,&y))
     { 
-	return NULL;
+        return NULL;
     }
 
     IImage *i = (IImage *)PyCObject_AsVoidPtr(pyim);
     if(NULL == i)
     {
-	return NULL;
+        return NULL;
     }
 
     bool ok = i->set_offset(x,y);
     if(!ok)
     {
-	PyErr_SetString(PyExc_ValueError, "Offset out of bounds");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError, "Offset out of bounds");
+        return NULL;
     }
 
     Py_INCREF(Py_None);
@@ -1879,13 +1887,13 @@ image_clear(PyObject *self, PyObject *args)
 
     if(!PyArg_ParseTuple(args,"O",&pyim))
     { 
-	return NULL;
+        return NULL;
     }
 
     IImage *i = (IImage *)PyCObject_AsVoidPtr(pyim);
     if(NULL == i)
     {
-	return NULL;
+        return NULL;
     }
 
     i->clear();
@@ -1908,12 +1916,12 @@ image_writer_create(PyObject *self,PyObject *args)
     int file_type;
     if(!PyArg_ParseTuple(args,"OOi",&pyim,&pyFP,&file_type))
     {
-	return NULL;
+        return NULL;
     }
 
     if(!PyFile_Check(pyFP))
     {
-	return NULL;
+        return NULL;
     }
 
     image *i = (image *)PyCObject_AsVoidPtr(pyim);
@@ -1922,19 +1930,19 @@ image_writer_create(PyObject *self,PyObject *args)
 
     if(!fp || !i)
     {
-	PyErr_SetString(PyExc_ValueError, "Bad arguments");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError, "Bad arguments");
+        return NULL;
     }
     
     ImageWriter *writer = ImageWriter::create((image_file_t)file_type, fp, i);
     if(NULL == writer)
     {
-	PyErr_SetString(PyExc_ValueError, "Unsupported file type");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError, "Unsupported file type");
+        return NULL;
     }
 
     return PyCObject_FromVoidPtr(
-	writer, (void (*)(void *))image_writer_delete);
+        writer, (void (*)(void *))image_writer_delete);
 }
 
 static PyObject *
@@ -1945,12 +1953,12 @@ image_read(PyObject *self,PyObject *args)
     int file_type;
     if(!PyArg_ParseTuple(args,"OOi",&pyim,&pyFP,&file_type))
     {
-	return NULL;
+        return NULL;
     }
 
     if(!PyFile_Check(pyFP))
     {
-	return NULL;
+        return NULL;
     }
 
     image *i = (image *)PyCObject_AsVoidPtr(pyim);
@@ -1959,23 +1967,23 @@ image_read(PyObject *self,PyObject *args)
 
     if(!fp || !i)
     {
-	PyErr_SetString(PyExc_ValueError, "Bad arguments");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError, "Bad arguments");
+        return NULL;
     }
     
     ImageReader *reader = ImageReader::create((image_file_t)file_type, fp, i);
     //if(!reader->ok())
     //{
-    //	PyErr_SetString(PyExc_IOError, "Couldn't create image reader");
-    //	delete reader;
-    //	return NULL;
+    //  PyErr_SetString(PyExc_IOError, "Couldn't create image reader");
+    //  delete reader;
+    //  return NULL;
     //}
 
     if(!reader->read())
     {
-	PyErr_SetString(PyExc_IOError, "Couldn't read image contents");
-	delete reader;
-	return NULL;
+        PyErr_SetString(PyExc_IOError, "Couldn't read image contents");
+        delete reader;
+        return NULL;
     }
     delete reader;
 
@@ -1989,15 +1997,15 @@ image_save_header(PyObject *self,PyObject *args)
     PyObject *pyimwriter;
     if(!PyArg_ParseTuple(args,"O",&pyimwriter))
     {
-	return NULL;
+        return NULL;
     }
 
     ImageWriter *i = (ImageWriter *)PyCObject_AsVoidPtr(pyimwriter);
 
     if(!i || !i->save_header())
     {
-	PyErr_SetString(PyExc_IOError, "Couldn't save file header");
-	return NULL;
+        PyErr_SetString(PyExc_IOError, "Couldn't save file header");
+        return NULL;
     }
     
     Py_INCREF(Py_None);
@@ -2010,15 +2018,15 @@ image_save_tile(PyObject *self,PyObject *args)
     PyObject *pyimwriter;
     if(!PyArg_ParseTuple(args,"O",&pyimwriter))
     {
-	return NULL;
+        return NULL;
     }
 
     ImageWriter *i = (ImageWriter *)PyCObject_AsVoidPtr(pyimwriter);
 
     if(!i || !i->save_tile())
     {
-	PyErr_SetString(PyExc_IOError, "Couldn't save image tile");
-	return NULL;
+        PyErr_SetString(PyExc_IOError, "Couldn't save image tile");
+        return NULL;
     }
     
     Py_INCREF(Py_None);
@@ -2031,15 +2039,15 @@ image_save_footer(PyObject *self,PyObject *args)
     PyObject *pyimwriter;
     if(!PyArg_ParseTuple(args,"O",&pyimwriter))
     {
-	return NULL;
+        return NULL;
     }
 
     ImageWriter *i = (ImageWriter *)PyCObject_AsVoidPtr(pyimwriter);
 
     if(!i || !i->save_footer())
     {
-	PyErr_SetString(PyExc_IOError, "Couldn't save image footer");
-	return NULL;
+        PyErr_SetString(PyExc_IOError, "Couldn't save image footer");
+        return NULL;
     }
     
     Py_INCREF(Py_None);
@@ -2055,7 +2063,7 @@ image_buffer(PyObject *self, PyObject *args)
     int x=0,y=0;
     if(!PyArg_ParseTuple(args,"O|ii",&pyim,&x,&y))
     {
-	return NULL;
+        return NULL;
     }
 
     image *i = (image *)PyCObject_AsVoidPtr(pyim);
@@ -2066,14 +2074,14 @@ image_buffer(PyObject *self, PyObject *args)
 
     if(!i || ! i->ok())
     {
-	PyErr_SetString(PyExc_MemoryError, "image not allocated");
-	return NULL;
+        PyErr_SetString(PyExc_MemoryError, "image not allocated");
+        return NULL;
     }
 
     if(x < 0 || x >= i->Xres() || y < 0 || y >= i->Yres())
     {
-	PyErr_SetString(PyExc_ValueError,"request for buffer outside image bounds");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,"request for buffer outside image bounds");
+        return NULL;
     }
     int offset = 3 * (y * i->Xres() + x);
     assert(offset > -1 && offset < i->bytes());
@@ -2093,7 +2101,7 @@ image_fate_buffer(PyObject *self, PyObject *args)
     int x=0,y=0;
     if(!PyArg_ParseTuple(args,"O|ii",&pyim,&x,&y))
     {
-	return NULL;
+        return NULL;
     }
 
     image *i = (image *)PyCObject_AsVoidPtr(pyim);
@@ -2104,23 +2112,23 @@ image_fate_buffer(PyObject *self, PyObject *args)
 
     if(NULL == i)
     {
-	PyErr_SetString(PyExc_ValueError,
-			"Bad image object");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,
+                        "Bad image object");
+        return NULL;
     }
 
     if(x < 0 || x >= i->Xres() || y < 0 || y >= i->Yres())
     {
-	PyErr_SetString(PyExc_ValueError,"request for buffer outside image bounds");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,"request for buffer outside image bounds");
+        return NULL;
     }
     int index = i->index_of_subpixel(x,y,0);
     int last_index = i->index_of_sentinel_subpixel();
     assert(index > -1 && index < last_index);
 
     pybuf = PyBuffer_FromReadWriteMemory(
-	i->getFateBuffer()+index,
-	(last_index - index)  * sizeof(fate_t));
+        i->getFateBuffer()+index,
+        (last_index - index)  * sizeof(fate_t));
 
     Py_XINCREF(pybuf);
 
@@ -2135,25 +2143,25 @@ image_get_color_index(PyObject *self, PyObject *args)
     int x=0,y=0,sub=0;
     if(!PyArg_ParseTuple(args,"Oii|i",&pyim,&x,&y,&sub))
     {
-	return NULL;
+        return NULL;
     }
 
     image *i = (image *)PyCObject_AsVoidPtr(pyim);
     
     if(NULL == i)
     {
-	PyErr_SetString(PyExc_ValueError,
-			"Bad image object");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,
+                        "Bad image object");
+        return NULL;
     }
 
     if(x < 0 || x >= i->Xres() || 
        y < 0 || y >= i->Yres() || 
        sub < 0 || sub >= image::N_SUBPIXELS)
     {
-	PyErr_SetString(PyExc_ValueError,
-			"request for data outside image bounds");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,
+                        "request for data outside image bounds");
+        return NULL;
     }
 
     float dist = i->getIndex(x,y,sub);
@@ -2168,32 +2176,32 @@ image_get_fate(PyObject *self, PyObject *args)
     int x=0,y=0,sub=0;
     if(!PyArg_ParseTuple(args,"Oii|i",&pyim,&x,&y,&sub))
     {
-	return NULL;
+        return NULL;
     }
 
     image *i = (image *)PyCObject_AsVoidPtr(pyim);
     
     if(NULL == i)
     {
-	PyErr_SetString(PyExc_ValueError,
-			"Bad image object");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,
+                        "Bad image object");
+        return NULL;
     }
 
     if(x < 0 || x >= i->Xres() || 
        y < 0 || y >= i->Yres() || 
        sub < 0 || sub >= image::N_SUBPIXELS)
     {
-	PyErr_SetString(PyExc_ValueError,
-			"request for data outside image bounds");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError,
+                        "request for data outside image bounds");
+        return NULL;
     }
 
     fate_t fate = i->getFate(x,y,sub);
     if(fate == FATE_UNKNOWN)
     {
-	Py_INCREF(Py_None);
-	return Py_None;
+        Py_INCREF(Py_None);
+        return Py_None;
     }
     int is_solid = fate & FATE_SOLID ? 1 : 0;
     return Py_BuildValue("(ii)", is_solid, fate & ~FATE_SOLID);
@@ -2205,23 +2213,23 @@ rot_matrix(PyObject *self, PyObject *args)
     double params[N_PARAMS];
 
     if(!PyArg_ParseTuple(
-	   args,
-	   "(ddddddddddd)",
-	   &params[0],&params[1],&params[2],&params[3],
-	   &params[4],&params[5],&params[6],&params[7],
-	   &params[8],&params[9],&params[10]))
+           args,
+           "(ddddddddddd)",
+           &params[0],&params[1],&params[2],&params[3],
+           &params[4],&params[5],&params[6],&params[7],
+           &params[8],&params[9],&params[10]))
     {
-	return NULL;
+        return NULL;
     }
 
     dmat4 rot = rotated_matrix(params);
 
     return Py_BuildValue(
-	"((dddd)(dddd)(dddd)(dddd))",
-	rot[0][0], rot[0][1], rot[0][2], rot[0][3],
-	rot[1][0], rot[1][1], rot[1][2], rot[1][3],
-	rot[2][0], rot[2][1], rot[2][2], rot[2][3],
-	rot[3][0], rot[3][1], rot[3][2], rot[3][3]);
+        "((dddd)(dddd)(dddd)(dddd))",
+        rot[0][0], rot[0][1], rot[0][2], rot[0][3],
+        rot[1][0], rot[1][1], rot[1][2], rot[1][3],
+        rot[2][0], rot[2][1], rot[2][2], rot[2][3],
+        rot[3][0], rot[3][1], rot[3][2], rot[3][3]);
 }
 
 static PyObject *
@@ -2230,20 +2238,20 @@ eye_vector(PyObject *self, PyObject *args)
     double params[N_PARAMS], dist;
 
     if(!PyArg_ParseTuple(
-	   args,
-	   "(ddddddddddd)d",
-	   &params[0],&params[1],&params[2],&params[3],
-	   &params[4],&params[5],&params[6],&params[7],
-	   &params[8],&params[9],&params[10],&dist))
+           args,
+           "(ddddddddddd)d",
+           &params[0],&params[1],&params[2],&params[3],
+           &params[4],&params[5],&params[6],&params[7],
+           &params[8],&params[9],&params[10],&dist))
     {
-	return NULL;
+        return NULL;
     }
 
     dvec4 eyevec = test_eye_vector(params, dist);
 
     return Py_BuildValue(
-	"(dddd)",
-	eyevec[0], eyevec[1], eyevec[2], eyevec[3]);
+        "(dddd)",
+        eyevec[0], eyevec[1], eyevec[2], eyevec[3]);
 }
 
 static PyObject *
@@ -2253,45 +2261,45 @@ ff_get_vector(PyObject *self, PyObject *args)
     PyObject *pyFF;
 
     if(!PyArg_ParseTuple(
-	   args,
-	   "Oi",
-	   &pyFF, &vec_type))
+           args,
+           "Oi",
+           &pyFF, &vec_type))
     {
-	return NULL;
+        return NULL;
     }
 
     struct ffHandle *ffh = (struct ffHandle *)PyCObject_AsVoidPtr(pyFF);
     if(ffh == NULL)
     {
-	return NULL;
+        return NULL;
     }
 
     fractFunc *ff = ffh->ff;
     if(ff == NULL)
     {
-	return NULL;
+        return NULL;
     }
 
     dvec4 vec;
     switch(vec_type)
     {
     case DELTA_X:
-	vec = ff->deltax;
-	break;
+        vec = ff->deltax;
+        break;
     case DELTA_Y:
-	vec = ff->deltay;
-	break;
+        vec = ff->deltay;
+        break;
     case TOPLEFT:
-	vec = ff->topleft;
-	break;
+        vec = ff->topleft;
+        break;
     default:
-	PyErr_SetString(PyExc_ValueError, "Unknown vector requested");
-	return NULL;
+        PyErr_SetString(PyExc_ValueError, "Unknown vector requested");
+        return NULL;
     }
 
     return Py_BuildValue(
-	"(dddd)",
-	vec[0], vec[1], vec[2], vec[3]);
+        "(dddd)",
+        vec[0], vec[1], vec[2], vec[3]);
     
     return NULL;
 }
@@ -2302,30 +2310,30 @@ ff_look_vector(PyObject *self, PyObject *args)
     PyObject *pyFF;
     double x, y;
     if(!PyArg_ParseTuple(
-	   args,
-	   "Odd",
-	   &pyFF, &x, &y))
+           args,
+           "Odd",
+           &pyFF, &x, &y))
     {
-	return NULL;
+        return NULL;
     }
 
     struct ffHandle *ffh = (struct ffHandle *)PyCObject_AsVoidPtr(pyFF);
     if(ffh == NULL)
     {
-	return NULL;
+        return NULL;
     }
 
     fractFunc *ff = ffh->ff;
     if(ff == NULL)
     {
-	return NULL;
+        return NULL;
     }
 
     dvec4 lookvec = ff->vec_for_point(x,y);
 
     return Py_BuildValue(
-	"(dddd)",
-	lookvec[0], lookvec[1], lookvec[2], lookvec[3]);
+        "(dddd)",
+        lookvec[0], lookvec[1], lookvec[2], lookvec[3]);
 
 }
 
@@ -2337,11 +2345,11 @@ pyimage_lookup(PyObject *self, PyObject *args)
     double r,g,b;
 
     if(!PyArg_ParseTuple(
-	   args,
-	   "Odd",
-	   &pyimage, &x, &y))
+           args,
+           "Odd",
+           &pyimage, &x, &y))
     {
-	return NULL;
+        return NULL;
     }    
 
     image *i = (image *)PyCObject_AsVoidPtr(pyimage);
@@ -2349,8 +2357,8 @@ pyimage_lookup(PyObject *self, PyObject *args)
     image_lookup(i,x,y,&r,&g,&b);
 
     return Py_BuildValue(
-	"(dddd)",
-	r,g,b,1.0);
+        "(dddd)",
+        r,g,b,1.0);
 }
 
 static PyObject *
@@ -2358,18 +2366,18 @@ pyrgb_to_hsv(PyObject *self, PyObject *args)
 {
     double r,g,b,a=1.0,h,s,v;
     if(!PyArg_ParseTuple(
-	   args,
-	   "ddd|d",
-	   &r,&g,&b,&a))
+           args,
+           "ddd|d",
+           &r,&g,&b,&a))
     {
-	return NULL;
+        return NULL;
     }
 
     rgb_to_hsv(r,g,b,&h,&s,&v);
 
     return Py_BuildValue(
-	"(dddd)",
-	h,s,v,a);
+        "(dddd)",
+        h,s,v,a);
 }
 
 static PyObject *
@@ -2377,18 +2385,18 @@ pyrgb_to_hsl(PyObject *self, PyObject *args)
 {
     double r,g,b,a=1.0,h,l,s;
     if(!PyArg_ParseTuple(
-	   args,
-	   "ddd|d",
-	   &r,&g,&b,&a))
+           args,
+           "ddd|d",
+           &r,&g,&b,&a))
     {
-	return NULL;
+        return NULL;
     }
 
     rgb_to_hsl(r,g,b,&h,&s,&l);
 
     return Py_BuildValue(
-	"(dddd)",
-	h,s,l,a);
+        "(dddd)",
+        h,s,l,a);
 }
 
 static PyObject *
@@ -2396,18 +2404,18 @@ pyhsl_to_rgb(PyObject *self, PyObject *args)
 {
     double r,g,b,a=1.0,h,l,s;
     if(!PyArg_ParseTuple(
-	   args,
-	   "ddd|d",
-	   &h,&s,&l,&a))
+           args,
+           "ddd|d",
+           &h,&s,&l,&a))
     {
-	return NULL;
+        return NULL;
     }
 
     hsl_to_rgb(h,s,l,&r,&g,&b);
 
     return Py_BuildValue(
-	"(dddd)",
-	r,g,b,a);
+        "(dddd)",
+        r,g,b,a);
 }
 
 static PyObject *
@@ -2415,23 +2423,23 @@ pyarena_create(PyObject *self, PyObject *args)
 {
     int page_size, max_pages;
     if(!PyArg_ParseTuple(
-	   args,
-	   "ii",
-	   &page_size,&max_pages))
+           args,
+           "ii",
+           &page_size,&max_pages))
     {
-	return NULL;
+        return NULL;
     }
     
     arena_t arena = arena_create(page_size,max_pages);
 
     if(NULL == arena)
     {
-	PyErr_SetString(PyExc_MemoryError,"Cannot allocate arena");
-	return NULL;
+        PyErr_SetString(PyExc_MemoryError,"Cannot allocate arena");
+        return NULL;
     }
 
     PyObject *pyarena = PyCObject_FromVoidPtr(
-	arena,(void (*)(void *))arena_delete);
+        arena,(void (*)(void *))arena_delete);
 
     return pyarena;
 }
@@ -2445,33 +2453,33 @@ pyarena_alloc(PyObject *self, PyObject *args)
     int n_elements[4];
 
     if(!PyArg_ParseTuple(
-	   args,
-	   "Oiii|iii",
-	   &pyArena, &element_size, 
-	   &n_dimensions,
-	   &n_elements[0],
-	   &n_elements[1],
-	   &n_elements[2],
-	   &n_elements[3]
-	   ))
+           args,
+           "Oiii|iii",
+           &pyArena, &element_size, 
+           &n_dimensions,
+           &n_elements[0],
+           &n_elements[1],
+           &n_elements[2],
+           &n_elements[3]
+           ))
     {
-	return NULL;
+        return NULL;
     }
 
     arena_t arena = (arena_t)PyCObject_AsVoidPtr(pyArena);
     if(arena == NULL)
     {
-	return NULL;
+        return NULL;
     }
 
     void *allocation = arena_alloc(
-	arena, element_size, 
-	n_dimensions,
-	n_elements);
+        arena, element_size, 
+        n_dimensions,
+        n_elements);
     if(allocation == NULL)
     {
-	PyErr_SetString(PyExc_MemoryError, "Can't allocate array");
-	return NULL;
+        PyErr_SetString(PyExc_MemoryError, "Can't allocate array");
+        return NULL;
     }
 
     PyObject *pyAlloc = PyCObject_FromVoidPtr(allocation, NULL);
@@ -2487,26 +2495,26 @@ pyarray_get(PyObject *self, PyObject *args)
     int n_indexes;
 
     if(!PyArg_ParseTuple(
-	   args,
-	   "Oii|iii",
-	   &pyAllocation, &n_indexes, 
-	   &indexes[0], &indexes[1], &indexes[2], &indexes[3]))
+           args,
+           "Oii|iii",
+           &pyAllocation, &n_indexes, 
+           &indexes[0], &indexes[1], &indexes[2], &indexes[3]))
     {
-	return NULL;
+        return NULL;
     }
 
     void *allocation = PyCObject_AsVoidPtr(pyAllocation);
     if(allocation == NULL)
     {
-	return NULL;
+        return NULL;
     }
  
     int retval, inbounds;
     array_get_int(allocation, n_indexes, indexes, &retval, &inbounds);
     
     PyObject *pyRet = Py_BuildValue(
-	"(ii)",
-	retval,inbounds);
+        "(ii)",
+        retval,inbounds);
 
     return pyRet;
 }
@@ -2519,20 +2527,20 @@ pyarray_set(PyObject *self, PyObject *args)
     int n_indexes;
     int indexes[4];
     if(!PyArg_ParseTuple(
-	   args,
-	   "Oiii|iii",
-	   &pyAllocation, 
-	   &n_indexes,
-	   &val, 
-	   &indexes[0], &indexes[1], &indexes[2], &indexes[3]))
+           args,
+           "Oiii|iii",
+           &pyAllocation, 
+           &n_indexes,
+           &val, 
+           &indexes[0], &indexes[1], &indexes[2], &indexes[3]))
     {
-	return NULL;
+        return NULL;
     }
 
     void *allocation = PyCObject_AsVoidPtr(pyAllocation);
     if(allocation == NULL)
     {
-	return NULL;
+        return NULL;
     }
  
     int retval = array_set_int(allocation, n_indexes, indexes, val);
