@@ -462,7 +462,7 @@ STFractWorker::pixel(int x, int y,int w, int h)
     assert(pf != NULL && m_ok == true);
 
     rgba_t pixel;
-    float index;
+    float index = 0.0;
 
     fate_t fate = im->getFate(x,y,0);
 

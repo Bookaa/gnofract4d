@@ -657,26 +657,26 @@ pf_calc(PyObject *self, PyObject *args)
     double outDist=0.0;
     int outSolid=0;
     int fDirectColorFlag=0;
-    double colors[4] = {0.0, 0.0, 0.0, 0.0};
 
-    if(!PyArg_ParseTuple(args,"O(dddd)i|iiii",
+    if (!PyArg_ParseTuple(args,"O(dddd)i|iiii",
 			 &pyobj,
 			 &params[0],&params[1],&params[2],&params[3],
 			 &nIters,&x,&y,&aa,&repeats))
     {
-	return NULL;
+	    return NULL;
     }
-    if(!PyCObject_Check(pyobj))
+    if (!PyCObject_Check(pyobj))
     {
-	PyErr_SetString(PyExc_ValueError,"Not a valid handle");
-	return NULL;
+	    PyErr_SetString(PyExc_ValueError,"Not a valid handle");
+	    return NULL;
     }
 
     pfh = (struct pfHandle *)PyCObject_AsVoidPtr(pyobj);
 #ifdef DEBUG_THREADS
     fprintf(stderr,"%p : PF : CALC\n",pfh);
 #endif
-    for(int i = 0; i < repeats; ++i)
+    double colors[4] = {0.0, 0.0, 0.0, 0.0};
+    for (int i = 0; i < repeats; ++i)
     {
         pfh->pfo->vtbl->calc(
             pfh->pfo,params,
@@ -1021,9 +1021,9 @@ public:
 	    // FIXME? interrupted = true;
 	}
     
-    virtual void start(pthread_t tid_) 
+    virtual void start(calc_args *tid_)
 	{
-	    tid = tid_;
+	    tid = (pthread_t)tid_;
 	}
 
     virtual void wait()
@@ -2653,7 +2653,7 @@ static PyMethodDef PfMethods[] = {
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-extern "C" PyMODINIT_FUNC
+PyMODINIT_FUNC
 #ifdef USE_GMP
 initfract4dcgmp(void)
 #else

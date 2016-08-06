@@ -72,7 +72,7 @@ typedef struct s_pixel_stat pixel_stat_t;
 
 // member functions are do-nothing rather than abstract in case you
 // don't want to do anything with them
-class calc_args;
+struct calc_args;
 
 class IFractalSite
 {
