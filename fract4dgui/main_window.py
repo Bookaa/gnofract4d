@@ -388,9 +388,6 @@ class MainWindow:
         self.vbox.pack_start(hbox)
 
     def draw(self):
-        nt = preferences.userPrefs.getint("general","threads")
-        self.f.set_nthreads(nt)
-
         self.f.draw_image()
 
     def update_compiler_prefs(self,prefs):

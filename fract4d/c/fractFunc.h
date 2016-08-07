@@ -22,7 +22,7 @@ class fractFunc {
         d *params,
         int eaa,
         int maxiter,
-        int nThreads_,
+        // int nThreads_,
         bool auto_deepen,
         bool auto_tolerance,
         double period_tolerance,
@@ -115,7 +115,7 @@ class fractFunc {
     // params from ctor    
     int eaa;
     int maxiter;
-    int nThreads;
+    // int nThreads;
     bool auto_deepen;
     bool auto_tolerance;
     bool periodicity;
@@ -176,7 +176,7 @@ extern void calc_4(
     d *params,
     int eaa,
     int maxiter,
-    int nThreads_,
+    // int nThreads_,
     pf_obj *pfo, 
     ColorMap *cmap, 
     bool auto_deepen,

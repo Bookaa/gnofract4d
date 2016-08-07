@@ -1072,7 +1072,7 @@ typedef enum
 struct calc_args
 {
     double params[N_PARAMS];
-    int eaa, maxiter, nThreads;
+    int eaa, maxiter; //, nThreads;
     int auto_deepen, yflip, periodicity, dirty;
     int auto_tolerance;
     double tolerance;
@@ -1101,7 +1101,7 @@ struct calc_args
         tolerance = 1.0E-9;
         eaa = AA_NONE;
         maxiter = 1024;
-        nThreads = 1;
+        // nThreads = 1;
         render_type = RENDER_TWO_D;
         async = false;
         warp_param = -1;
@@ -1379,7 +1379,7 @@ pystop_calc(PyObject *self, PyObject *args)
 static PyObject *
 fw_create(PyObject *self, PyObject *args)
 {
-    int nThreads;
+    //int nThreads;
     pf_obj *pfo;
     ColorMap *cmap;
     IImage *im;
@@ -1387,8 +1387,8 @@ fw_create(PyObject *self, PyObject *args)
 
     PyObject *pypfo, *pycmap, *pyim, *pysite;
 
-    if(!PyArg_ParseTuple(args,"iOOOO",
-                         &nThreads,
+    if(!PyArg_ParseTuple(args,"OOOO",
+                         //&nThreads,
                          &pypfo,
                          &pycmap,
                          &pyim,
@@ -1407,7 +1407,7 @@ fw_create(PyObject *self, PyObject *args)
     }
 
 
-    IFractWorker *worker = IFractWorker::create(nThreads,pfo,cmap,im,site);
+    IFractWorker *worker = IFractWorker::create(pfo,cmap,im,site);
 
     if(!worker->ok())
     {
@@ -1490,7 +1490,7 @@ ff_create(PyObject *self, PyObject *args)
 {
     PyObject *pypfo, *pycmap, *pyim, *pysite, *pyworker;
     double params[N_PARAMS];
-    int eaa=-7, maxiter=-8, nThreads=-9;
+    int eaa=-7, maxiter=-8; //, nThreads=-9;
     int auto_deepen, periodicity;
     int yflip;
     render_type_t render_type;
@@ -1504,11 +1504,11 @@ ff_create(PyObject *self, PyObject *args)
 
     if(!PyArg_ParseTuple(
            args,
-           "(ddddddddddd)iiiiOOiiiOOOid",
+           "(ddddddddddd)iiiOOiiiOOOid",
            &params[0],&params[1],&params[2],&params[3],
            &params[4],&params[5],&params[6],&params[7],
            &params[8],&params[9],&params[10],
-           &eaa,&maxiter,&yflip,&nThreads,
+           &eaa,&maxiter,&yflip, // &nThreads,
            &pypfo,&pycmap,
            &auto_deepen,
            &periodicity,
@@ -1536,7 +1536,7 @@ ff_create(PyObject *self, PyObject *args)
         params, 
         eaa,
         maxiter,
-        nThreads,
+        // nThreads,
         auto_deepen,
         auto_tolerance,
         tolerance,
@@ -1580,7 +1580,8 @@ calculation_thread(void *vdata)
 #endif
     // printf("call calc 1577 \n");
     calc_4(args->params,args->eaa,args->maxiter,
-         args->nThreads,args->pfo,args->cmap,
+         // args->nThreads,
+         args->pfo,args->cmap,
          args->auto_deepen,
          args->auto_tolerance,
          args->tolerance,
@@ -1614,7 +1615,7 @@ parse_calc_args(PyObject *args, PyObject *kwds)
         "antialias",
         "maxiter",
         "yflip",
-        "nthreads",
+        //"nthreads",
         "auto_deepen",
         "periodicity",
         "render_type",
@@ -1628,7 +1629,7 @@ parse_calc_args(PyObject *args, PyObject *kwds)
     if(!PyArg_ParseTupleAndKeywords(
            args,
            kwds,
-           "OOOOO|iiiiiiiiiidi",
+           "OOOOO|iiiiiiiiidi",
            const_cast<char **>(kwlist),
 
            &pyim, &pysite,
@@ -1637,7 +1638,7 @@ parse_calc_args(PyObject *args, PyObject *kwds)
            &cargs->eaa,
            &cargs->maxiter,
            &cargs->yflip,
-           &cargs->nThreads,
+           // &cargs->nThreads,
            &cargs->auto_deepen,
            &cargs->periodicity,
            &cargs->render_type,
@@ -1734,7 +1735,7 @@ pycalc(PyObject *self, PyObject *args, PyObject *kwds)
         calc_4(cargs->params,
              cargs->eaa,
              cargs->maxiter,
-             cargs->nThreads,
+             // cargs->nThreads,
              cargs->pfo,
              cargs->cmap,
              cargs->auto_deepen,

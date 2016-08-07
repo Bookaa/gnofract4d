@@ -63,7 +63,7 @@ fractFunc::fractFunc(
         d *params_,
         int eaa_,
         int maxiter_,
-        int nThreads_,
+        // int nThreads_,
         bool auto_deepen_,
         bool auto_tolerance_,
         double period_tolerance_,
@@ -86,7 +86,7 @@ fractFunc::fractFunc(
 
     eaa = eaa_;
     maxiter = maxiter_;
-    nThreads = nThreads_;
+    // nThreads = nThreads_;
     auto_deepen = auto_deepen_;
     auto_tolerance = auto_tolerance_;
     period_tolerance = period_tolerance_;
@@ -442,7 +442,7 @@ void calc_4(
     d *params,
     int eaa,
     int maxiter,
-    int nThreads,
+    // int nThreads,
     pf_obj *pfo, 
     ColorMap *cmap, 
     bool auto_deepen,
@@ -459,7 +459,7 @@ void calc_4(
 {
     assert(NULL != im && NULL != site && 
            NULL != cmap && NULL != pfo && NULL != params);
-    IFractWorker *worker = IFractWorker::create(nThreads,pfo,cmap,im,site);
+    IFractWorker *worker = IFractWorker::create(pfo,cmap,im,site);
 
     if(worker && worker->ok())
     {
@@ -467,7 +467,7 @@ void calc_4(
             params, 
             eaa,
             maxiter,
-            nThreads,
+            // nThreads,
             auto_deepen,
             auto_tolerance,
             tolerance,

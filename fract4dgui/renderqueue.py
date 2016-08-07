@@ -63,7 +63,6 @@ class T(gobject.GObject):
         self.current.connect('status-changed', self.onImageComplete)
         self.current.connect('progress-changed', self.onProgressChanged)
 
-        self.current.set_nthreads(preferences.userPrefs.getint("general","threads"))
         self.current.draw_image(entry.name)
 
     def onImageComplete(self, f, status):

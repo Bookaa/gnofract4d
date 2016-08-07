@@ -882,14 +882,14 @@ class T(fctutils.T):
             self.auto_tolerance = auto_tolerance
             self.changed(True)
 
-    def calc(self,image,colormap,nthreads,site,async):
+    def calc(self,image,colormap,site,async):
         fract4dc.calc(
             params=self.params,
             antialias=self.antialias,
             maxiter=self.maxiter,
             yflip=self.yflip,
             periodicity=self.periodicity,
-            nthreads=nthreads,
+            # nthreads=nthreads,
             pfo=self.pfunc,
             cmap=colormap,
             auto_deepen=self.auto_deepen,
@@ -912,7 +912,7 @@ class T(fctutils.T):
         print "iterations:\t%s\nfate:\t\t%s\ndistance:\t%s\nsolid:\t\t%s" % result
         print "duration:\t%.4g" % duration
 
-    def draw(self,image,nthreads=1):
+    def draw(self,image):
         self.init_pfunc()
 
         colormap = self.get_colormap()
@@ -920,7 +920,7 @@ class T(fctutils.T):
             image.resize_tile(xres,yres)
             image.set_offset(xoff,yoff)
 
-            self.calc(image,colormap,nthreads,self.site,False)
+            self.calc(image,colormap,self.site,False)
 
             image.save_tile()
 
@@ -1116,7 +1116,10 @@ if __name__ == '__main__':
     g_comp.add_func_path(
             os.path.join(sys.exec_prefix, "share/gnofract4d/formulas"))
 
-    f = T(g_comp)
+    (self_readfd, self_writefd) = os.pipe()
+
+    site = fract4dc.fdsite_create(self_writefd)
+    f = T(g_comp, site)
     for arg in sys.argv[1:]:
         file = open(arg)
         f.loadFctFile(file)

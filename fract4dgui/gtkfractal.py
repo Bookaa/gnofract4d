@@ -57,7 +57,6 @@ class Hidden(gobject.GObject):
         else:
             # This is the line that was screwing Windows up.. changed to be run only on Linux, for Windows, we want to do this in fract4dc..
             (self.readfd, self.writefd) = os.pipe()
-        self.nthreads = 1
 
         self.compiler = comp
 
@@ -230,11 +229,6 @@ class Hidden(gobject.GObject):
     def get_param(self,n):
         return self.f.get_param(n)
 
-    def set_nthreads(self, n):
-        if self.nthreads != n:
-            self.nthreads = n
-            self.changed()
-
     def set_auto_deepen(self,deepen):
         if self.f.auto_deepen != deepen:
             self.f.auto_deepen = deepen
@@ -295,7 +289,7 @@ class Hidden(gobject.GObject):
     def stats_changed(self,stats):
         self.emit('stats-changed', stats)
 
-    def draw(self,image,width,height,nthreads):
+    def draw(self,image,width,height):
         t = self.f.epsilon_tolerance(width,height)
         if self.f.auto_epsilon:
             self.f.set_named_param("@epsilon",t,
@@ -305,7 +299,7 @@ class Hidden(gobject.GObject):
         cmap = self.f.get_colormap()
         self.running = True
         try:
-            self.f.calc(image,cmap, nthreads, self.site, True)
+            self.f.calc(image,cmap, self.site, True)
         except MemoryError:
             pass
 
@@ -320,7 +314,7 @@ class Hidden(gobject.GObject):
             self.f.antialias = aa
             self.f.auto_deepen = auto_deepen
 
-        self.draw(self.image,self.width,self.height,self.nthreads)
+        self.draw(self.image,self.width,self.height)
 
     def set_plane(self,angle1,angle2):
         self.freeze()
@@ -421,7 +415,7 @@ class HighResolution(Hidden):
         (xoff,yoff,w,h) = self.tile_list.pop(0)
         self.image.resize_tile(w,h)
         self.image.set_offset(xoff,yoff)
-        self.draw(self.image,w,h,self.nthreads)
+        self.draw(self.image,w,h)
 
     def status_changed(self,status):
         if status == 0:
@@ -728,11 +722,6 @@ class T(Hidden):
         funclist = form.formula.symbols.available_param_functions(param.ret,param.args)
         funclist.sort()
         return funclist
-
-    def set_nthreads(self, n):
-        if self.nthreads != n:
-            self.nthreads = n
-            self.changed()
 
     def error(self,msg,err):
         print self, self.parent

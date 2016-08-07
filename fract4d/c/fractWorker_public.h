@@ -15,8 +15,7 @@ class IFractalSite;
 class IFractWorker {
 public:
 
-    static IFractWorker *create(
-	int nThreads,pf_obj *pfo, ColorMap *cmap, IImage *im_, IFractalSite *site);
+    static IFractWorker *create(pf_obj *pfo, ColorMap *cmap, IImage *im_, IFractalSite *site);
 
     virtual void set_fractFunc(fractFunc *ff_) =0;
 
