@@ -69,24 +69,24 @@ image::alloc_buffers()
     // FIXME remove true 
     if(true || m_Xres * m_Yres <= MAX_RECOLOR_SIZE)
     {
-	index_buf = new(std::nothrow) float[m_Xres * m_Yres * N_SUBPIXELS];
-	fate_buf = new(std::nothrow) fate_t[m_Xres * m_Yres * N_SUBPIXELS];
-	if(!index_buf || !fate_buf)
-	{
-	    delete_buffers();
-	    return false;
-	}
+        index_buf = new(std::nothrow) float[m_Xres * m_Yres * N_SUBPIXELS];
+        fate_buf = new(std::nothrow) fate_t[m_Xres * m_Yres * N_SUBPIXELS];
+        if(!index_buf || !fate_buf)
+        {
+            delete_buffers();
+            return false;
+        }
     }
     else
     {
-	// use less memory for big images. Sadly not working yet
-	index_buf = NULL;
-	fate_buf = NULL;
+        // use less memory for big images. Sadly not working yet
+        index_buf = NULL;
+        fate_buf = NULL;
     }
     if(!buffer || !iter_buf)
     {
-	delete_buffers();
-	return false;
+        delete_buffers();
+        return false;
     }
 
     clear();
@@ -134,8 +134,8 @@ image::set_resolution(int x, int y, int totalx, int totaly)
        m_Xres == x && m_Yres == y && 
        m_totalXres == totalx && m_totalYres == totaly) 
     {
-	// nothing to do
-	return false;
+        // nothing to do
+        return false;
     }
 
     m_Xres = x;
@@ -147,19 +147,19 @@ image::set_resolution(int x, int y, int totalx, int totaly)
 
     if(! alloc_buffers())
     {
-	return true;
+        return true;
     }
 
     rgba_t pixel = { 
-	0,0,0,255 // soothing black
+        0,0,0,255 // soothing black
     };
 
     for(int i = 0; i < y; ++i)
     {
-	for(int j = 0; j < x; ++j)
-	{
-	    put(j,i,pixel);
-	}
+        for(int j = 0; j < x; ++j)
+        {
+            put(j,i,pixel);
+        }
     }
 
     return true;
@@ -170,12 +170,12 @@ image::set_offset(int x, int y)
 {
     if(x < 0 || x + m_Xres > m_totalXres || y < 0 || y + m_Yres > m_totalYres)
     {
-	return false;
+        return false;
     }
     if(x == m_xoffset && y == m_yoffset)
     {
-	// nothing to do, succeed already
-	return true;
+        // nothing to do, succeed already
+        return true;
     }
 
     m_xoffset = x; m_yoffset = y;
@@ -196,8 +196,8 @@ image::fill_subpixels(int x, int y)
     float index = getIndex(x,y,0);
     for(int i = 1; i < N_SUBPIXELS; ++i)
     {
-	setFate(x,y,i,fate);
-	setIndex(x,y,i,index);
+        setFate(x,y,i,fate);
+        setIndex(x,y,i,index);
     }
 }
 
@@ -209,12 +209,12 @@ image::clear_fate(int x, int y)
     int base = index_of_subpixel(x,y,0);
     for(int i = base; i < base+ N_SUBPIXELS; ++i)
     {
-	fate_buf[i] = FATE_UNKNOWN;
+        fate_buf[i] = FATE_UNKNOWN;
 
 #ifndef NDEBUG
-	// index is only meaningful if fate is known, but set this for
-	// testing purposes
-	index_buf[i] = 1e30;
+        // index is only meaningful if fate is known, but set this for
+        // testing purposes
+        index_buf[i] = 1e30;
 #endif
     }
 }
@@ -256,14 +256,14 @@ image::clear()
     // no need to clear image buffer, just iters and fate
     for(int y = 0; y < m_Yres; ++y) 
     {
-	for(int x = 0; x < m_Xres; ++x)
-	{
-	    iter_buf[y * m_Xres + x]=-1;
-	    for(int n = 0; n < N_SUBPIXELS; ++n)
-	    {
-		fate_buf[fate_pos++] = FATE_UNKNOWN;
-	    }
-	}
+        for(int x = 0; x < m_Xres; ++x)
+        {
+            iter_buf[y * m_Xres + x]=-1;
+            for(int n = 0; n < N_SUBPIXELS; ++n)
+            {
+                fate_buf[fate_pos++] = FATE_UNKNOWN;
+            }
+        }
     }
 }
 
@@ -274,7 +274,7 @@ absfmod(double x, double range)
     x = fmod(x,range);
     if(x < 0) 
     {
-	x += range;
+        x += range;
     }
     assert(0 <= x && x <= range);
     return x;
@@ -296,7 +296,7 @@ blend(
     gres = g1 * other_factor + g2 * factor;
     bres = b1 * other_factor + b2 * factor;
     //printf("blend(%g,%g,%g),(%g,%g,%g) by %g => (%g,%g,%g)\n",
-    //	   r1,g1,b1, r2,g2,b2, factor, rres,gres,bres);
+    //     r1,g1,b1, r2,g2,b2, factor, rres,gres,bres);
 }
 
 void 
@@ -306,13 +306,13 @@ blend(
     double& rres, double& gres, double& bres)
 {
     blend(p1.r/255.0, 
-	  p1.g/255.0,
-	  p1.b/255.0,
-	  p2.r/255.0,
-	  p2.g/255.0,
-	  p2.b/255.0,
-	  factor,
-	  rres, gres, bres);
+          p1.g/255.0,
+          p1.b/255.0,
+          p2.r/255.0,
+          p2.g/255.0,
+          p2.b/255.0,
+          factor,
+          rres, gres, bres);
 }
 
 /* compute the color of a point (x,y) on the image im.
@@ -328,10 +328,10 @@ image_lookup(void *vim, double x, double y, double *pr, double *pg, double *pb)
 {
     if(NULL == vim || !isfinite(x) || !isfinite(y)) // check for no image or NaN
     {
-	*pr = 0.0;
-	*pb = 0.0;
-	*pg = 1.0;
-	return;
+        *pr = 0.0;
+        *pb = 0.0;
+        *pg = 1.0;
+        return;
     }
 
     image *im = (image *)vim;
@@ -374,7 +374,7 @@ image_lookup(void *vim, double x, double y, double *pr, double *pg, double *pb)
 
     double top_mid_r, top_mid_g, top_mid_b;
     blend(top_left_pixel, top_right_pixel, xfactor,
-	  top_mid_r, top_mid_g, top_mid_b);
+          top_mid_r, top_mid_g, top_mid_b);
 
     //printf("top mid: %g %g %g\n",top_mid_r, top_mid_g, top_mid_b);
 
@@ -383,16 +383,16 @@ image_lookup(void *vim, double x, double y, double *pr, double *pg, double *pb)
     rgba_t bot_right_pixel = im->get(highx,highy);
     double bot_mid_r, bot_mid_g, bot_mid_b;
     blend(bot_left_pixel, bot_right_pixel, xfactor,
-	  bot_mid_r, bot_mid_g, bot_mid_b);
+          bot_mid_r, bot_mid_g, bot_mid_b);
 
     //printf("bot mid: %g %g %g\n",bot_mid_r, bot_mid_g, bot_mid_b);
 
     double mid_r, mid_g, mid_b;
     // blend vertically between the 2 blended points
     blend(top_mid_r, top_mid_g, top_mid_b,
-	  bot_mid_r, bot_mid_g, bot_mid_b,
-	  yfactor,
-	  mid_r,mid_g,mid_b);
+          bot_mid_r, bot_mid_g, bot_mid_b,
+          yfactor,
+          mid_r,mid_g,mid_b);
 
     //printf("mid: %g %g %g\n", mid_r, mid_g, mid_b);
 

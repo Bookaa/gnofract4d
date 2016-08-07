@@ -33,18 +33,18 @@ ColorMap::set_transfer(int which, e_transferType type)
 {
     if(which >= 0 && which < 2)
     {
-	if(type < TRANSFER_SIZE && type >= 0)
-	{
-	    transfers[which] = type;
-	}
-	else
-	{
-	    assert("bad transfer type" && 0);
-	}
+        if(type < TRANSFER_SIZE && type >= 0)
+        {
+            transfers[which] = type;
+        }
+        else
+        {
+            assert("bad transfer type" && 0);
+        }
     }
     else
     {
-	assert("bad transfer index" && 0);
+        assert("bad transfer index" && 0);
     }
 }
 
@@ -59,11 +59,11 @@ ColorMap::set_solid(int which, int r, int g, int b, int a)
 
     if(which >= 0 && which < 2)
     {
-	solids[which] = color;
+        solids[which] = color;
     }
     else
     {
-	assert("set bad color" && 0);
+        assert("set bad color" && 0);
     }
 }
 
@@ -73,11 +73,11 @@ ColorMap::get_solid(int which) const
     rgba_t color = {0,0,0,1};
     if(which >= 0 && which < 2)
     {
-	color = solids[which];
+        color = solids[which];
     }
     else
     {
-	assert("get bad color" && 0);
+        assert("get bad color" && 0);
     }
     return color;
 } 
@@ -114,24 +114,24 @@ find(double key, list_item_t *array, int n)
     int left=0,right=n-1;
     do
     {
-	int middle;
-	if(left > right)
-	{
-	    return left-1 < 0 ? 0 : left-1 ;
-	}
-	middle = (left + right) / 2;
-	if(array[middle].index < key)
-	{ 
-	    left = middle+1;
-	}
-	else if(array[middle].index == key)
-	{
-	    return middle;
-	}
-	else
-	{
-	    right = middle-1;
-	}
+        int middle;
+        if(left > right)
+        {
+            return left-1 < 0 ? 0 : left-1 ;
+        }
+        middle = (left + right) / 2;
+        if(array[middle].index < key)
+        { 
+            left = middle+1;
+        }
+        else if(array[middle].index == key)
+        {
+            return middle;
+        }
+        else
+        {
+            right = middle-1;
+        }
     }while(1);
 }
 
@@ -142,7 +142,7 @@ ColorMap::lookup_with_dca(int solid, int inside, double *colors) const
 
     if(solid)
     {
-	return solids[inside];
+        return solids[inside];
     }
     
 
@@ -150,16 +150,16 @@ ColorMap::lookup_with_dca(int solid, int inside, double *colors) const
     switch(t)
     {
     case TRANSFER_NONE:
-	return solids[inside];
+        return solids[inside];
     case TRANSFER_LINEAR:
-	new_color.r = (unsigned char)(255.0 * colors[0]);
-	new_color.g = (unsigned char)(255.0 * colors[1]);
-	new_color.b = (unsigned char)(255.0 * colors[2]);
-	new_color.a = (unsigned char)(255.0 * colors[3]);
-	return new_color;
+        new_color.r = (unsigned char)(255.0 * colors[0]);
+        new_color.g = (unsigned char)(255.0 * colors[1]);
+        new_color.b = (unsigned char)(255.0 * colors[2]);
+        new_color.a = (unsigned char)(255.0 * colors[3]);
+        return new_color;
     default:
-	assert("bad transfer type" && 0);
-	return black;
+        assert("bad transfer type" && 0);
+        return black;
     }
 }
  
@@ -168,19 +168,19 @@ ColorMap::lookup_with_transfer(double index, int solid, int inside) const
 {
     if(solid)
     {
-	return solids[inside];
+        return solids[inside];
     }
     
     e_transferType t = transfers[inside];
     switch(t)
     {
     case TRANSFER_NONE:
-	return solids[inside];
+        return solids[inside];
     case TRANSFER_LINEAR:
-	return lookup(index);
+        return lookup(index);
     default:
-	assert("bad transfer type" && 0);
-	return black;
+        assert("bad transfer type" && 0);
+        return black;
     }
 }
  
@@ -199,7 +199,7 @@ GradientColorMap::init(int ncolors_)
 {
     if(ncolors_ == 0)
     {
-	return false;
+        return false;
     }
 
     ncolors = ncolors_; 
@@ -207,15 +207,15 @@ GradientColorMap::init(int ncolors_)
     items = new(std::nothrow) gradient_item_t[ncolors];
     if(!items)
     {
-	return false;
+        return false;
     }
 
     for(int i = 0; i < ncolors; ++i)
     {
-	gradient_item_t *p = &items[i];
-	p->left = p->right = 0;
-	p->bmode = BLEND_LINEAR;
-	p->cmode = RGB;
+        gradient_item_t *p = &items[i];
+        p->left = p->right = 0;
+        p->bmode = BLEND_LINEAR;
+        p->cmode = RGB;
     }
     return true;
 }
@@ -233,17 +233,17 @@ GradientColorMap::set(
     items[i].mid = mid;
     for(int j = 0; j < 4 ; ++j)
     {
-	items[i].left_color[j] = left_col[j];
-	items[i].right_color[j] = right_col[j];
+        items[i].left_color[j] = left_col[j];
+        items[i].right_color[j] = right_col[j];
     }
     items[i].bmode = bmode;
     items[i].cmode = cmode;
-	
+        
 /*
     fprintf(stderr,"left: %g [%g,%g,%g,%g]\nright: %g [%g,%g,%g,%g]\n%d %d\n",
-	   left, left_col[0], left_col[1], left_col[2], left_col[3],
-	   right, right_col[0], right_col[1], right_col[2], right_col[3], 
-	   (int)bmode, (int)cmode);
+           left, left_col[0], left_col[1], left_col[2], left_col[3],
+           right, right_col[0], right_col[1], right_col[2], right_col[3], 
+           (int)bmode, (int)cmode);
 */
 
 }
@@ -254,7 +254,7 @@ grad_dump(gradient_item_t *items, int ncolors)
     fprintf(stderr,"gradient dump: %d\n", ncolors);
     for(int i = 0; i < ncolors; ++i)
     {
-	fprintf(stderr,"%d: %g\n", i, items[i].right);
+        fprintf(stderr,"%d: %g\n", i, items[i].right);
     }
 }
 
@@ -263,10 +263,10 @@ grad_find(double index, gradient_item_t *items, int ncolors)
 {
     for(int i = 0; i < ncolors; ++i)
     {
-	if(index <= items[i].right)
-	{
-	    return i;
-	} 
+        if(index <= items[i].right)
+        {
+            return i;
+        } 
     }
     fprintf(stderr,"No gradient for %g\n", index);
     grad_dump(items, ncolors);
@@ -280,9 +280,9 @@ calc_linear_factor (double middle, double pos)
   if (pos <= middle)
     {
       if (middle < EPSILON)
-	return 0.0;
+        return 0.0;
       else
-	return 0.5 * pos / middle;
+        return 0.5 * pos / middle;
     }
   else
     {
@@ -290,9 +290,9 @@ calc_linear_factor (double middle, double pos)
       middle = 1.0 - middle;
 
       if (middle < EPSILON)
-	return 1.0;
+        return 1.0;
       else
-	return 0.5 + 0.5 * pos / middle;
+        return 0.5 + 0.5 * pos / middle;
     }
 }
 
@@ -314,7 +314,7 @@ calc_sine_factor (double middle, double pos)
 
 static double
 calc_sphere_increasing_factor (double middle,
-			       double pos)
+                               double pos)
 {
     pos = calc_linear_factor (middle, pos) - 1.0;
     return sqrt (1.0 - pos * pos); 
@@ -322,7 +322,7 @@ calc_sphere_increasing_factor (double middle,
 
 static double
 calc_sphere_decreasing_factor (double middle,
-			       double pos)
+                               double pos)
 {
     pos = calc_linear_factor (middle, pos);
     return 1.0 - sqrt(1.0 - pos * pos);
@@ -335,8 +335,8 @@ GradientColorMap::lookup(double input_index) const
     double index = input_index == 1.0 ? 1.0 : fmod(input_index,1.0);
     if(index < 0.0 || index > 1.0 || index != index)
     {
-	// must be infinite or NaN
-	return black;
+        // must be infinite or NaN
+        return black;
     }
     int i = grad_find(index, items, ncolors); 
     assert(i >= 0 && i < ncolors);
@@ -456,7 +456,7 @@ ListColorMap::init(int ncolors_)
 {
     if(ncolors_ == 0)
     {
-	return false;
+        return false;
     }
 
     ncolors = ncolors_; 
@@ -464,13 +464,13 @@ ListColorMap::init(int ncolors_)
     items = new(std::nothrow) list_item_t[ncolors];
     if(!items)
     {
-	return false;
+        return false;
     }
 
     for(int i = 0; i < ncolors; ++i)
     {
-	items[i].color = black;
-	items[i].index = 0;
+        items[i].color = black;
+        items[i].index = 0;
     }
     return true;
 }
@@ -504,7 +504,7 @@ ListColorMap::lookup(double index) const
     /* fprintf(stderr,"%g->%d\n",index,i); */
     if(index <= items[i].index || i == ncolors-1) 
     {
-	return items[i].color;
+        return items[i].color;
     }
 
     j = i+1;
@@ -515,7 +515,7 @@ ListColorMap::lookup(double index) const
     /* fprintf(stderr,"dist: %g\n",dist); */
     if(dist == 0.0)
     {
-	return items[i].color;
+        return items[i].color;
     }
     
     r = (index - items[i].index)/dist;
@@ -553,7 +553,7 @@ rgb_to_hsv(
 {
     double min = MIN3( r, g, b );
     double max = MAX3( r, g, b );
-    *v = max;			
+    *v = max;                   
 
     double delta = max - min;
 
@@ -640,15 +640,15 @@ double rgb_component(double n1, double n2, double hue)
     hue = (hue > 6.0) ? (hue - 6.0) : (hue < 0.0) ? hue + 6.0 : hue;
     if (hue < 1.0)
     {
-	return n1 + (n2 - n1)*hue;
+        return n1 + (n2 - n1)*hue;
     }
     if (hue < 3.0)
     {
-	return n2;
+        return n2;
     }
     if (hue < 4.0)
     {
-	return n1 + (n2 - n1)*(4.0 - hue);
+        return n1 + (n2 - n1)*(4.0 - hue);
     }
     return n1;
 }
@@ -665,7 +665,7 @@ hsl_to_rgb(
     }
     else
     {
-	// chromatic
+        // chromatic
         double n2;
         if(l <= 0.5)
         {

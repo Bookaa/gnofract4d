@@ -42,9 +42,9 @@ public:
     virtual rgba_t lookup(double index) const = 0;
 
     virtual rgba_t lookup_with_transfer(
-	double index, int solid, int inside) const;
+        double index, int solid, int inside) const;
     virtual rgba_t lookup_with_dca(
-	int solid, int inside, double *colors) const;
+        int solid, int inside, double *colors) const;
 
  public:
     unsigned int canary;
@@ -94,10 +94,10 @@ class GradientColorMap: public ColorMap
 
     bool init(int n_colors);
     void set(int i,
-	     double left, double right, double mid,
-	     double *left_col,
-	     double *right_col,
-	     e_blendType bmode, e_colorType cmode);
+             double left, double right, double mid,
+             double *left_col,
+             double *right_col,
+             e_blendType bmode, e_colorType cmode);
 
     rgba_t lookup(double index) const; 
  private:
@@ -112,36 +112,36 @@ extern void cmap_delete(ColorMap *cmap);
 extern "C" {
 
     void rgb_to_hsv(
-	double r, double g, double b,
-	double *h, double *s, double *v);
+        double r, double g, double b,
+        double *h, double *s, double *v);
 
     void gimp_rgb_to_hsv(
-	double r, double g, double b,
-	double *h, double *s, double *v);
+        double r, double g, double b,
+        double *h, double *s, double *v);
 
     void rgb_to_hsl(
-	double r, double g, double b,
-	double *h, double *s, double *l);
+        double r, double g, double b,
+        double *h, double *s, double *l);
 
     void hsl_to_rgb(
-	double h, double s, double l,
-	double *r, double *g, double *);
+        double h, double s, double l,
+        double *r, double *g, double *);
 
     void hsv_to_rgb(
-	double h, double s, double v,
-	double *r, double *g, double *b);
+        double h, double s, double v,
+        double *r, double *g, double *b);
 
     void gimp_hsv_to_rgb(
-	double h, double s, double v,
-	double *r, double *g, double *b);
+        double h, double s, double v,
+        double *r, double *g, double *b);
 
     double hue(double r, double g, double b);
     double sat(double r, double g, double b);
     double lum(double r, double g, double b);
 
     void gradient(
-	void *grad_object, double index, 
-	double *r, double *g, double *b);
+        void *grad_object, double index, 
+        double *r, double *g, double *b);
 
 }
 

@@ -1085,196 +1085,200 @@ struct calc_args
 
     PyObject *pycmap, *pypfo, *pyim, *pysite;
     calc_args()
-        {
+    {
 #ifdef DEBUG_CREATION
-            fprintf(stderr,"%p : CA : CTOR\n",this);
+        fprintf(stderr, "%p : CA : CTOR\n", this);
 #endif
-            pycmap = NULL;
-            pypfo = NULL;
-            pyim = NULL;
-            pysite = NULL;
-            dirty = 1;
-            periodicity = true;
-            yflip = false;
-            auto_deepen = false;
-            auto_tolerance = false;
-            tolerance = 1.0E-9;
-            eaa = AA_NONE;
-            maxiter = 1024;
-            nThreads = 1;
-            render_type = RENDER_TWO_D;
-            async = false;
-            warp_param = -1;
-        }
+        pycmap = NULL;
+        pypfo = NULL;
+        pyim = NULL;
+        pysite = NULL;
+        dirty = 1;
+        periodicity = true;
+        yflip = false;
+        auto_deepen = false;
+        auto_tolerance = false;
+        tolerance = 1.0E-9;
+        eaa = AA_NONE;
+        maxiter = 1024;
+        nThreads = 1;
+        render_type = RENDER_TWO_D;
+        async = false;
+        warp_param = -1;
+    }
 
     void set_cmap(PyObject *pycmap_)
-        {
-            pycmap = pycmap_;
-            cmap = (ColorMap *)PyCObject_AsVoidPtr(pycmap);
-            Py_XINCREF(pycmap);
-        }
+    {
+        pycmap = pycmap_;
+        cmap = (ColorMap *)PyCObject_AsVoidPtr(pycmap);
+        Py_XINCREF(pycmap);
+    }
 
     void set_pfo(PyObject *pypfo_)
-        {
-            pypfo = pypfo_;
+    {
+        pypfo = pypfo_;
 
-            pfo = ((pfHandle *)PyCObject_AsVoidPtr(pypfo))->pfo;
-            Py_XINCREF(pypfo);
-        }
+        pfo = ((pfHandle *)PyCObject_AsVoidPtr(pypfo))->pfo;
+        Py_XINCREF(pypfo);
+    }
 
     void set_im(PyObject *pyim_)
-        {
-            pyim = pyim_;
-            im = (IImage *)PyCObject_AsVoidPtr(pyim);
-            Py_XINCREF(pyim);
-        }
+    {
+        pyim = pyim_;
+        im = (IImage *)PyCObject_AsVoidPtr(pyim);
+        Py_XINCREF(pyim);
+    }
+
     void set_site(PyObject *pysite_)
-        {
-            pysite = pysite_;
-            site = (IFractalSite *)PyCObject_AsVoidPtr(pysite);
-            Py_XINCREF(pysite);
-        }
+    {
+        pysite = pysite_;
+        site = (IFractalSite *)PyCObject_AsVoidPtr(pysite);
+        Py_XINCREF(pysite);
+    }
 
     ~calc_args()
-        {
+    {
 #ifdef DEBUG_CREATION
-            fprintf(stderr,"%p : CA : DTOR\n",this);
+        fprintf(stderr, "%p : CA : DTOR\n", this);
 #endif
-            Py_XDECREF(pycmap);
-            Py_XDECREF(pypfo);
-            Py_XDECREF(pyim);
-            Py_XDECREF(pysite);
-        }
+        Py_XDECREF(pycmap);
+        Py_XDECREF(pypfo);
+        Py_XDECREF(pyim);
+        Py_XDECREF(pysite);
+    }
 };
 
 // write the callbacks to a file descriptor
 class FDSite :public IFractalSite
 {
 public:
-    FDSite(int fd_) : fd(fd_), tid((pthread_t)0), 
-                      interrupted(false), params(NULL) 
-        {
+    FDSite(int fd_) : fd(fd_), tid((pthread_t)0),
+        interrupted(false), params(NULL)
+    {
 #ifdef DEBUG_CREATION
-            fprintf(stderr,"%p : FD : CTOR\n",this);
+        fprintf(stderr, "%p : FD : CTOR\n", this);
 #endif
-            pthread_mutex_init(&write_lock,NULL);
-        }
+        pthread_mutex_init(&write_lock, NULL);
+    }
 
     inline void send(msg_type_t type, int size, void *buf)
-        {
-            pthread_mutex_lock(&write_lock);
-            if (write(fd,&type,sizeof(type))) {};
-            if (write(fd,&size,sizeof(size))) {};
-            if (write(fd,buf,size)) {};
-            pthread_mutex_unlock(&write_lock);
-        }
+    {
+        pthread_mutex_lock(&write_lock);
+        if (write(fd, &type, sizeof(type)))
+        {};
+        if (write(fd, &size, sizeof(size)))
+        {};
+        if (write(fd, buf, size))
+        {};
+        pthread_mutex_unlock(&write_lock);
+    }
     virtual void iters_changed(int numiters)
-        {
-            send(ITERS, sizeof(int), &numiters);
-        }
+    {
+        send(ITERS, sizeof(int), &numiters);
+    }
     virtual void tolerance_changed(double tolerance)
-        {
-            send (TOLERANCE, sizeof(tolerance), &tolerance);
-        }
+    {
+        send(TOLERANCE, sizeof(tolerance), &tolerance);
+    }
 
     // we've drawn a rectangle of image
     virtual void image_changed(int x1, int y1, int x2, int y2)
+    {
+        if (!interrupted)
         {
-            if(!interrupted)
-            {
-                int buf[4] = { x1, y1, x2, y2 };
-                send(IMAGE, sizeof(buf), &buf[0]);
-            }
+            int buf[4] = { x1, y1, x2, y2 };
+            send(IMAGE, sizeof(buf), &buf[0]);
         }
+    }
     // estimate of how far through current pass we are
     virtual void progress_changed(float progress)
+    {
+        if (!interrupted)
         {
-            if(!interrupted)
-            {
-                int percentdone = (int) (100.0 * progress); 
-                send(PROGRESS, sizeof(percentdone), &percentdone);
-            }
+            int percentdone = (int)(100.0 * progress);
+            send(PROGRESS, sizeof(percentdone), &percentdone);
         }
+    }
 
     virtual void stats_changed(pixel_stat_t& stats)
+    {
+        if (!interrupted)
         {
-            if(!interrupted)
-            {
-                send(STATS,sizeof(stats),&stats);
-            }
-                
+            send(STATS, sizeof(stats), &stats);
         }
+
+    }
 
     // one of the status values above
     virtual void status_changed(int status_val)
-        {
-            send(STATUS,sizeof(status_val),&status_val);
-        }
+    {
+        send(STATUS, sizeof(status_val), &status_val);
+    }
 
     // return true if we've been interrupted and are supposed to stop
     virtual bool is_interrupted()
-        {
-            //fprintf(stderr,"int: %d\n",interrupted);
-            return interrupted;
-        }
+    {
+        //fprintf(stderr,"int: %d\n",interrupted);
+        return interrupted;
+    }
 
     // pixel changed
     virtual void pixel_changed(
         const double *params, int maxIters, int nNoPeriodIters,
         int x, int y, int aa,
         double dist, int fate, int nIters,
-        int r, int g, int b, int a) 
-        {
-            /*
-            fprintf(stderr,"pixel: <%g,%g,%g,%g>(%d,%d,%d) = (%g,%d,%d)\n",
-                   params[0],params[1],params[2],params[3],
-                   x,y,aa,dist,fate,nIters);
-            */
-            return; // FIXME
-        };
+        int r, int g, int b, int a)
+    {
+        /*
+        fprintf(stderr,"pixel: <%g,%g,%g,%g>(%d,%d,%d) = (%g,%d,%d)\n",
+               params[0],params[1],params[2],params[3],
+               x,y,aa,dist,fate,nIters);
+        */
+        return; // FIXME
+    };
 
-    virtual void interrupt() 
-        {
+    virtual void interrupt()
+    {
 #ifdef DEBUG_THREADS
-            fprintf(stderr,"%p : CA : INT(%p)\n", this, tid);
+        fprintf(stderr, "%p : CA : INT(%p)\n", this, tid);
 #endif
-            interrupted = true;
-        }
-    
-    virtual void start(calc_args *params_) 
-        {
-#ifdef DEBUG_THREADS
-            fprintf(stderr,"clear interruption\n");
-#endif
-            interrupted = false;
-            params = params_;
-        }
+        interrupted = true;
+    }
 
-    virtual void set_tid(pthread_t tid_) 
-        {
+    virtual void start(calc_args *params_)
+    {
 #ifdef DEBUG_THREADS
-            fprintf(stderr,"%p : CA : SET(%p)\n", this,tid_);
+        fprintf(stderr, "clear interruption\n");
 #endif
-            tid = tid_;
-        }
+        interrupted = false;
+        params = params_;
+    }
+
+    virtual void set_tid(pthread_t tid_)
+    {
+#ifdef DEBUG_THREADS
+        fprintf(stderr, "%p : CA : SET(%p)\n", this, tid_);
+#endif
+        tid = tid_;
+    }
 
     virtual void wait()
+    {
+        if (tid != 0)
         {
-            if(tid != 0)
-            {
 #ifdef DEBUG_THREADS
-                fprintf(stderr,"%p : CA : WAIT(%p)\n", this,tid);
+            fprintf(stderr, "%p : CA : WAIT(%p)\n", this, tid);
 #endif
-                pthread_join(tid,NULL);
-            }
+            pthread_join(tid, NULL);
         }
+    }
     ~FDSite()
-        {
+    {
 #ifdef DEBUG_CREATION
-            fprintf(stderr,"%p : FD : DTOR\n",this);
+        fprintf(stderr, "%p : FD : DTOR\n", this);
 #endif
-            close(fd);
-        }
+        close(fd);
+    }
 private:
     int fd;
     pthread_t tid;
@@ -1701,6 +1705,7 @@ pycalc(PyObject *self, PyObject *args, PyObject *kwds)
 
     if (cargs->async)
     {
+        printf("async 1708\n");
         cargs->site->interrupt();
         cargs->site->wait();
 
