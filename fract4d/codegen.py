@@ -793,8 +793,7 @@ extern "C" {
 
         dst = None
         if t.datatype == Complex:
-            dst = ComplexArg(self.newTemp(Float),
-                             self.newTemp(Float))
+            dst = ComplexArg('', self.newTemp(Float), self.newTemp(Float))
             if child.datatype == Int or child.datatype == Bool:
                 assem = "%(d0)s = ((double)%(s0)s);"
                 self.out.append(Oper(assem,[src], [dst.re]))

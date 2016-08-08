@@ -68,7 +68,7 @@ def mul_cc_c(gen,t,srcs):
     bd = gen.emit_binop('*', [srcs[0].im, srcs[1].im], Float)
     bc = gen.emit_binop('*', [srcs[0].im, srcs[1].re], Float)
     ad = gen.emit_binop('*', [srcs[0].re, srcs[1].im], Float)
-    dst = ComplexArg(
+    dst = ComplexArg('',
         gen.emit_binop('-', [ac, bd], Float),
         gen.emit_binop('+', [bc, ad], Float))
     return dst
@@ -117,7 +117,7 @@ def mul_hh_h(gen,t,srcs):
 
 def complex_ff_c(gen,t,srcs):
     # construct a complex number from two real parts
-    return ComplexArg(srcs[0],srcs[1])
+    return ComplexArg('',srcs[0],srcs[1])
 
 def hyper_ffff_h(gen,t,srcs):
     return HyperArg(srcs[0],srcs[1],srcs[2],srcs[3])
@@ -191,14 +191,14 @@ def add_CC_C(gen,t,srcs):
     
 def sub_cc_c(gen,t,srcs):
     # subtract 2 complex numbers
-    dst = ComplexArg(
+    dst = ComplexArg('',
         gen.emit_binop('-',reals(srcs), Float),
         gen.emit_binop('-',imags(srcs), Float))
     return dst
 
 def sub_hh_h(gen,t,srcs):
     # subtract 2 hypercomplex numbers
-    dst = HyperArg(
+    dst = HyperArg('',
         gen.emit_binop('-',parts(0,srcs), Float),
         gen.emit_binop('-',parts(1,srcs), Float),
         gen.emit_binop('-',parts(2,srcs), Float),
@@ -223,25 +223,25 @@ def div_cc_c(gen,t,srcs):
     ad = gen.emit_binop('*', [srcs[0].re, srcs[1].im], Float)
     dre = gen.emit_binop('+', [ac, bd], Float)
     dim = gen.emit_binop('-', [bc, ad], Float)
-    return ComplexArg(
+    return ComplexArg('',
         gen.emit_binop('/', [dre, denom], Float),
         gen.emit_binop('/', [dim, denom], Float))
 
 def div_cf_c(gen,t,srcs):
     # divide a complex number by a real one
-    return ComplexArg(
+    return ComplexArg('',
         gen.emit_binop('/',[srcs[0].re, srcs[1]], Float),
         gen.emit_binop('/',[srcs[0].im, srcs[1]], Float))
 
 def mul_cf_c(gen,t,srcs):
     # multiply a complex number by a real one
-    return ComplexArg(
+    return ComplexArg('',
         gen.emit_binop('*',[srcs[0].re, srcs[1]], Float),
         gen.emit_binop('*',[srcs[0].im, srcs[1]], Float))
 
 def mul_hf_h(gen,t,srcs):
     # multiply a hypercomplex number by a real one
-    return HyperArg(
+    return HyperArg('',
         gen.emit_binop('*',[srcs[0].parts[0], srcs[1]], Float),
         gen.emit_binop('*',[srcs[0].parts[1], srcs[1]], Float),
         gen.emit_binop('*',[srcs[0].parts[2], srcs[1]], Float),
@@ -253,7 +253,7 @@ def mul_Cf_C(gen,t,srcs):
 
 def div_hf_h(gen,t,srcs):
     # multiply a hypercomplex number by a real one
-    return HyperArg(
+    return HyperArg('',
         gen.emit_binop('/',[srcs[0].parts[0], srcs[1]], Float),
         gen.emit_binop('/',[srcs[0].parts[1], srcs[1]], Float),
         gen.emit_binop('/',[srcs[0].parts[2], srcs[1]], Float),
