@@ -245,6 +245,8 @@ class T(fctutils.T):
                 "formulafile",self.forms[formtype].funcFile)
             fname = params.dict.get(
                 "function", self.forms[formtype].funcName)
+            f = self.compiler.get_parsetree(formulafile, fname)
+            return (formulafile, f)
 
         return (formulafile, fname)
 
@@ -271,6 +273,15 @@ class T(fctutils.T):
 
         self.set_formula_text(func.text, 0, 0)
         # self.set_formula(file,func,0)
+
+        for (name,val) in params.dict.items():
+            if name == "formulafile" or name == "function" or name == "formula" or name=="":
+                continue
+            elif name == "a" or name =="b" or name == "c":
+                # back-compat for older versions
+                self.forms[0].set_named_param("@" + name, val)
+            else:
+                self.forms[0].set_named_item(name,val)
 
     def parse__transform_(self,val,f):
         which_transform = int(val)
@@ -1113,6 +1124,7 @@ if __name__ == '__main__':
     g_comp.add_func_path("../formulas")
     from fc import FormulaTypes
     g_comp.add_path("../maps", FormulaTypes.GRADIENT)
+    g_comp.add_path("maps", FormulaTypes.GRADIENT)
     g_comp.add_func_path(
             os.path.join(sys.exec_prefix, "share/gnofract4d/formulas"))
 
@@ -1124,7 +1136,7 @@ if __name__ == '__main__':
         file = open(arg)
         f.loadFctFile(file)
         f.compile()
-        im = image.T(64,48)
+        im = image.T(640,480)
         f.draw(im)
         im.save(os.path.basename(arg) + ".png")
 
