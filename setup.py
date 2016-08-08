@@ -154,10 +154,10 @@ and includes a Fractint-compatible parser for your own fractal formulas.''',
        maintainer_email = 'catenary@users.sourceforge.net',
        keywords = "edwin@bathysphere.org",
        url = 'http://github.com/edyoung/gnofract4d/',
-       packages = ['fract4d', 'fract4dgui'], 
-       package_data = { 'fract4dgui' : [ 'ui.xml'] },
+       packages = ['fract4d', ],
+       package_data = {  },
        ext_modules = modules,
-       scripts = ['gnofract4d'],
+       scripts = [],
        data_files = [
            # color maps
            ('share/gnofract4d/maps',
@@ -172,15 +172,7 @@ and includes a Fractint-compatible parser for your own fractal formulas.''',
             get_files("formulas", "uxf")),
 
            # documentation
-           ('share/gnome/help/gnofract4d/C',
-            get_files("doc/gnofract4d-manual/C", "xml")),
-           ('share/gnome/help/gnofract4d/C/figures',
-            get_files("doc/gnofract4d-manual/C/figures",".png")),
-           ('share/gnome/help/gnofract4d/C',
-            get_files("doc/gnofract4d-manual/C", "html")),
-           ('share/gnome/help/gnofract4d/C',
-            get_files("doc/gnofract4d-manual/C",".css")),
-           
+
            #internal pixmaps
            ('share/pixmaps/gnofract4d',
             ['pixmaps/improve_now.png',
