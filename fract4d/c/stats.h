@@ -76,12 +76,5 @@ struct s_pixel_stat{
     double better_depth_ratio() const { 
 	return ((double)s[BETTER_DEPTH_PIXELS])/s[PIXELS]; 
     }
-
-    double worse_tolerance_ratio() const { 
-	return ((double)s[WORSE_TOLERANCE_PIXELS])/s[PIXELS]; 
-    }
-    double better_tolerance_ratio() const { 
-	return ((double)s[BETTER_TOLERANCE_PIXELS])/s[PIXELS]; 
-    }
 };
 

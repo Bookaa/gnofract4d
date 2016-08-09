@@ -77,7 +77,6 @@ fractFunc::fractFunc(
 
     maxiter = maxiter_;
     auto_deepen = true;
-    auto_tolerance = true;
     period_tolerance = 0.0;
     periodicity = true;
     warp_param = -1;
@@ -167,26 +166,6 @@ fractFunc::updateiters()
         }
     }
 
-    if(!auto_tolerance)
-    {
-        // otherwise we might loosen without having gathered any stats
-        return flags;
-    }
-
-    double tightenpercent = stats.better_tolerance_ratio() * AUTO_DEEPEN_FREQUENCY*100;
-    double loosenpercent = stats.worse_tolerance_ratio() * AUTO_DEEPEN_FREQUENCY*100;
-
-    if(tightenpercent > 0.1)
-    {
-        //printf("tightening\n");
-        flags |= SHOULD_TIGHTEN;
-    }
-    else if(tightenpercent == 0.0 && loosenpercent < 0.5 &&
-            period_tolerance < 1.0E-4)
-    {
-        //printf("relaxing\n");
-        flags |= SHOULD_LOOSEN;
-    }
     return flags;
 }
 

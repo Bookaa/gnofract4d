@@ -351,67 +351,6 @@ STFractWorker::compute_stats(const dvec4& pos, int iter, fate_t fate, int x, int
     {
         compute_auto_deepen_stats(pos, iter, x, y);
     }
-    if (ff->periodicity && ff->auto_tolerance && 
-        stats.s[PIXELS] % ff->AUTO_TOLERANCE_FREQUENCY == 0)
-    {
-        compute_auto_tolerance_stats(pos, iter, x, y);
-    }
-}
-
-void
-STFractWorker::compute_auto_tolerance_stats(const dvec4& pos, int iter, int x, int y)
-{
-    if(iter == -1)
-    {
-        // currently inside
-        
-        // Possibly we incorrectly classified this as inside due to
-        // loose period tolerance. Try with a tighter bound and see if it helps
-        rgba_t temp_pixel;
-        float temp_index;
-        fate_t temp_fate;
-        int temp_iter;
-        /* try again with 10x tighter tolerance */
-        // printf("calc_pf 391 compute_auto_tolerance_stats\n");
-        pf->calc_pf(
-            pos.n, ff->maxiter,
-            0, ff->period_tolerance / 10.0,
-            ff->warp_param,
-            x,y,-1,
-            &temp_pixel,&temp_iter, &temp_index, &temp_fate);
-            
-        if (temp_iter != -1)
-        {
-            // current tolerance is too loose, we would get 1 more
-            // pixel correct if we tightened it
-            stats.s[BETTER_TOLERANCE_PIXELS]++;
-        }
-    }
-    else
-    {
-        // currently outside
-        
-        // Possibly we're trying too hard, and we'd still get this right with a 
-        // looser period tolerance. Try it and see
-        rgba_t temp_pixel;
-        float temp_index;
-        fate_t temp_fate;
-        int temp_iter;
-        /* try again with 10x looser tolerance */
-        // printf("calc_pf 417 compute_auto_tolerance_stats\n");
-        pf->calc_pf(
-            pos.n, ff->maxiter,
-            0, ff->period_tolerance * 10.0,
-            ff->warp_param,
-            x,y,-1,
-            &temp_pixel,&temp_iter, &temp_index, &temp_fate);
-            
-        if(temp_iter == -1)
-        {
-            // if we loosened, we'd get this pixel wrong
-            stats.s[WORSE_TOLERANCE_PIXELS]++;
-        }
-    }
 }
 
 void

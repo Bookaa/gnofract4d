@@ -106,7 +106,6 @@ class fractFunc {
     int maxiter;
     // int nThreads;
     bool auto_deepen;
-    bool auto_tolerance;
     bool periodicity;
     double period_tolerance;
     int debug_flags;
