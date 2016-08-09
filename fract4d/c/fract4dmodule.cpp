@@ -1432,26 +1432,6 @@ fw_pixel(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-fw_pixel_aa(PyObject *self, PyObject *args)
-{
-    PyObject *pyworker;
-    int x,y;
-
-    if(!PyArg_ParseTuple(args, "Oii",
-                         &pyworker,
-                         &x,&y))
-    {
-        return NULL;
-    }
-    
-    IFractWorker *worker = (IFractWorker *)PyCObject_AsVoidPtr(pyworker);
-    worker->pixel_aa(x,y);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-static PyObject *
 fw_find_root(PyObject *self, PyObject *args)
 {
     PyObject *pyworker;
@@ -1596,20 +1576,9 @@ pycalc(PyObject *self, PyObject *args, PyObject *kwds)
         // synchronous
         printf("call calc 1728 \n");
         calc_4(cargs->params,
-             //cargs->eaa,
              cargs->maxiter,
-             // cargs->nThreads,
              cargs->pfo,
              cargs->cmap,
-             // cargs->auto_deepen,
-             // cargs->auto_tolerance,
-             // cargs->tolerance,
-             // cargs->yflip,
-             // cargs->periodicity,
-             // cargs->dirty,
-             // 0, // debug_flags
-             // cargs->render_type,
-             // cargs->warp_param,
              cargs->im,
              cargs->site);
 
@@ -2503,8 +2472,7 @@ static PyMethodDef PfMethods[] = {
       "Create a fractWorker." },
     { "fw_pixel", fw_pixel, METH_VARARGS,
       "Draw a single pixel." },
-    { "fw_pixel_aa", fw_pixel_aa, METH_VARARGS,
-      "Draw a single pixel." },
+    // { "fw_pixel_aa", fw_pixel_aa, METH_VARARGS, "Draw a single pixel." },
     { "fw_find_root", fw_find_root, METH_VARARGS,
       "Find closest root considering fractal function along a vector"},
     

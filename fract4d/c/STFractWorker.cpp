@@ -78,8 +78,9 @@ STFractWorker::work(job_info_t& tdata)
         nRows = param;
         break;
     case JOB_ROW_AA:
-        //printf("RAA(%d,%d,%d) [%x]\n",x,y,param,(unsigned int)pthread_self());
-        row_aa(x,y,param);
+        // printf("RAA(%d,%d,%d) [%x]\n",x,y,param,(unsigned int)pthread_self());
+        // bookaa comment: row_aa(x,y,param);
+        printf("why here JOB_ROW_AA \n");
         nRows=1;
         break;
     case JOB_QBOX_ROW:
@@ -92,14 +93,6 @@ STFractWorker::work(job_info_t& tdata)
     }
     ff->image_changed(0,y,im->Xres(),y+ nRows);
     ff->progress_changed((float)y/(float)im->Yres());
-}
-
-void
-STFractWorker::row_aa(int x, int y, int w)
-{
-    for(int x = 0; x < w ; x++) {
-        pixel_aa ( x, y);
-    }
 }
 
 inline int
@@ -582,48 +575,6 @@ STFractWorker::needs_aa_calc(int x, int y)
         }
     }
     return false;
-}
-
-void
-STFractWorker::pixel_aa(int x, int y)
-{
-    rgba_t pixel;
-
-    int iter = im->getIter(x,y);
-
-    
-    // if aa type is fast, short-circuit some points
-    if(ff->eaa == AA_FAST &&
-       x > 0 && x < im->Xres()-1 && y > 0 && y < im->Yres()-1)
-    {
-        // check to see if this point is surrounded by others of the same colour
-        // if so, don't bother recalculating
-        int pcol = RGB2INT(x,y);
-        bool bFlat = true;
-
-        // this could go a lot faster if we cached some of this info
-        //bFlat = isTheSame(bFlat,iter,pcol,x-1,y-1);
-        bFlat = isTheSame(bFlat,iter,pcol,x,y-1);
-        //bFlat = isTheSame(bFlat,iter,pcol,x+1,y-1);
-        bFlat = isTheSame(bFlat,iter,pcol,x-1,y);
-        bFlat = isTheSame(bFlat,iter,pcol,x+1,y);
-        //bFlat = isTheSame(bFlat,iter,pcol,x-1,y+1);
-        bFlat = isTheSame(bFlat,iter,pcol,x,y+1);
-        //bFlat = isTheSame(bFlat,iter,pcol,x+1,y+1);
-        if(bFlat)           
-        {
-            if(ff->debug_flags & DEBUG_DRAWING_STATS)
-            {
-                printf("noaa %d %d\n", x, y);
-            }
-            im->fill_subpixels(x,y);
-            return;
-        }
-    }
-
-    pixel = antialias(x,y);
-
-    rectangle(pixel,x,y,1,1,true);
 }
 
 bool 

@@ -61,16 +61,7 @@ gettimediff(struct timeval& startTime, struct timeval& endTime)
  
 fractFunc::fractFunc(
         d *params_,
-        // int eaa_,
         int maxiter_,
-        // int nThreads_,
-        // bool auto_deepen_,
-        // bool auto_tolerance_,
-        // double period_tolerance_,
-        // bool yflip,
-        // bool periodicity_,
-        // render_type_t render_type_,
-        // int warp_param_,
         IFractWorker *fw,
         IImage *im_, 
         IFractalSite *site_)
@@ -84,9 +75,7 @@ fractFunc::fractFunc(
     worker = fw;
     params = params_;
 
-    eaa = 1;
     maxiter = maxiter_;
-    // nThreads = nThreads_;
     auto_deepen = true;
     auto_tolerance = true;
     period_tolerance = 0.0;
@@ -99,9 +88,7 @@ fractFunc::fractFunc(
            im->Xres(), im->Yres(), im->totalXres(), im->totalYres(),
            im->Xoffset(), im->Yoffset());
     */
-    dvec4 center = dvec4(
-        params[XCENTER],params[YCENTER],
-        params[ZCENTER],params[WCENTER]);
+    dvec4 center = dvec4(params[XCENTER],params[YCENTER], params[ZCENTER],params[WCENTER]);
 
     rot = rotated_matrix(params);
 
@@ -203,43 +190,6 @@ fractFunc::updateiters()
     return flags;
 }
 
-void fractFunc::draw_aa(float min_progress, float max_progress)
-{
-    int w = im->Xres();
-    int h = im->Yres();
-
-    reset_counts();
-
-    float delta = (max_progress - min_progress)/2.0;
-
-    // if we have multiple threads, make sure they don't modify
-    // pixels the other thread will look at - that wouldn't be 
-    // an error per se but would make drawing nondeterministic,
-    // which I'm trying to avoid
-    // We do this by drawing every even line, then every odd one.
-
-    for(int i = 0; i < 2 ; ++i)
-    {
-        set_progress_range(
-            min_progress + delta * i,
-            min_progress + delta * (i+1));
-
-        reset_progress(0.0);
-        last_update_y = 0;
-
-        for(int y = i; y < h ; y+= 2) 
-        {
-            worker->row_aa(0,y,w);
-            if(update_image(y))
-            {
-                break;
-            }
-        }
-        reset_progress(1.0);
-    }
-    stats_changed();
-}
-
 void fractFunc::reset_counts()
 {
     worker->reset_counts();    
@@ -292,7 +242,7 @@ void fractFunc::draw_all()
     float minp = 0.0, maxp= 0.3; 
     draw(16,16,minp,maxp);    
 
-    minp = 0.5; maxp = (eaa == AA_NONE ? 0.9 : 0.5);
+    minp = 0.5; maxp = 0.9; // (eaa == AA_NONE ? 0.9 : 0.5);
     int improvement_flags;
     while((improvement_flags = updateiters()) & SHOULD_IMPROVE)
     {
@@ -317,11 +267,6 @@ void fractFunc::draw_all()
         draw(16,1,minp,maxp);
     }
     
-    if(eaa > AA_NONE) {
-        status_changed(GF4D_FRACTAL_ANTIALIASING);
-        draw_aa(maxp,1.0);
-    }
-    else
     {
         set_progress_range(0.0,1.0);
         progress_changed(1.0);
@@ -434,35 +379,13 @@ fractFunc::vec_for_point(double x, double y)
     return vec;
 }
 
-void calc_4(
-    d *params,
-    // int eaa,
+void calc_4(d *params,
     int maxiter,
-    // int nThreads,
     pf_obj *pfo, 
     ColorMap *cmap, 
-    // bool auto_deepen,
-    // bool auto_tolerance,
-    // double tolerance,
-    // bool yflip,
-    // bool periodicity,
-    // bool dirty,
-    // int debug_flags,
-    // render_type_t render_type,
-    // int warp_param,
     IImage *im, 
     IFractalSite *site)
 {
-    // int eaa = 1;
-    // bool auto_deepen = true;
-    // bool auto_tolerance = true;
-    // double tolerance = 0.0;
-    // bool yflip = false;
-    // bool periodicity = true;
-
-    // render_type_t render_type = RENDER_TWO_D;
-    // int warp_param = -1;
-
     assert(NULL != im && NULL != site && 
            NULL != cmap && NULL != pfo && NULL != params);
     IFractWorker *worker = IFractWorker::create(pfo,cmap,im,site);
@@ -471,16 +394,7 @@ void calc_4(
     {
         fractFunc ff(
             params, 
-            // 1, // eaa,
             maxiter,
-            // nThreads,
-            // true, // auto_deepen,
-            // true, // auto_tolerance,
-            // 0.0,  // tolerance,
-            // false, // yflip,
-            // true, // periodicity,
-            // RENDER_TWO_D, // render_type,
-            // -1, // warp_param,
             worker,
             im,
             site);

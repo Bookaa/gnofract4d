@@ -55,9 +55,6 @@ class STFractWorker : public IFractWorker {
     // top-level function for multi-threaded workers
     void work(job_info_t &tdata);
 
-    // calculate a row of antialiased pixels
-    void row_aa(int x, int y, int n);
-
     // calculate a row of pixels
     void row(int x, int y, int n);
 
@@ -95,9 +92,6 @@ class STFractWorker : public IFractWorker {
 
     // calculate a single pixel
     void pixel(int x, int y, int h, int w);
-
-    // calculate a single pixel in aa-mode
-    void pixel_aa(int x, int y);
 
     // draw a rectangle of this colour
     void rectangle(rgba_t pixel, 
@@ -170,7 +164,6 @@ class MTFractWorker : public IFractWorker
     void set_fractFunc(fractFunc *ff); 
 
     // operations
-    virtual void row_aa(int x, int y, int n) ;
     virtual void row(int x, int y, int n) ;
     virtual void box(int x, int y, int rsize) ;
     virtual void qbox_row(int w, int y, int rsize, int drawsize);

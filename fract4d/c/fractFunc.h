@@ -18,18 +18,8 @@
 
 class fractFunc {
  public:
-    fractFunc(
-        d *params,
-        // int eaa,
+    fractFunc(d *params,
         int maxiter,
-        // int nThreads_,
-        // bool auto_deepen,
-        // bool auto_tolerance,
-        // double period_tolerance,
-        // bool yflip,
-        // bool periodicity,
-        // render_type_t render_type,
-        // int warp_param,
         IFractWorker *fw,
         IImage *_im, 
         IFractalSite *_site);
@@ -40,7 +30,6 @@ class fractFunc {
 
     void draw_all();
     void draw(int rsize, int drawsize, float min_progress, float max_progress);    
-    void draw_aa(float min_progress, float max_progress);
     int updateiters();
 
     // a vector from the eye through the pixel at (x,y)
@@ -113,7 +102,7 @@ class fractFunc {
     };
 
     // params from ctor    
-    int eaa;
+    // int eaa;
     int maxiter;
     // int nThreads;
     bool auto_deepen;
@@ -174,20 +163,9 @@ extern "C" {
 
 extern void calc_4(
     d *params,
-    // int eaa,
     int maxiter,
-    // int nThreads_,
     pf_obj *pfo, 
     ColorMap *cmap, 
-    // bool auto_deepen,
-    // bool auto_tolerance,
-    // double tolerance,
-    // bool yflip,
-    // bool periodicity,
-    // bool dirty,
-    // int  debug_flags,
-    // render_type_t render_type,
-    // int warp_param,
     IImage *im, 
     IFractalSite *site);
 

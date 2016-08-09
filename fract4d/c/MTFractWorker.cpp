@@ -58,19 +58,6 @@ MTFractWorker::set_fractFunc(fractFunc *ff_)
 }
 
 void
-MTFractWorker::row_aa(int x, int y, int n)
-{
-    if(nWorkers > 1 && n > 8)
-    {
-        send_row_aa(x,y,n);
-    }
-    else
-    {
-        ptf->row_aa(x,y,n);
-    }
-}
-
-void
 MTFractWorker::row(int x, int y, int n)
 {
     if(nWorkers > 1 && n > 8)

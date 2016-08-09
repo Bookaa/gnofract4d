@@ -19,9 +19,6 @@ public:
 
     virtual void set_fractFunc(fractFunc *ff_) =0;
 
-    // calculate a row of antialiased pixels
-    virtual void row_aa(int x, int y, int n) =0;
-
     // calculate a row of pixels
     virtual void row(int x, int y, int n) =0;
 
@@ -36,9 +33,6 @@ public:
 
     // calculate a single pixel
     virtual void pixel(int x, int y, int w, int h) =0;
-
-    // calculate a single pixel in aa-mode
-    virtual void pixel_aa(int x, int y) =0;
 
     // auto-deepening record keeping
     virtual void reset_counts() =0;
