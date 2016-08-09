@@ -25,26 +25,12 @@ class fractFunc {
         IFractalSite *_site);
     // ~fractFunc();
 
-    // additional flags controlling debugging & profiling options
-    void set_debug_flags(int debug_flags);
-
     void draw_all();
     void draw(int rsize, int drawsize, float min_progress, float max_progress);    
-
-    // a vector from the eye through the pixel at (x,y)
-    dvec4 vec_for_point(double x, double y);
 
     friend class STFractWorker;
 
     // callback wrappers
-    inline void iters_changed(int iters)
-    {
-        site->iters_changed(iters);
-    }
-    inline void tolerance_changed(double tolerance)
-    {
-        site->tolerance_changed(tolerance);
-    }
     inline void image_changed(int x1, int x2, int y1, int y2)
     {
         site->image_changed(x1,x2,y1,y2);
@@ -103,10 +89,10 @@ class fractFunc {
     // params from ctor    
     // int eaa;
     int maxiter;
-    double period_tolerance;
+    // double period_tolerance;
     int debug_flags;
     render_type_t render_type;
-    int warp_param;
+    //int warp_param;
     d *params;
 
     IImage *im;    

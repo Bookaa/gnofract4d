@@ -32,22 +32,14 @@ class STFractWorker : public IFractWorker {
     /* not a ctor because we always create a whole array then init them */
     bool init(pf_obj *pfo, ColorMap *cmap, IImage *im, IFractalSite *site);
 
-    ~STFractWorker();    
+    ~STFractWorker() {
+        delete pf;
+    }
 
     STFractWorker() {
         reset_counts();
         lastIter = 0;
     }
-
-    // heuristic to see if we should use periodicity checking for next point
-    inline int periodGuess();
-
-    // periodicity guesser for when we have the last count to hand 
-    // (as for antialias pass)
-    inline int periodGuess(int last);
-
-    // periodicity guesser to look up nearby points & guess based on that
-    inline int periodGuess(int x, int y);
 
     // update whether last pixel bailed
     inline void periodSet(int *ppos);
@@ -123,10 +115,6 @@ class STFractWorker : public IFractWorker {
 
     // period guessing
     int lastIter; // how many iterations did last pixel take?
-
-
-    // return true if this pixel needs recalc in AA pass
-    bool needs_aa_calc(int x, int y);
 
     bool m_ok;
 };

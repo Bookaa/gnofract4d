@@ -21,11 +21,11 @@ class pointFunc {
         // in params. params points to [x,y,cx,cy]
         const double *params, int nIters, 
         // periodicity params
-        int min_period_iters, double period_tolerance,
+        int min_period_iters, // double period_tolerance,
         // warping
-        int warp_param,
+        // int warp_param,
         // only used for debugging
-        int x, int y, int aa,
+        int x, int y,
         // out params
         rgba_t *color, int *pnIters, float *pIndex, fate_t *pFate
         ) const = 0;

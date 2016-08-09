@@ -14,8 +14,7 @@ IFractWorker::create(pf_obj *pfo, ColorMap *cmap, IImage *im_, IFractalSite *sit
 } 
 
 bool
-STFractWorker::init(
-    pf_obj *pfo, ColorMap *cmap, IImage *im_, IFractalSite *site)
+STFractWorker::init(pf_obj *pfo, ColorMap *cmap, IImage *im_, IFractalSite *site)
 {
     ff = NULL;
     im = im_;
@@ -29,43 +28,10 @@ STFractWorker::init(
     return m_ok;
 }
 
-STFractWorker::~STFractWorker()
-{
-    delete pf;
-}
-
 void
 STFractWorker::set_fractFunc(fractFunc *ff_)
 {
     ff = ff_;
-}
-
-inline int
-STFractWorker::periodGuess()
-{ 
-    return ff->maxiter;
-}
-
-inline int
-STFractWorker::periodGuess(int x, int y)
-{
-    if (x <= 0)
-    {
-        return periodGuess();
-    }
-    fate_t previousxFate = im->getFate(x-1,y,0);
-    if (FATE_UNKNOWN == previousxFate)
-    {
-        return periodGuess();
-    }
-    int last = im->getIter(x-1,y);
-    return periodGuess(last);
-}
-
-inline int
-STFractWorker::periodGuess(int last) {
-
-    return ff->maxiter;
 }
 
 inline void 
@@ -175,9 +141,10 @@ STFractWorker::pixel(int x, int y,int w, int h)
             // printf("calc_pf 490 pixel\n");
             pf->calc_pf(
                 pos.n, ff->maxiter,
-                periodGuess(), ff->period_tolerance,
-                ff->warp_param,
-                x,y,0,
+                ff->maxiter, 
+                // 0.0, // ff->period_tolerance,
+                // -1, // ff->warp_param,
+                x,y,
                 &pixel,&iter,&index,&fate);
 
             compute_stats(pos,iter,fate,x,y);
@@ -243,19 +210,6 @@ STFractWorker::qbox_row(int w, int y, int rsize, int drawsize)
     {
         row (x, y2, w-x);
     }
-}
-
-bool
-STFractWorker::needs_aa_calc(int x, int y)
-{
-    for(int i = 0; i < im->getNSubPixels(); ++i)
-    {
-        if(im->getFate(x,y,i) == FATE_UNKNOWN)
-        {
-            return true;
-        }
-    }
-    return false;
 }
 
 bool 

@@ -40,14 +40,17 @@ public:
         // in params
         const double *params, int nIters, 
         // periodicity
-        int min_period_iters, double period_tolerance,
+        int min_period_iters, // double period_tolerance,
         // warping
-        int warp_param,
+        // int warp_param,
         // only used for debugging
-        int x, int y, int aa,
+        int x, int y,
         // out params
         rgba_t *color, int *pnIters, float *pIndex, fate_t *pFate) const
 	{
+        double period_tolerance = 0.0;
+        int warp_param = -1;
+        int aa = 0;
 	    double dist = 0.0; 
 	    int fate = 0;
 	    int solid = 0;
@@ -94,6 +97,7 @@ public:
             dist,fate,color_iters,
             color->r, color->g, color->b, color->a);
 	}
+
     inline rgba_t recolor(double dist, fate_t fate, rgba_t current) const
 	{	    
 	    int solid = 0;

@@ -183,12 +183,6 @@ image::set_offset(int x, int y)
     return true;
 }
 
-double 
-image::ratio() const
-{
-    return ((double)m_Yres / m_Xres);
-}
-
 void 
 image::fill_subpixels(int x, int y)
 {

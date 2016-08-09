@@ -116,7 +116,6 @@ public:
     bool set_resolution(int x, int y, int totalx, int totaly);
     bool set_offset(int x, int y);
 
-    double ratio() const;
     void clear();
 };
 

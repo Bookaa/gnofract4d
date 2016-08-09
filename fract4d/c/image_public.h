@@ -48,8 +48,6 @@ public:
 
     virtual bool ok() = 0;
 
-    // return xres()/yres()
-    virtual double ratio() const = 0;
     // set every iter value to -1. Other data need not be cleared
     virtual void clear() = 0;
 

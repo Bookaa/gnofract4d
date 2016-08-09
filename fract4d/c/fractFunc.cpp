@@ -76,8 +76,8 @@ fractFunc::fractFunc(
     params = params_;
 
     maxiter = maxiter_;
-    period_tolerance = 0.0;
-    warp_param = -1;
+    // period_tolerance = 0.0;
+    // warp_param = -1;
 
     set_progress_range(0.0,1.0);
     /*
@@ -260,21 +260,6 @@ fractFunc::draw(
     /* refresh entire image & reset progress bar */
     reset_progress(1.0);
     stats_changed();
-}
-
-void 
-fractFunc::set_debug_flags(int debug_flags)
-{
-    this->debug_flags = debug_flags;
-}
-
-dvec4
-fractFunc::vec_for_point(double x, double y)
-{
-    dvec4 point = topleft + x * deltax + y * deltay;
-    dvec4 vec = point - eye_point;
-    vec.norm();
-    return vec;
 }
 
 void calc_4(d *params,
