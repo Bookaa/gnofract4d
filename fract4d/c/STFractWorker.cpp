@@ -188,27 +188,7 @@ STFractWorker::pixel(int x, int y,int w, int h)
             break;
 
         case RENDER_THREE_D:
-        {
-            dvec4 look = ff->vec_for_point(x,y);
-            dvec4 root;
-            bool found = find_root(ff->eye_point, look, root);
-            if(found)
-            {
-                // intersected
-                iter = -1;
-                pixel.r = pixel.g = pixel.b = 0;
-                fate = 1;
-                index = 0.0;
-            }
-            else
-            {
-                // did not intersect
-                iter = 1;
-                pixel.r = pixel.g = pixel.b = 0xff;
-                fate = 0;
-                index = 1.0;
-            }
-        }
+            assert(0 && "not supported");
             break;
         }
 
@@ -518,39 +498,6 @@ STFractWorker::rectangle(
 }
 
 inline void
-STFractWorker::check_guess(int x, int y, rgba_t pixel, fate_t fate, int iter, float index)
-{
-    // check if guess was correct
-    if (true) 
-    {
-        dvec4 pos = ff->topleft + x * ff->deltax + y * ff->deltay;
-        rgba_t tpixel;
-        int titer;
-        float tindex;
-        fate_t tfate;
-        // printf("calc_pf 880 check_guess\n");
-        pf->calc_pf(
-            pos.n, ff->maxiter,
-            periodGuess(), ff->period_tolerance,
-            ff->warp_param,
-            x,y,0,
-            &tpixel,&titer,&tindex,&tfate);
-        if (Pixel2INT(tpixel) == Pixel2INT(pixel))
-//          fate == tfate &&
-//          iter == titer &&
-//          fabs(index-tindex) < 1.0e-2)
-        {
-            stats.s[PIXELS_SKIPPED_RIGHT]++;
-        }
-        else
-        {
-            stats.s[PIXELS_SKIPPED_WRONG]++;
-        }
-    }
-
-}
-
-inline void
 STFractWorker::rectangle_with_iter(
     rgba_t pixel, fate_t fate, int iter, float index, 
     int x, int y, int w, int h)
@@ -575,88 +522,3 @@ STFractWorker::rectangle_with_iter(
     }
 }
 
-
-bool
-STFractWorker::find_root(const dvec4& eye, const dvec4& look, dvec4& root)
-{
-    d dist = 0.0;
-
-    rgba_t pixel;
-    float index;
-    fate_t fate = FATE_UNKNOWN;
-    int iter;
-    int x=-1, y=-1;
-
-    int steps = 0;
-    d lastdist = dist;
-    dvec4 pos;
-
-    while(1)
-    {
-        if(dist > 1.0e3) // FIXME
-        {
-            // couldn't find anything
-#ifdef DEBUG_ROOTS
-            printf("not found after %d\n", steps);
-#endif
-            return false;
-        }
-
-        pos = eye + dist * look;
-    
-        //printf("%g %g %g %g\n", pos[0], pos[1], pos[2], pos[3]);
-        // printf("calc_pf 965 find_root\n");
-        pf->calc_pf(
-            pos.n, ff->maxiter,
-            periodGuess(), ff->period_tolerance,
-            ff->warp_param,
-            x,y,0,
-            &pixel,&iter,&index,&fate); 
-    
-        steps += 1;
-        if(fate != 0) // FIXME
-        {
-            // inside
-#ifdef DEBUG_ROOTS
-            printf("bracketed after %d\n", steps);
-#endif
-            break;
-        }
-
-        lastdist = dist;
-        dist += 0.1;
-    }
-
-    // the root must be between lastdist and dist
-    // bisect a few times to polish the root
-
-    while(fabs(lastdist - dist) > 1.0E-10) // FIXME
-    {
-        d mid = (lastdist + dist)/2.0;
-
-        pos = eye + mid * look;
-        // printf("calc_pf 995 find_root\n");
-        pf->calc_pf(pos.n, ff->maxiter,
-                 periodGuess(), ff->period_tolerance,
-                 ff->warp_param,
-                 x,y,0,
-                 &pixel,&iter,&index,&fate); 
-
-        if( fate != 0) // FIXME
-        {
-            //inside, root must be further out
-            dist = mid;
-        }
-        else
-        {
-            //outside, root must be further in
-            lastdist = mid;
-        }
-        steps += 1;
-    }
-#ifdef DEBUG_ROOTS
-    printf("polished after %d\n", steps);
-#endif
-    root = pos;
-    return true;
-}

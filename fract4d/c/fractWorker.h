@@ -35,7 +35,7 @@ class STFractWorker : public IFractWorker {
     ~STFractWorker();    
 
     STFractWorker() {
-	reset_counts();
+        reset_counts();
         lastIter = 0;
     }
 
@@ -102,18 +102,12 @@ class STFractWorker : public IFractWorker {
     void interpolate_rectangle(int x, int y, int rsize);
     void interpolate_row(int x, int y, int rsize);
 
-    // compare a prediction against the real answer & update stats
-    inline void check_guess(int x, int y, rgba_t pixel, fate_t fate, int iter, float index);
-
     void reset_counts();
     const pixel_stat_t& get_stats() const;
 
     void flush() {};
     bool ok() { return m_ok; }
  
-    // ray-tracing machinery
-    bool find_root(const dvec4& eye, const dvec4& look, dvec4& root);
-
  private:
 
     void compute_stats(const dvec4& pos, int iter, fate_t fate, int x, int y);

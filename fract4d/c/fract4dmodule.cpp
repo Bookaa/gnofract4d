@@ -1293,12 +1293,6 @@ site_delete(IFractalSite *site)
     delete site;
 }
 
-static void
-fw_delete(IFractWorker *worker)
-{
-    delete worker;
-}
-
 struct ffHandle
 {
     PyObject *pyhandle;
@@ -1364,96 +1358,6 @@ pystop_calc(PyObject *self, PyObject *args)
     Py_INCREF(Py_None);
     return Py_None;
 }
-
-static PyObject *
-fw_create(PyObject *self, PyObject *args)
-{
-    //int nThreads;
-    pf_obj *pfo;
-    ColorMap *cmap;
-    IImage *im;
-    IFractalSite *site;
-
-    PyObject *pypfo, *pycmap, *pyim, *pysite;
-
-    if(!PyArg_ParseTuple(args,"OOOO",
-                         //&nThreads,
-                         &pypfo,
-                         &pycmap,
-                         &pyim,
-                         &pysite))
-    {
-        return NULL;
-    }
-
-    cmap = (ColorMap *)PyCObject_AsVoidPtr(pycmap);
-    pfo = ((pfHandle *)PyCObject_AsVoidPtr(pypfo))->pfo;
-    im = (IImage *)PyCObject_AsVoidPtr(pyim);
-    site = (IFractalSite *)PyCObject_AsVoidPtr(pysite);
-    if(!cmap || !pfo || !im || !im->ok() || !site)
-    {
-        return NULL;
-    }
-
-
-    IFractWorker *worker = IFractWorker::create(pfo,cmap,im,site);
-
-    if(!worker->ok())
-    {
-        PyErr_SetString(PyExc_ValueError,"Error creating worker");
-        delete worker;
-        return NULL;
-    }
-
-    PyObject *pyret = PyCObject_FromVoidPtr(
-        worker,(void (*)(void *))fw_delete);
-
-    return pyret;
-}
-
-static PyObject *
-fw_pixel(PyObject *self, PyObject *args)
-{
-    PyObject *pyworker;
-    int x,y,w,h;
-
-    if(!PyArg_ParseTuple(args, "Oiiii",
-                         &pyworker,
-                         &x,&y,&w,&h))
-    {
-        return NULL;
-    }
-    
-    IFractWorker *worker = (IFractWorker *)PyCObject_AsVoidPtr(pyworker);
-    worker->pixel(x,y,w,h);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-static PyObject *
-fw_find_root(PyObject *self, PyObject *args)
-{
-    PyObject *pyworker;
-    dvec4 eye, look;
-
-    if(!PyArg_ParseTuple(args, "O(dddd)(dddd)",
-                         &pyworker,
-                         &eye[VX],&eye[VY], &eye[VZ], &eye[VW],
-                         &look[VX],&look[VY], &look[VZ], &look[VW]))
-    {
-        return NULL;
-    }
-    
-    IFractWorker *worker = (IFractWorker *)PyCObject_AsVoidPtr(pyworker);
-    dvec4 root;
-    int ok = worker->find_root(eye,look,root);
-
-    return Py_BuildValue(
-        "i(dddd)",
-        ok,root[0], root[1], root[2], root[3]);
-}
-
 
 static calc_args *
 parse_calc_args(PyObject *args, PyObject *kwds)
@@ -2046,136 +1950,6 @@ image_get_fate(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-rot_matrix(PyObject *self, PyObject *args)
-{
-    double params[N_PARAMS];
-
-    if(!PyArg_ParseTuple(
-           args,
-           "(ddddddddddd)",
-           &params[0],&params[1],&params[2],&params[3],
-           &params[4],&params[5],&params[6],&params[7],
-           &params[8],&params[9],&params[10]))
-    {
-        return NULL;
-    }
-
-    dmat4 rot = rotated_matrix(params);
-
-    return Py_BuildValue(
-        "((dddd)(dddd)(dddd)(dddd))",
-        rot[0][0], rot[0][1], rot[0][2], rot[0][3],
-        rot[1][0], rot[1][1], rot[1][2], rot[1][3],
-        rot[2][0], rot[2][1], rot[2][2], rot[2][3],
-        rot[3][0], rot[3][1], rot[3][2], rot[3][3]);
-}
-
-static PyObject *
-eye_vector(PyObject *self, PyObject *args)
-{
-    double params[N_PARAMS], dist;
-
-    if(!PyArg_ParseTuple(
-           args,
-           "(ddddddddddd)d",
-           &params[0],&params[1],&params[2],&params[3],
-           &params[4],&params[5],&params[6],&params[7],
-           &params[8],&params[9],&params[10],&dist))
-    {
-        return NULL;
-    }
-
-    dvec4 eyevec = test_eye_vector(params, dist);
-
-    return Py_BuildValue(
-        "(dddd)",
-        eyevec[0], eyevec[1], eyevec[2], eyevec[3]);
-}
-
-static PyObject *
-ff_get_vector(PyObject *self, PyObject *args)
-{
-    int vec_type;
-    PyObject *pyFF;
-
-    if(!PyArg_ParseTuple(
-           args,
-           "Oi",
-           &pyFF, &vec_type))
-    {
-        return NULL;
-    }
-
-    struct ffHandle *ffh = (struct ffHandle *)PyCObject_AsVoidPtr(pyFF);
-    if(ffh == NULL)
-    {
-        return NULL;
-    }
-
-    fractFunc *ff = ffh->ff;
-    if(ff == NULL)
-    {
-        return NULL;
-    }
-
-    dvec4 vec;
-    switch(vec_type)
-    {
-    case DELTA_X:
-        vec = ff->deltax;
-        break;
-    case DELTA_Y:
-        vec = ff->deltay;
-        break;
-    case TOPLEFT:
-        vec = ff->topleft;
-        break;
-    default:
-        PyErr_SetString(PyExc_ValueError, "Unknown vector requested");
-        return NULL;
-    }
-
-    return Py_BuildValue(
-        "(dddd)",
-        vec[0], vec[1], vec[2], vec[3]);
-    
-    return NULL;
-}
-
-static PyObject *
-ff_look_vector(PyObject *self, PyObject *args)
-{
-    PyObject *pyFF;
-    double x, y;
-    if(!PyArg_ParseTuple(
-           args,
-           "Odd",
-           &pyFF, &x, &y))
-    {
-        return NULL;
-    }
-
-    struct ffHandle *ffh = (struct ffHandle *)PyCObject_AsVoidPtr(pyFF);
-    if(ffh == NULL)
-    {
-        return NULL;
-    }
-
-    fractFunc *ff = ffh->ff;
-    if(ff == NULL)
-    {
-        return NULL;
-    }
-
-    dvec4 lookvec = ff->vec_for_point(x,y);
-
-    return Py_BuildValue(
-        "(dddd)",
-        lookvec[0], lookvec[1], lookvec[2], lookvec[3]);
-
-}
-
-static PyObject *
 pyimage_lookup(PyObject *self, PyObject *args)
 {
     PyObject *pyimage=NULL;
@@ -2463,18 +2237,13 @@ static PyMethodDef PfMethods[] = {
       "Create a new file-descriptor site"},
 
     // { "ff_create", ff_create, METH_VARARGS, "Create a fractFunc." },
-    { "ff_look_vector", ff_look_vector, METH_VARARGS,
-      "Get a vector from the eye to a point on the screen" },
-    { "ff_get_vector", ff_get_vector, METH_VARARGS,
-      "Get a vector inside the ff" },
+    // { "ff_look_vector", ff_look_vector, METH_VARARGS, "Get a vector from the eye to a point on the screen" },
+    // { "ff_get_vector", ff_get_vector, METH_VARARGS, "Get a vector inside the ff" },
 
-    { "fw_create", fw_create, METH_VARARGS,
-      "Create a fractWorker." },
-    { "fw_pixel", fw_pixel, METH_VARARGS,
-      "Draw a single pixel." },
+    // { "fw_create", fw_create, METH_VARARGS, "Create a fractWorker." },
+    // { "fw_pixel", fw_pixel, METH_VARARGS, "Draw a single pixel." },
     // { "fw_pixel_aa", fw_pixel_aa, METH_VARARGS, "Draw a single pixel." },
-    { "fw_find_root", fw_find_root, METH_VARARGS,
-      "Find closest root considering fractal function along a vector"},
+    // { "fw_find_root", fw_find_root, METH_VARARGS, "Find closest root considering fractal function along a vector"},
     
     { "calc", (PyCFunction) pycalc, METH_VARARGS | METH_KEYWORDS,
       "Calculate a fractal image"},
@@ -2482,11 +2251,9 @@ static PyMethodDef PfMethods[] = {
     { "interrupt", pystop_calc, METH_VARARGS,
       "Stop an async calculation" },
 
-    { "rot_matrix", rot_matrix, METH_VARARGS,
-      "Return a rotated and scaled identity matrix based on params"},
+    // { "rot_matrix", rot_matrix, METH_VARARGS, "Return a rotated and scaled identity matrix based on params"},
 
-    { "eye_vector", eye_vector, METH_VARARGS,
-      "Return the line between the user's eye and the center of the screen"},
+    // { "eye_vector", eye_vector, METH_VARARGS, "Return the line between the user's eye and the center of the screen"},
 
     { "arena_create", pyarena_create, METH_VARARGS,
       "Create a new arena allocator" },

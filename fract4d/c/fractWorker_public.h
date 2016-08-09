@@ -38,9 +38,6 @@ public:
     virtual void reset_counts() =0;
     virtual const pixel_stat_t& get_stats() const =0;
 
-    // ray-tracing machinery
-    virtual bool find_root(const dvec4& eye, const dvec4& look, dvec4& root) = 0;
-
     virtual ~IFractWorker() {};
 
     virtual void flush() = 0;
