@@ -20,20 +20,20 @@ class fractFunc {
  public:
     fractFunc(
         d *params,
-        int eaa,
+        // int eaa,
         int maxiter,
         // int nThreads_,
-        bool auto_deepen,
-        bool auto_tolerance,
-        double period_tolerance,
-        bool yflip,
-        bool periodicity,
-        render_type_t render_type,
-        int warp_param,
+        // bool auto_deepen,
+        // bool auto_tolerance,
+        // double period_tolerance,
+        // bool yflip,
+        // bool periodicity,
+        // render_type_t render_type,
+        // int warp_param,
         IFractWorker *fw,
         IImage *_im, 
         IFractalSite *_site);
-    ~fractFunc();
+    // ~fractFunc();
 
     // additional flags controlling debugging & profiling options
     void set_debug_flags(int debug_flags);

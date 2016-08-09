@@ -61,16 +61,16 @@ gettimediff(struct timeval& startTime, struct timeval& endTime)
  
 fractFunc::fractFunc(
         d *params_,
-        int eaa_,
+        // int eaa_,
         int maxiter_,
         // int nThreads_,
-        bool auto_deepen_,
-        bool auto_tolerance_,
-        double period_tolerance_,
-        bool yflip,
-        bool periodicity_,
-        render_type_t render_type_,
-        int warp_param_,
+        // bool auto_deepen_,
+        // bool auto_tolerance_,
+        // double period_tolerance_,
+        // bool yflip,
+        // bool periodicity_,
+        // render_type_t render_type_,
+        // int warp_param_,
         IFractWorker *fw,
         IImage *im_, 
         IFractalSite *site_)
@@ -79,19 +79,19 @@ fractFunc::fractFunc(
     im = im_;
     ok = true;
     debug_flags = 0;
-    render_type = render_type_;
+    render_type = RENDER_TWO_D;
     //printf("render type %d\n", render_type);
     worker = fw;
     params = params_;
 
-    eaa = eaa_;
+    eaa = 1;
     maxiter = maxiter_;
     // nThreads = nThreads_;
-    auto_deepen = auto_deepen_;
-    auto_tolerance = auto_tolerance_;
-    period_tolerance = period_tolerance_;
-    periodicity = periodicity_;
-    warp_param = warp_param_;
+    auto_deepen = true;
+    auto_tolerance = true;
+    period_tolerance = 0.0;
+    periodicity = true;
+    warp_param = -1;
 
     set_progress_range(0.0,1.0);
     /*
@@ -111,7 +111,7 @@ fractFunc::fractFunc(
     // distance to jump for one pixel down or across
     deltax = rot[VX];
     // if yflip, draw Y axis down, otherwise up
-    deltay = yflip ? rot[VY] : -rot[VY]; 
+    deltay = -rot[VY]; 
 
     // half that distance
     delta_aa_x = deltax / 2.0;    
@@ -137,10 +137,6 @@ fractFunc::fractFunc(
     last_update_y = 0;
 };
 
-fractFunc::~fractFunc()
-{    
-
-}
 
 bool
 fractFunc::update_image(int i)
@@ -457,17 +453,15 @@ void calc_4(
     IImage *im, 
     IFractalSite *site)
 {
-    int eaa = 1;
-    bool auto_deepen = true;
-    bool auto_tolerance = true;
-    double tolerance = 0.0;
-    bool yflip = false;
-    bool periodicity = true;
-    bool dirty = false;
-    int debug_flags = 0;
+    // int eaa = 1;
+    // bool auto_deepen = true;
+    // bool auto_tolerance = true;
+    // double tolerance = 0.0;
+    // bool yflip = false;
+    // bool periodicity = true;
 
-    render_type_t render_type = RENDER_TWO_D;
-    int warp_param = -1;
+    // render_type_t render_type = RENDER_TWO_D;
+    // int warp_param = -1;
 
     assert(NULL != im && NULL != site && 
            NULL != cmap && NULL != pfo && NULL != params);
@@ -477,25 +471,20 @@ void calc_4(
     {
         fractFunc ff(
             params, 
-            eaa,
+            // 1, // eaa,
             maxiter,
             // nThreads,
-            auto_deepen,
-            auto_tolerance,
-            tolerance,
-            yflip,
-            periodicity,
-            render_type,
-            warp_param,
+            // true, // auto_deepen,
+            // true, // auto_tolerance,
+            // 0.0,  // tolerance,
+            // false, // yflip,
+            // true, // periodicity,
+            // RENDER_TWO_D, // render_type,
+            // -1, // warp_param,
             worker,
             im,
             site);
 
-        ff.set_debug_flags(debug_flags);
-        if(dirty)
-        {
-            im->clear();
-        }
         ff.draw_all();
     }
     delete worker;

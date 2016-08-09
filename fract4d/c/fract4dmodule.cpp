@@ -1305,17 +1305,6 @@ struct ffHandle
     fractFunc *ff;
 } ;
 
-static void
-ff_delete(struct ffHandle *ffh)
-{
-#ifdef DEBUG_CREATION
-    fprintf(stderr,"%p : FF : DTOR\n",ffh);
-#endif
-    delete ffh->ff;
-    Py_DECREF(ffh->pyhandle);
-    delete ffh;
-}
-
 static PyObject *
 pysite_create(PyObject *self, PyObject *args)
 {
@@ -1483,90 +1472,6 @@ fw_find_root(PyObject *self, PyObject *args)
     return Py_BuildValue(
         "i(dddd)",
         ok,root[0], root[1], root[2], root[3]);
-}
-
-static PyObject *
-ff_create(PyObject *self, PyObject *args)
-{
-    PyObject *pypfo, *pycmap, *pyim, *pysite, *pyworker;
-    double params[N_PARAMS];
-    int eaa=-7, maxiter=-8; //, nThreads=-9;
-    int auto_deepen, periodicity;
-    int yflip;
-    render_type_t render_type;
-    pf_obj *pfo;
-    ColorMap *cmap;
-    IImage *im;
-    IFractalSite *site;
-    IFractWorker *worker;
-    int auto_tolerance;
-    double tolerance;
-
-    if(!PyArg_ParseTuple(
-           args,
-           "(ddddddddddd)iiiOOiiiOOOid",
-           &params[0],&params[1],&params[2],&params[3],
-           &params[4],&params[5],&params[6],&params[7],
-           &params[8],&params[9],&params[10],
-           &eaa,&maxiter,&yflip, // &nThreads,
-           &pypfo,&pycmap,
-           &auto_deepen,
-           &periodicity,
-           &render_type,
-           &pyim, &pysite,
-           &pyworker,
-           &auto_tolerance, &tolerance
-           ))
-    {
-        return NULL;
-    }
-
-    cmap = (ColorMap *)PyCObject_AsVoidPtr(pycmap);
-    pfo = ((pfHandle *)PyCObject_AsVoidPtr(pypfo))->pfo;
-    im = (IImage *)PyCObject_AsVoidPtr(pyim);
-    site = (IFractalSite *)PyCObject_AsVoidPtr(pysite);
-    worker = (IFractWorker *)PyCObject_AsVoidPtr(pyworker);
-
-    if(!cmap || !pfo || !im || !site || !worker)
-    {
-        return NULL;
-    }
-
-    fractFunc *ff = new fractFunc(
-        params, 
-        eaa,
-        maxiter,
-        // nThreads,
-        auto_deepen,
-        auto_tolerance,
-        tolerance,
-        yflip,
-        periodicity,
-        render_type,
-        -1, // warp_param
-        worker,
-        im,
-        site);
-
-    if(!ff)
-    {
-        return NULL;
-    }
-
-    ffHandle *ffh = new struct ffHandle;
-    ffh->ff = ff;
-    ffh->pyhandle = pyworker;
-
-#ifdef DEBUG_CREATION
-    fprintf(stderr,"%p : FF : CTOR\n",ffh);
-#endif
-
-    PyObject *pyret = PyCObject_FromVoidPtr(
-        ffh,(void (*)(void *))ff_delete);
-
-    Py_INCREF(pyworker);
-
-    return pyret;
 }
 
 
@@ -2588,8 +2493,7 @@ static PyMethodDef PfMethods[] = {
     { "fdsite_create", pyfdsite_create, METH_VARARGS,
       "Create a new file-descriptor site"},
 
-    { "ff_create", ff_create, METH_VARARGS,
-      "Create a fractFunc." },
+    // { "ff_create", ff_create, METH_VARARGS, "Create a fractFunc." },
     { "ff_look_vector", ff_look_vector, METH_VARARGS,
       "Get a vector from the eye to a point on the screen" },
     { "ff_get_vector", ff_get_vector, METH_VARARGS,
