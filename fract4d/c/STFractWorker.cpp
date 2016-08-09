@@ -98,17 +98,7 @@ STFractWorker::work(job_info_t& tdata)
 inline int
 STFractWorker::periodGuess()
 { 
-    if(!ff->periodicity)
-    {
-        return ff->maxiter;
-    }
-    if(lastIter == -1)
-    {
-        // we were captured last time so probably will be again
-        return 0;
-    }
-    // we escaped, so don't try so hard this time
-    return lastIter + 10;
+    return ff->maxiter;
 }
 
 inline int
@@ -130,17 +120,7 @@ STFractWorker::periodGuess(int x, int y)
 inline int
 STFractWorker::periodGuess(int last) {
 
-    if(!ff->periodicity)
-    {
-        return ff->maxiter;
-    }
-    if(last == -1)
-    {
-        // we were captured last time so probably will be again
-        return 0;
-    }
-    // we escaped, so don't try so hard this time
-    return lastIter + 10;
+    return ff->maxiter;
 }
 
 inline void 
@@ -345,44 +325,6 @@ STFractWorker::compute_stats(const dvec4& pos, int iter, fate_t fate, int x, int
     else
     {
         stats.s[PIXELS_OUTSIDE]++;
-    }
-
-    if (ff->auto_deepen && stats.s[PIXELS] % ff->AUTO_DEEPEN_FREQUENCY == 0)
-    {
-        compute_auto_deepen_stats(pos, iter, x, y);
-    }
-}
-
-void
-STFractWorker::compute_auto_deepen_stats(const dvec4& pos, int iter, int x, int y)
-{
-    if( iter > ff->maxiter/2)
-    {
-        /* we would have got this wrong if we used 
-         * half as many iterations */
-        stats.s[WORSE_DEPTH_PIXELS]++;
-    }
-    else if(iter == -1)
-    {
-        rgba_t temp_pixel;
-        float temp_index;
-        fate_t temp_fate;
-        int temp_iter;
-        /* didn't bail out, try again with 2x as many iterations */
-        // printf("calc_pf 449 compute_auto_deepen_stats\n");
-        pf->calc_pf(
-            pos.n, ff->maxiter*2,
-            periodGuess(), ff->period_tolerance,
-            ff->warp_param,
-            x,y,-1,
-            &temp_pixel,&temp_iter, &temp_index, &temp_fate);
-            
-        if(temp_iter != -1)
-        {
-            /* we would have got this right if we used
-             * twice as many iterations */
-            stats.s[BETTER_DEPTH_PIXELS]++;
-        }
     }
 }
 

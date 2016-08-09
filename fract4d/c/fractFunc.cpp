@@ -76,9 +76,7 @@ fractFunc::fractFunc(
     params = params_;
 
     maxiter = maxiter_;
-    auto_deepen = true;
     period_tolerance = 0.0;
-    periodicity = true;
     warp_param = -1;
 
     set_progress_range(0.0,1.0);
@@ -145,26 +143,6 @@ fractFunc::updateiters()
     int flags = 0;
     // add up all the subtotals
     const pixel_stat_t& stats = worker->get_stats();
-
-    if (auto_deepen)
-    {
-        double doublepercent = stats.better_depth_ratio() * AUTO_DEEPEN_FREQUENCY * 100;
-        double halfpercent = stats.worse_depth_ratio() * AUTO_DEEPEN_FREQUENCY * 100;
-                
-        if(doublepercent > 1.0) 
-        {
-            // more than 1% of pixels are the wrong colour! 
-            // quelle horreur!
-            flags |= SHOULD_DEEPEN;
-        }
-        else if(doublepercent == 0.0 && halfpercent < 0.5 && 
-                maxiter > 32)
-        {
-            // less than .5% would be wrong if we used half as many iters
-            // therefore we are working too hard!
-            flags |= SHOULD_SHALLOWEN;
-        }
-    }
 
     return flags;
 }

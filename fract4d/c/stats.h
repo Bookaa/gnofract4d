@@ -69,12 +69,5 @@ struct s_pixel_stat{
 	    s[i] += other.s[i];
 	}
     };
-
-    double worse_depth_ratio() const { 
-	return ((double)s[WORSE_DEPTH_PIXELS])/s[PIXELS]; 
-    }
-    double better_depth_ratio() const { 
-	return ((double)s[BETTER_DEPTH_PIXELS])/s[PIXELS]; 
-    }
 };
 

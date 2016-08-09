@@ -104,9 +104,6 @@ class fractFunc {
     // params from ctor    
     // int eaa;
     int maxiter;
-    // int nThreads;
-    bool auto_deepen;
-    bool periodicity;
     double period_tolerance;
     int debug_flags;
     render_type_t render_type;

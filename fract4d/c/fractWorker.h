@@ -123,7 +123,6 @@ class STFractWorker : public IFractWorker {
  private:
 
     void compute_stats(const dvec4& pos, int iter, fate_t fate, int x, int y);
-    void compute_auto_deepen_stats(const dvec4& pos, int iter, int x, int y);
 
     fractFunc *ff;
 
