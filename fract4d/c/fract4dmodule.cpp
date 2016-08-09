@@ -1612,45 +1612,56 @@ parse_calc_args(PyObject *args, PyObject *kwds)
         "pfo",
         "cmap",
         "params",
-        "antialias",
+        //"antialias",
         "maxiter",
-        "yflip",
-        //"nthreads",
-        "auto_deepen",
-        "periodicity",
-        "render_type",
-        "dirty", 
-        "async",
-        "warp_param",
-        "tolerance",
-        "auto_tolerance",
+        //"yflip",
+            //"nthreads",
+        //"auto_deepen",
+        //"periodicity",
+        //"render_type",
+        //"dirty", 
+        //"async",
+        //"warp_param",
+        //"tolerance",
+        //"auto_tolerance",
         NULL};
 
     if(!PyArg_ParseTupleAndKeywords(
            args,
            kwds,
-           "OOOOO|iiiiiiiiidi",
+           "OOOOO|i",
            const_cast<char **>(kwlist),
 
            &pyim, &pysite,
            &pypfo,&pycmap,
            &pyparams,
-           &cargs->eaa,
-           &cargs->maxiter,
-           &cargs->yflip,
-           // &cargs->nThreads,
-           &cargs->auto_deepen,
-           &cargs->periodicity,
-           &cargs->render_type,
-           &cargs->dirty,
-           &cargs->async,
-           &cargs->warp_param,
-           &cargs->tolerance,
-           &cargs->auto_tolerance
+           //&cargs->eaa,
+           &cargs->maxiter
+           //&cargs->yflip,
+            // &cargs->nThreads,
+           //&cargs->auto_deepen,
+           //&cargs->periodicity,
+           //&cargs->render_type,
+           //&cargs->dirty,
+           //&cargs->async,
+           //&cargs->warp_param,
+           //&cargs->tolerance,
+           //&cargs->auto_tolerance
            ))
     {
         goto error;
     }
+    cargs->dirty = 0;
+    cargs->async = 0;
+    cargs->warp_param = -1;
+    cargs->render_type = RENDER_TWO_D;
+    cargs->tolerance = 0.0;
+    cargs->auto_tolerance = 1;
+    cargs->auto_deepen = 1;
+    cargs->periodicity = 1;
+    cargs->yflip = 0;
+    cargs->eaa = 1;
+
 
     p = cargs->params;
     if(!PyList_Check(pyparams) || PyList_Size(pyparams) != N_PARAMS)
@@ -1702,6 +1713,53 @@ pycalc(PyObject *self, PyObject *args, PyObject *kwds)
     if (NULL == cargs)
     {
         return NULL;
+    }
+    if (true)
+    {
+        printf("async 0 %d\n", cargs->async);
+        printf("dirty 0 %d\n", cargs->dirty);
+        printf("warp_param -1 %d\n", cargs->warp_param);
+        printf("render_type 0 %d\n", cargs->render_type);
+        printf("tolerance 0.0 %f\n", cargs->tolerance);
+        printf("auto_tolerance 1 %d\n", cargs->auto_tolerance);
+        printf("auto_deepen 1 %d\n", cargs->auto_deepen);
+        printf("periodicity 1 %d\n", cargs->periodicity);
+        printf("yflip 0 %d\n", cargs->yflip);
+        printf("antialias 1 %d\n", cargs->eaa);
+        assert(cargs->async);
+    /*
+        assert async == False
+        assert self.clear_image == False
+        warp = self.get_warp()
+        assert warp == -1
+        assert self.render_type == 0
+        assert self.period_tolerance == 1.0E-9
+        assert self.auto_tolerance == True
+        assert self.auto_deepen == True
+        assert self.periodicity == True
+        assert self.yflip == False
+        assert self.antialias == 1
+
+        fract4dc.calc(
+            params=self.params,
+            antialias=self.antialias,
+            maxiter=self.maxiter,
+            yflip=self.yflip,
+            periodicity=self.periodicity,
+            # nthreads=nthreads,
+            pfo=self.pfunc,
+            cmap=colormap,
+            auto_deepen=self.auto_deepen,
+            auto_tolerance=self.auto_tolerance,
+            tolerance=self.period_tolerance,
+            render_type=self.render_type,
+            warp_param=warp,
+            image=image._img,
+            site=site,
+            dirty=self.clear_image,
+            async=async)
+
+    */
     }
 
     if (cargs->async)

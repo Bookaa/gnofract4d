@@ -894,6 +894,26 @@ class T(fctutils.T):
             self.changed(True)
 
     def calc(self,image,colormap,site,async):
+        assert async == False
+        assert self.clear_image == False
+        warp = self.get_warp()
+        assert warp == -1
+        assert self.render_type == 0
+        assert self.period_tolerance == 1.0E-9
+        assert self.auto_tolerance == True
+        assert self.auto_deepen == True
+        assert self.periodicity == True
+        assert self.yflip == False
+        assert self.antialias == 1
+
+        fract4dc.calc(
+            params=self.params,
+            maxiter=self.maxiter,
+            pfo=self.pfunc,
+            cmap=colormap,
+            image=image._img,
+            site=site)
+        '''
         fract4dc.calc(
             params=self.params,
             antialias=self.antialias,
@@ -907,11 +927,11 @@ class T(fctutils.T):
             auto_tolerance=self.auto_tolerance,
             tolerance=self.period_tolerance,
             render_type=self.render_type,
-            warp_param=self.get_warp(),
+            warp_param=warp,
             image=image._img,
             site=site,
             dirty=self.clear_image,
-            async=async)
+            async=async)'''
 
     def drawpoint(self):
         self.init_pfunc()
