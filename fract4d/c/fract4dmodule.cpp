@@ -591,85 +591,6 @@ pycmap_set_solid(PyObject *self, PyObject *args)
     return Py_None;
 }
 
-static PyObject *
-pycmap_set_transfer(PyObject *self, PyObject *args)
-{
-    PyObject *pycmap;
-    int which;
-    e_transferType transfer;
-    ColorMap *cmap;
-
-    if(!PyArg_ParseTuple(args,"Oii",&pycmap,&which,&transfer))
-    {
-        return NULL;
-    }
-
-    cmap = (ColorMap *)PyCObject_AsVoidPtr(pycmap);
-    if(!cmap)
-    {
-        return NULL;
-    }
-
-    cmap->set_transfer(which,transfer);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
- 
-static PyObject *
-cmap_pylookup(PyObject *self, PyObject *args)
-{
-    PyObject *pyobj, *pyret;
-    double d;
-    rgba_t color;
-    ColorMap *cmap;
-
-    if(!PyArg_ParseTuple(args,"Od", &pyobj, &d))
-    {
-        return NULL;
-    }
-
-    cmap = (ColorMap *)PyCObject_AsVoidPtr(pyobj);
-    if(!cmap)
-    {
-        return NULL;
-    }
-
-    color = cmap->lookup(d);
-    
-    pyret = Py_BuildValue("iiii",color.r,color.g,color.b,color.a);
-
-    return pyret;
-}
-
-static PyObject *
-cmap_pylookup_with_flags(PyObject *self, PyObject *args)
-{
-    PyObject *pyobj, *pyret;
-    double d;
-    rgba_t color;
-    ColorMap *cmap;
-    int inside;
-    int solid;
-
-    if(!PyArg_ParseTuple(args,"Odii", &pyobj, &d, &solid, &inside))
-    {
-        return NULL;
-    }
-
-    cmap = (ColorMap *)PyCObject_AsVoidPtr(pyobj);
-    if(!cmap)
-    {
-        return NULL;
-    }
-
-    color = cmap->lookup_with_transfer(d,solid,inside);
-    
-    pyret = Py_BuildValue("iiii",color.r,color.g,color.b,color.a);
-
-    return pyret;
-}
-
 #ifdef THREADS
 #define GET_LOCK PyGILState_STATE gstate; gstate = PyGILState_Ensure()
 #define RELEASE_LOCK PyGILState_Release(gstate)
@@ -1378,28 +1299,6 @@ image_set_offset(PyObject *self, PyObject *args)
     return Py_None;
 }
 
-static PyObject *
-image_clear(PyObject *self, PyObject *args)
-{
-    PyObject *pyim;
-
-    if(!PyArg_ParseTuple(args,"O",&pyim))
-    { 
-        return NULL;
-    }
-
-    IImage *i = (IImage *)PyCObject_AsVoidPtr(pyim);
-    if(NULL == i)
-    {
-        return NULL;
-    }
-
-    i->clear();
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
 static void
 image_writer_delete(ImageWriter *im)
 {
@@ -1441,52 +1340,6 @@ image_writer_create(PyObject *self,PyObject *args)
 
     return PyCObject_FromVoidPtr(
         writer, (void (*)(void *))image_writer_delete);
-}
-
-static PyObject *
-image_read(PyObject *self,PyObject *args)
-{
-    PyObject *pyim;
-    PyObject *pyFP;
-    int file_type;
-    if(!PyArg_ParseTuple(args,"OOi",&pyim,&pyFP,&file_type))
-    {
-        return NULL;
-    }
-
-    if(!PyFile_Check(pyFP))
-    {
-        return NULL;
-    }
-
-    image *i = (image *)PyCObject_AsVoidPtr(pyim);
-
-    FILE *fp = PyFile_AsFile(pyFP);
-
-    if(!fp || !i)
-    {
-        PyErr_SetString(PyExc_ValueError, "Bad arguments");
-        return NULL;
-    }
-    
-    ImageReader *reader = ImageReader::create((image_file_t)file_type, fp, i);
-    //if(!reader->ok())
-    //{
-    //  PyErr_SetString(PyExc_IOError, "Couldn't create image reader");
-    //  delete reader;
-    //  return NULL;
-    //}
-
-    if(!reader->read())
-    {
-        PyErr_SetString(PyExc_IOError, "Couldn't read image contents");
-        delete reader;
-        return NULL;
-    }
-    delete reader;
-
-    Py_INCREF(Py_None);
-    return Py_None;
 }
 
 static PyObject *
@@ -1635,26 +1488,18 @@ image_fate_buffer(PyObject *self, PyObject *args)
 
 
 static PyMethodDef PfMethods[] = {
-    {"pf_load",  pf_load, METH_VARARGS, 
-     "Load a new point function shared library"},
-    {"pf_create", pf_create, METH_VARARGS,
-     "Create a new point function"},
-    {"pf_init", pf_init, METH_VARARGS,
-     "Init a point function"},
+    {"pf_load",  pf_load, METH_VARARGS, "Load a new point function shared library"},
+    {"pf_create", pf_create, METH_VARARGS, "Create a new point function"},
+    {"pf_init", pf_init, METH_VARARGS, "Init a point function"},
     //{"pf_calc", pf_calc, METH_VARARGS, "Calculate one point"},
     //{"pf_defaults", pf_defaults, METH_VARARGS, "Get defaults for this formula"},
 
     //{ "cmap_create", cmap_create, METH_VARARGS, "Create a new colormap"},
-    { "cmap_create_gradient", cmap_create_gradient, METH_VARARGS,
-      "Create a new gradient-based colormap"},
-    { "cmap_lookup", cmap_pylookup, METH_VARARGS,
-      "Get a color tuple from a distance value"},
-    { "cmap_lookup_flags", cmap_pylookup_with_flags, METH_VARARGS,
-      "Get a color tuple from a distance value and solid/inside flags"},
-    { "cmap_set_solid", pycmap_set_solid, METH_VARARGS,
-      "Set the inner or outer solid color"},
-    { "cmap_set_transfer", pycmap_set_transfer, METH_VARARGS,
-      "Set the inner or outer transfer function"},
+    { "cmap_create_gradient", cmap_create_gradient, METH_VARARGS, "Create a new gradient-based colormap"},
+    //{ "cmap_lookup", cmap_pylookup, METH_VARARGS, "Get a color tuple from a distance value"},
+    //{ "cmap_lookup_flags", cmap_pylookup_with_flags, METH_VARARGS, "Get a color tuple from a distance value and solid/inside flags"},
+    { "cmap_set_solid", pycmap_set_solid, METH_VARARGS, "Set the inner or outer solid color"},
+    //{ "cmap_set_transfer", pycmap_set_transfer, METH_VARARGS, "Set the inner or outer transfer function"},
     
     //{ "rgb_to_hsv", pyrgb_to_hsv, METH_VARARGS, "Convert a rgb(a) list into an hsv(a) one"},
     //{ "rgb_to_hsl", pyrgb_to_hsl, METH_VARARGS, "Convert a rgb(a) list into an hls(a) one"},
@@ -1664,7 +1509,7 @@ static PyMethodDef PfMethods[] = {
     { "image_resize", image_resize, METH_VARARGS, "Change image dimensions - data is deleted" },
     { "image_set_offset", image_set_offset, METH_VARARGS, "set the image tile's offset" },
     { "image_dims", image_dims, METH_VARARGS, "get a tuple containing image's dimensions"},
-    { "image_clear", image_clear, METH_VARARGS, "Clear all iteration and color data from image" },
+    //{ "image_clear", image_clear, METH_VARARGS, "Clear all iteration and color data from image" },
 
     { "image_writer_create", image_writer_create, METH_VARARGS, "create an object used to write image to disk" },
 
@@ -1672,7 +1517,7 @@ static PyMethodDef PfMethods[] = {
     { "image_save_tile", image_save_tile, METH_VARARGS, "save an image fragment ('tile') - useful for render-to-disk"},
     { "image_save_footer", image_save_footer, METH_VARARGS, "save the final footer info for an image - useful for render-to-disk"},
 
-    { "image_read", image_read, METH_VARARGS, "read an image in from disk"},
+    //{ "image_read", image_read, METH_VARARGS, "read an image in from disk"},
 
     { "image_buffer", image_buffer, METH_VARARGS, "get the rgb data from the image"},
     { "image_fate_buffer", image_fate_buffer, METH_VARARGS, "get the fate data from the image"},
