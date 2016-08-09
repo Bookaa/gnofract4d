@@ -6,8 +6,6 @@ import string
 import fracttypes
 import re
 
-from ffloat import Float
-
 class Node:
     def __init__(self,type,pos,children=None,leaf=None,datatype=None):
          self.type = type
@@ -169,6 +167,9 @@ def SetType(id,t,pos):
 
 def Number(n,pos):
     if re.search('[.eE]',n):
+        assert False
+        from ffloat import Float
+
         t = fracttypes.Float
         n = Float(n)
     else:

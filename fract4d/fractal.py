@@ -16,7 +16,7 @@ try:
 except ImportError, err:
     import fract4dc
 
-import fracttypes
+# import fracttypes
 import gradient
 import image
 import fctutils
