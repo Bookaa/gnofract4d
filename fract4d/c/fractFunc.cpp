@@ -440,23 +440,35 @@ fractFunc::vec_for_point(double x, double y)
 
 void calc_4(
     d *params,
-    int eaa,
+    // int eaa,
     int maxiter,
     // int nThreads,
     pf_obj *pfo, 
     ColorMap *cmap, 
-    bool auto_deepen,
-    bool auto_tolerance,
-    double tolerance,
-    bool yflip,
-    bool periodicity,
-    bool dirty,
-    int debug_flags,
-    render_type_t render_type,
-    int warp_param,
+    // bool auto_deepen,
+    // bool auto_tolerance,
+    // double tolerance,
+    // bool yflip,
+    // bool periodicity,
+    // bool dirty,
+    // int debug_flags,
+    // render_type_t render_type,
+    // int warp_param,
     IImage *im, 
     IFractalSite *site)
 {
+    int eaa = 1;
+    bool auto_deepen = true;
+    bool auto_tolerance = true;
+    double tolerance = 0.0;
+    bool yflip = false;
+    bool periodicity = true;
+    bool dirty = false;
+    int debug_flags = 0;
+
+    render_type_t render_type = RENDER_TWO_D;
+    int warp_param = -1;
+
     assert(NULL != im && NULL != site && 
            NULL != cmap && NULL != pfo && NULL != params);
     IFractWorker *worker = IFractWorker::create(pfo,cmap,im,site);

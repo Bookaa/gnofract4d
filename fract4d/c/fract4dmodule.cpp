@@ -1570,35 +1570,6 @@ ff_create(PyObject *self, PyObject *args)
 }
 
 
-static void *
-calculation_thread(void *vdata) 
-{
-    calc_args *args = (calc_args *)vdata;
-
-#ifdef DEBUG_THREADS
-    fprintf(stderr,"%p : CA : CALC(%d)\n",args,pthread_self());
-#endif
-    // printf("call calc 1577 \n");
-    calc_4(args->params,args->eaa,args->maxiter,
-         // args->nThreads,
-         args->pfo,args->cmap,
-         args->auto_deepen,
-         args->auto_tolerance,
-         args->tolerance,
-         args->yflip, args->periodicity, args->dirty,
-         0, // debug_flags
-         args->render_type,
-         args->warp_param,
-         args->im,args->site);
-
-#ifdef DEBUG_THREADS 
-    fprintf(stderr,"%p : CA : ENDCALC(%d)\n",args,pthread_self());
-#endif
-
-    delete args;
-    return NULL;
-}
-
 static calc_args *
 parse_calc_args(PyObject *args, PyObject *kwds)
 {
@@ -1714,97 +1685,26 @@ pycalc(PyObject *self, PyObject *args, PyObject *kwds)
     {
         return NULL;
     }
-    if (true)
-    {
-        printf("async 0 %d\n", cargs->async);
-        printf("dirty 0 %d\n", cargs->dirty);
-        printf("warp_param -1 %d\n", cargs->warp_param);
-        printf("render_type 0 %d\n", cargs->render_type);
-        printf("tolerance 0.0 %f\n", cargs->tolerance);
-        printf("auto_tolerance 1 %d\n", cargs->auto_tolerance);
-        printf("auto_deepen 1 %d\n", cargs->auto_deepen);
-        printf("periodicity 1 %d\n", cargs->periodicity);
-        printf("yflip 0 %d\n", cargs->yflip);
-        printf("antialias 1 %d\n", cargs->eaa);
-        assert(cargs->async);
-    /*
-        assert async == False
-        assert self.clear_image == False
-        warp = self.get_warp()
-        assert warp == -1
-        assert self.render_type == 0
-        assert self.period_tolerance == 1.0E-9
-        assert self.auto_tolerance == True
-        assert self.auto_deepen == True
-        assert self.periodicity == True
-        assert self.yflip == False
-        assert self.antialias == 1
 
-        fract4dc.calc(
-            params=self.params,
-            antialias=self.antialias,
-            maxiter=self.maxiter,
-            yflip=self.yflip,
-            periodicity=self.periodicity,
-            # nthreads=nthreads,
-            pfo=self.pfunc,
-            cmap=colormap,
-            auto_deepen=self.auto_deepen,
-            auto_tolerance=self.auto_tolerance,
-            tolerance=self.period_tolerance,
-            render_type=self.render_type,
-            warp_param=warp,
-            image=image._img,
-            site=site,
-            dirty=self.clear_image,
-            async=async)
-
-    */
-    }
-
-    if (cargs->async)
-    {
-        printf("async 1708\n");
-        cargs->site->interrupt();
-        cargs->site->wait();
-
-        cargs->site->start(cargs);
-
-        pthread_t tid;
-
-        /* create low-priority attribute block */
-        pthread_attr_t lowprio_attr;
-        //struct sched_param lowprio_param;
-        pthread_attr_init(&lowprio_attr);
-        //lowprio_param.sched_priority = sched_get_priority_min(SCHED_OTHER);
-        //pthread_attr_setschedparam(&lowprio_attr, &lowprio_param);
-
-        /* start the calculation thread */
-        pthread_create(&tid,&lowprio_attr,calculation_thread,(void *)cargs);
-        assert(tid != 0);
-
-        cargs->site->set_tid(tid);
-    }
-    else
     {
         Py_BEGIN_ALLOW_THREADS
         // synchronous
         printf("call calc 1728 \n");
         calc_4(cargs->params,
-             cargs->eaa,
+             //cargs->eaa,
              cargs->maxiter,
              // cargs->nThreads,
              cargs->pfo,
              cargs->cmap,
-             cargs->auto_deepen,
-             cargs->auto_tolerance,
-             cargs->tolerance,
-             cargs->yflip,
-             cargs->periodicity,
-             cargs->dirty,
-             0, // debug_flags
-             cargs->render_type,
-             cargs->warp_param,
+             // cargs->auto_deepen,
+             // cargs->auto_tolerance,
+             // cargs->tolerance,
+             // cargs->yflip,
+             // cargs->periodicity,
+             // cargs->dirty,
+             // 0, // debug_flags
+             // cargs->render_type,
+             // cargs->warp_param,
              cargs->im,
              cargs->site);
 
