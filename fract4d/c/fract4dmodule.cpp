@@ -563,212 +563,10 @@ pf_init(PyObject *self, PyObject *args)
     return Py_None;
 }
 
-/* convert an array of params from the s_param representation 
-   to a Python list */
-
-static PyObject *
-params_to_python(struct s_param *params, int len)
-{
-    PyObject *pyret = PyList_New(len);
-    if(!pyret)
-    {
-        PyErr_SetString(PyExc_MemoryError, "Can't allocate defaults list");
-        return NULL;
-    }
-    for(int i = 0; i < len; ++i)
-    {
-        switch(params[i].t)
-        {
-        case FLOAT:
-            PyList_SET_ITEM(pyret,i,PyFloat_FromDouble(params[i].doubleval));
-            break;
-        case INT:
-            PyList_SET_ITEM(pyret,i,PyInt_FromLong(params[i].intval));
-            break;
-        case GRADIENT:
-            Py_INCREF(Py_None);
-            PyList_SET_ITEM(pyret,i,Py_None);
-            break;
-        default:
-            assert(0 && "Unexpected type for parameter");
-            Py_INCREF(Py_None);
-            PyList_SET_ITEM(pyret,i,Py_None);
-        }
-    }
-    return pyret;
-}
-
-static PyObject *
-pf_defaults(PyObject *self, PyObject *args)
-{
-    PyObject *pyobj, *pyarray, *py_posparams;
-    struct s_param *params;
-    struct pfHandle *pfh;
-    double pos_params[N_PARAMS];
-
-    if(!PyArg_ParseTuple(
-           args,"OOO",&pyobj,&py_posparams, &pyarray))
-    {
-        return NULL;
-    }
-    if(!PyCObject_Check(pyobj))
-    {
-        PyErr_SetString(PyExc_ValueError,"Not a valid handle");
-        return NULL;
-    }
-
-    pfh = (struct pfHandle *)PyCObject_AsVoidPtr(pyobj);
-
-    if(!parse_posparams(py_posparams, pos_params))
-    {
-        return NULL;
-    }
-
-    int len=0;
-    params = parse_params(pyarray,&len);
-    if(!params)
-    {
-        return NULL;
-    }
-
-    /*finally all args are assembled */
-    pfh->pfo->vtbl->get_defaults(
-        pfh->pfo,
-        pos_params,
-        params,
-        len);
-    
-
-    PyObject *pyret = params_to_python(params,len);
-    free(params);
-
-    return pyret;
-}
-
-struct st_out_iidi {
-    int outIters;
-    int outFate;
-    double outDist;
-    int outSolid;
-};
-
-void calc_nt(int repeats, struct pfHandle *pfh, double params[], int nIters, int x, int y, int aa, st_out_iidi* outs)
-{
-    // input always: st_out_iidi outs = {0, -777, 0.0, 0};
-    int fDirectColorFlag=0;
-    double colors[4] = {0.0, 0.0, 0.0, 0.0};
-    for (int i = 0; i < repeats; ++i)
-    {
-        pfh->pfo->vtbl->calc(
-            pfh->pfo,params,
-            nIters, -1,
-            nIters, 1.0E-9,
-            x,y,aa,
-            &outs->outIters,&outs->outFate,&outs->outDist,&outs->outSolid,
-            &fDirectColorFlag, &colors[0]);
-        arena_clear((arena_t)pfh->pfo->arena);
-    }
-    assert(outs->outFate != -777);
-}
-
-static PyObject *
-pf_calc(PyObject *self, PyObject *args)
-{
-    PyObject *pyobj;
-    double params[4];
-    int nIters, x=0, y=0, aa=0;
-    int repeats = 1;
-
-    if (!PyArg_ParseTuple(args,"O(dddd)i|iiii",
-                         &pyobj,
-                         &params[0],&params[1],&params[2],&params[3],
-                         &nIters,&x,&y,&aa,&repeats))
-    {
-            return NULL;
-    }
-    if (!PyCObject_Check(pyobj))
-    {
-            PyErr_SetString(PyExc_ValueError,"Not a valid handle");
-            return NULL;
-    }
-
-    struct pfHandle *pfh = (struct pfHandle *)PyCObject_AsVoidPtr(pyobj);
-#ifdef DEBUG_THREADS
-    fprintf(stderr,"%p : PF : CALC\n",pfh);
-#endif
-    printf("call at 699 , repeats = %d \n", repeats);
-    st_out_iidi outs = {0, -777, 0.0, 0};
-    calc_nt(repeats, pfh, params, nIters, x, y, aa, &outs);
-    //pfh->pfo->vtbl->calc(repeats, pfh->pfo, params, nIters, x, y, aa, &outs);
-    PyObject* pyret = Py_BuildValue("iidi",outs.outIters,outs.outFate,outs.outDist,outs.outSolid);
-    return pyret; // Python can handle errors if this is NULL
-}
 
 /*
  * cmaps
  */
-static PyObject *
-cmap_create(PyObject *self, PyObject *args)
-{
-    /* args = an array of (index,r,g,b,a) tuples */
-    PyObject *pyarray, *pyret;
-    int len, i;
-    ListColorMap *cmap;
-
-    if(!PyArg_ParseTuple(args,"O",&pyarray))
-    {
-        return NULL;
-    }
-
-    if(!PySequence_Check(pyarray))
-    {
-        return NULL;
-    }
-    
-    len = PySequence_Size(pyarray);
-    if(len == 0)
-    {
-        PyErr_SetString(PyExc_ValueError,"Empty color array");
-        return NULL;
-    }
-
-    cmap = new(std::nothrow)ListColorMap();
-
-    if(!cmap)
-    {
-        PyErr_SetString(PyExc_MemoryError,"Can't allocate colormap");
-        return NULL;
-    }
-    if(! cmap->init(len))
-    {
-        PyErr_SetString(PyExc_MemoryError,"Can't allocate colormap array");
-        delete cmap;
-        return NULL;
-    }
-    for(i = 0; i < len; ++i)
-    {
-        double d;
-        int r, g, b, a;
-        PyObject *pyitem = PySequence_GetItem(pyarray,i);
-        if(!pyitem)
-        {
-            delete cmap;
-            return NULL; 
-        }
-        if(!PyArg_ParseTuple(pyitem,"diiii",&d,&r,&g,&b,&a))
-        {
-            Py_DECREF(pyitem);
-            delete cmap;
-            return NULL;
-        }
-        cmap->set(i,d,r,g,b,a);
-        Py_DECREF(pyitem);
-    }
-    pyret = PyCObject_FromVoidPtr(cmap,(void (*)(void *))cmap_delete);
-
-    return pyret;
-}
-
 static PyObject *
 pycmap_set_solid(PyObject *self, PyObject *args)
 {
@@ -1299,25 +1097,6 @@ struct ffHandle
     fractFunc *ff;
 } ;
 
-static PyObject *
-pysite_create(PyObject *self, PyObject *args)
-{
-    PyObject *pysite;
-    if(!PyArg_ParseTuple(
-           args,
-           "O",
-           &pysite))
-    {
-        return NULL;
-    }
-
-    IFractalSite *site = new PySite(pysite);
-
-    //fprintf(stderr,"pysite_create: %p\n",site);
-    PyObject *pyret = PyCObject_FromVoidPtr(site,(void (*)(void *))site_delete);
-
-    return pyret;
-}
 
 static PyObject *
 pyfdsite_create(PyObject *self, PyObject *args)
@@ -1335,29 +1114,6 @@ pyfdsite_create(PyObject *self, PyObject *args)
     return pyret;
 }
 
-static PyObject *
-pystop_calc(PyObject *self, PyObject *args)
-{
-    PyObject *pysite;
-    if(!PyArg_ParseTuple(
-           args,
-           "O",
-           &pysite))
-    {
-        return NULL;
-    }
-
-    IFractalSite *site = (IFractalSite *)PyCObject_AsVoidPtr(pysite);
-    if(!site)
-    {
-        return NULL;
-    }
-
-    site->interrupt();
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
 
 static calc_args *
 parse_calc_args(PyObject *args, PyObject *kwds)
@@ -1877,290 +1633,6 @@ image_fate_buffer(PyObject *self, PyObject *args)
     return pybuf;
 }
 
-static PyObject *
-image_get_color_index(PyObject *self, PyObject *args)
-{
-    PyObject *pyim;
-
-    int x=0,y=0,sub=0;
-    if(!PyArg_ParseTuple(args,"Oii|i",&pyim,&x,&y,&sub))
-    {
-        return NULL;
-    }
-
-    image *i = (image *)PyCObject_AsVoidPtr(pyim);
-    
-    if(NULL == i)
-    {
-        PyErr_SetString(PyExc_ValueError,
-                        "Bad image object");
-        return NULL;
-    }
-
-    if(x < 0 || x >= i->Xres() || 
-       y < 0 || y >= i->Yres() || 
-       sub < 0 || sub >= image::N_SUBPIXELS)
-    {
-        PyErr_SetString(PyExc_ValueError,
-                        "request for data outside image bounds");
-        return NULL;
-    }
-
-    float dist = i->getIndex(x,y,sub);
-    return Py_BuildValue("d", (double)dist);
-}
-
-static PyObject *
-image_get_fate(PyObject *self, PyObject *args)
-{
-    PyObject *pyim;
-
-    int x=0,y=0,sub=0;
-    if(!PyArg_ParseTuple(args,"Oii|i",&pyim,&x,&y,&sub))
-    {
-        return NULL;
-    }
-
-    image *i = (image *)PyCObject_AsVoidPtr(pyim);
-    
-    if(NULL == i)
-    {
-        PyErr_SetString(PyExc_ValueError,
-                        "Bad image object");
-        return NULL;
-    }
-
-    if(x < 0 || x >= i->Xres() || 
-       y < 0 || y >= i->Yres() || 
-       sub < 0 || sub >= image::N_SUBPIXELS)
-    {
-        PyErr_SetString(PyExc_ValueError,
-                        "request for data outside image bounds");
-        return NULL;
-    }
-
-    fate_t fate = i->getFate(x,y,sub);
-    if(fate == FATE_UNKNOWN)
-    {
-        Py_INCREF(Py_None);
-        return Py_None;
-    }
-    int is_solid = fate & FATE_SOLID ? 1 : 0;
-    return Py_BuildValue("(ii)", is_solid, fate & ~FATE_SOLID);
-}
-
-static PyObject *
-pyimage_lookup(PyObject *self, PyObject *args)
-{
-    PyObject *pyimage=NULL;
-    double x,y;
-    double r,g,b;
-
-    if(!PyArg_ParseTuple(
-           args,
-           "Odd",
-           &pyimage, &x, &y))
-    {
-        return NULL;
-    }    
-
-    image *i = (image *)PyCObject_AsVoidPtr(pyimage);
-    
-    image_lookup(i,x,y,&r,&g,&b);
-
-    return Py_BuildValue(
-        "(dddd)",
-        r,g,b,1.0);
-}
-
-static PyObject *
-pyrgb_to_hsv(PyObject *self, PyObject *args)
-{
-    double r,g,b,a=1.0,h,s,v;
-    if(!PyArg_ParseTuple(
-           args,
-           "ddd|d",
-           &r,&g,&b,&a))
-    {
-        return NULL;
-    }
-
-    rgb_to_hsv(r,g,b,&h,&s,&v);
-
-    return Py_BuildValue(
-        "(dddd)",
-        h,s,v,a);
-}
-
-static PyObject *
-pyrgb_to_hsl(PyObject *self, PyObject *args)
-{
-    double r,g,b,a=1.0,h,l,s;
-    if(!PyArg_ParseTuple(
-           args,
-           "ddd|d",
-           &r,&g,&b,&a))
-    {
-        return NULL;
-    }
-
-    rgb_to_hsl(r,g,b,&h,&s,&l);
-
-    return Py_BuildValue(
-        "(dddd)",
-        h,s,l,a);
-}
-
-static PyObject *
-pyhsl_to_rgb(PyObject *self, PyObject *args)
-{
-    double r,g,b,a=1.0,h,l,s;
-    if(!PyArg_ParseTuple(
-           args,
-           "ddd|d",
-           &h,&s,&l,&a))
-    {
-        return NULL;
-    }
-
-    hsl_to_rgb(h,s,l,&r,&g,&b);
-
-    return Py_BuildValue(
-        "(dddd)",
-        r,g,b,a);
-}
-
-static PyObject *
-pyarena_create(PyObject *self, PyObject *args)
-{
-    int page_size, max_pages;
-    if(!PyArg_ParseTuple(
-           args,
-           "ii",
-           &page_size,&max_pages))
-    {
-        return NULL;
-    }
-    
-    arena_t arena = arena_create(page_size,max_pages);
-
-    if(NULL == arena)
-    {
-        PyErr_SetString(PyExc_MemoryError,"Cannot allocate arena");
-        return NULL;
-    }
-
-    PyObject *pyarena = PyCObject_FromVoidPtr(
-        arena,(void (*)(void *))arena_delete);
-
-    return pyarena;
-}
-
-static PyObject *
-pyarena_alloc(PyObject *self, PyObject *args)
-{
-    PyObject *pyArena;
-    int element_size;
-    int n_dimensions;
-    int n_elements[4];
-
-    if(!PyArg_ParseTuple(
-           args,
-           "Oiii|iii",
-           &pyArena, &element_size, 
-           &n_dimensions,
-           &n_elements[0],
-           &n_elements[1],
-           &n_elements[2],
-           &n_elements[3]
-           ))
-    {
-        return NULL;
-    }
-
-    arena_t arena = (arena_t)PyCObject_AsVoidPtr(pyArena);
-    if(arena == NULL)
-    {
-        return NULL;
-    }
-
-    void *allocation = arena_alloc(
-        arena, element_size, 
-        n_dimensions,
-        n_elements);
-    if(allocation == NULL)
-    {
-        PyErr_SetString(PyExc_MemoryError, "Can't allocate array");
-        return NULL;
-    }
-
-    PyObject *pyAlloc = PyCObject_FromVoidPtr(allocation, NULL);
-
-    return pyAlloc;
-}
-
-static PyObject *
-pyarray_get(PyObject *self, PyObject *args)
-{
-    PyObject *pyAllocation;
-    int indexes[4];
-    int n_indexes;
-
-    if(!PyArg_ParseTuple(
-           args,
-           "Oii|iii",
-           &pyAllocation, &n_indexes, 
-           &indexes[0], &indexes[1], &indexes[2], &indexes[3]))
-    {
-        return NULL;
-    }
-
-    void *allocation = PyCObject_AsVoidPtr(pyAllocation);
-    if(allocation == NULL)
-    {
-        return NULL;
-    }
- 
-    int retval, inbounds;
-    array_get_int(allocation, n_indexes, indexes, &retval, &inbounds);
-    
-    PyObject *pyRet = Py_BuildValue(
-        "(ii)",
-        retval,inbounds);
-
-    return pyRet;
-}
-
-static PyObject *
-pyarray_set(PyObject *self, PyObject *args)
-{
-    PyObject *pyAllocation;
-    int val;
-    int n_indexes;
-    int indexes[4];
-    if(!PyArg_ParseTuple(
-           args,
-           "Oiii|iii",
-           &pyAllocation, 
-           &n_indexes,
-           &val, 
-           &indexes[0], &indexes[1], &indexes[2], &indexes[3]))
-    {
-        return NULL;
-    }
-
-    void *allocation = PyCObject_AsVoidPtr(pyAllocation);
-    if(allocation == NULL)
-    {
-        return NULL;
-    }
- 
-    int retval = array_set_int(allocation, n_indexes, indexes, val);
-    
-    PyObject *pyRet = Py_BuildValue("i",retval);
-
-    return pyRet;
-}
 
 static PyMethodDef PfMethods[] = {
     {"pf_load",  pf_load, METH_VARARGS, 
@@ -2169,13 +1641,10 @@ static PyMethodDef PfMethods[] = {
      "Create a new point function"},
     {"pf_init", pf_init, METH_VARARGS,
      "Init a point function"},
-    {"pf_calc", pf_calc, METH_VARARGS,
-     "Calculate one point"},
-    {"pf_defaults", pf_defaults, METH_VARARGS,
-     "Get defaults for this formula"},
+    //{"pf_calc", pf_calc, METH_VARARGS, "Calculate one point"},
+    //{"pf_defaults", pf_defaults, METH_VARARGS, "Get defaults for this formula"},
 
-    { "cmap_create", cmap_create, METH_VARARGS,
-      "Create a new colormap"},
+    //{ "cmap_create", cmap_create, METH_VARARGS, "Create a new colormap"},
     { "cmap_create_gradient", cmap_create_gradient, METH_VARARGS,
       "Create a new gradient-based colormap"},
     { "cmap_lookup", cmap_pylookup, METH_VARARGS,
@@ -2187,54 +1656,34 @@ static PyMethodDef PfMethods[] = {
     { "cmap_set_transfer", pycmap_set_transfer, METH_VARARGS,
       "Set the inner or outer transfer function"},
     
-    { "rgb_to_hsv", pyrgb_to_hsv, METH_VARARGS,
-      "Convert a rgb(a) list into an hsv(a) one"},
-    { "rgb_to_hsl", pyrgb_to_hsl, METH_VARARGS,
-      "Convert a rgb(a) list into an hls(a) one"},
-    { "hsl_to_rgb", pyhsl_to_rgb, METH_VARARGS,
-      "Convert an hls(a) list into an rgb(a) one"},
+    //{ "rgb_to_hsv", pyrgb_to_hsv, METH_VARARGS, "Convert a rgb(a) list into an hsv(a) one"},
+    //{ "rgb_to_hsl", pyrgb_to_hsl, METH_VARARGS, "Convert a rgb(a) list into an hls(a) one"},
+    //{ "hsl_to_rgb", pyhsl_to_rgb, METH_VARARGS, "Convert an hls(a) list into an rgb(a) one"},
 
-    { "image_create", image_create, METH_VARARGS,
-      "Create a new image buffer"},
-    { "image_resize", image_resize, METH_VARARGS,
-      "Change image dimensions - data is deleted" },
-    { "image_set_offset", image_set_offset, METH_VARARGS,
-      "set the image tile's offset" },
-    { "image_dims", image_dims, METH_VARARGS,
-      "get a tuple containing image's dimensions"},
-    { "image_clear", image_clear, METH_VARARGS,
-      "Clear all iteration and color data from image" },
+    { "image_create", image_create, METH_VARARGS, "Create a new image buffer"},
+    { "image_resize", image_resize, METH_VARARGS, "Change image dimensions - data is deleted" },
+    { "image_set_offset", image_set_offset, METH_VARARGS, "set the image tile's offset" },
+    { "image_dims", image_dims, METH_VARARGS, "get a tuple containing image's dimensions"},
+    { "image_clear", image_clear, METH_VARARGS, "Clear all iteration and color data from image" },
 
-    { "image_writer_create", image_writer_create, METH_VARARGS,
-      "create an object used to write image to disk" },
+    { "image_writer_create", image_writer_create, METH_VARARGS, "create an object used to write image to disk" },
 
-    { "image_save_header", image_save_header, METH_VARARGS,
-      "save an image header - useful for render-to-disk"},
-    { "image_save_tile", image_save_tile, METH_VARARGS,
-      "save an image fragment ('tile') - useful for render-to-disk"},
-    { "image_save_footer", image_save_footer, METH_VARARGS,
-      "save the final footer info for an image - useful for render-to-disk"},
+    { "image_save_header", image_save_header, METH_VARARGS, "save an image header - useful for render-to-disk"},
+    { "image_save_tile", image_save_tile, METH_VARARGS, "save an image fragment ('tile') - useful for render-to-disk"},
+    { "image_save_footer", image_save_footer, METH_VARARGS, "save the final footer info for an image - useful for render-to-disk"},
 
-    { "image_read", image_read, METH_VARARGS,
-      "read an image in from disk"},
+    { "image_read", image_read, METH_VARARGS, "read an image in from disk"},
 
-    { "image_buffer", image_buffer, METH_VARARGS,
-      "get the rgb data from the image"},
-    { "image_fate_buffer", image_fate_buffer, METH_VARARGS,
-      "get the fate data from the image"},
+    { "image_buffer", image_buffer, METH_VARARGS, "get the rgb data from the image"},
+    { "image_fate_buffer", image_fate_buffer, METH_VARARGS, "get the fate data from the image"},
 
-    { "image_get_color_index", image_get_color_index, METH_VARARGS,
-      "Get the color index data from a point on the image"},
-    { "image_get_fate", image_get_fate, METH_VARARGS,
-      "Get the (solid, fate) info for a point on the image"},
+    //{ "image_get_color_index", image_get_color_index, METH_VARARGS, "Get the color index data from a point on the image"},
+    //{ "image_get_fate", image_get_fate, METH_VARARGS, "Get the (solid, fate) info for a point on the image"},
 
-    { "image_lookup", pyimage_lookup, METH_VARARGS,
-      "Get the color of a point on an image"},
+    //{ "image_lookup", pyimage_lookup, METH_VARARGS, "Get the color of a point on an image"},
 
-    { "site_create", pysite_create, METH_VARARGS,
-      "Create a new site"},
-    { "fdsite_create", pyfdsite_create, METH_VARARGS,
-      "Create a new file-descriptor site"},
+    //{ "site_create", pysite_create, METH_VARARGS, "Create a new site"},
+    { "fdsite_create", pyfdsite_create, METH_VARARGS, "Create a new file-descriptor site"},
 
     // { "ff_create", ff_create, METH_VARARGS, "Create a fractFunc." },
     // { "ff_look_vector", ff_look_vector, METH_VARARGS, "Get a vector from the eye to a point on the screen" },
@@ -2245,26 +1694,20 @@ static PyMethodDef PfMethods[] = {
     // { "fw_pixel_aa", fw_pixel_aa, METH_VARARGS, "Draw a single pixel." },
     // { "fw_find_root", fw_find_root, METH_VARARGS, "Find closest root considering fractal function along a vector"},
     
-    { "calc", (PyCFunction) pycalc, METH_VARARGS | METH_KEYWORDS,
-      "Calculate a fractal image"},
+    { "calc", (PyCFunction) pycalc, METH_VARARGS | METH_KEYWORDS, "Calculate a fractal image"},
 
-    { "interrupt", pystop_calc, METH_VARARGS,
-      "Stop an async calculation" },
+    //{ "interrupt", pystop_calc, METH_VARARGS, "Stop an async calculation" },
 
     // { "rot_matrix", rot_matrix, METH_VARARGS, "Return a rotated and scaled identity matrix based on params"},
 
     // { "eye_vector", eye_vector, METH_VARARGS, "Return the line between the user's eye and the center of the screen"},
 
-    { "arena_create", pyarena_create, METH_VARARGS,
-      "Create a new arena allocator" },
-    { "arena_alloc", pyarena_alloc, METH_VARARGS,
-      "Allocate a chunk of memory from the arena" },
+    //{ "arena_create", pyarena_create, METH_VARARGS, "Create a new arena allocator" },
+    //{ "arena_alloc", pyarena_alloc, METH_VARARGS, "Allocate a chunk of memory from the arena" },
 
-    { "array_get_int", pyarray_get, METH_VARARGS,
-      "Get an element from an array allocated in an arena" },
+    //{ "array_get_int", pyarray_get, METH_VARARGS, "Get an element from an array allocated in an arena" },
 
-    { "array_set_int", pyarray_set, METH_VARARGS,
-      "Set an element in an array allocated in an arena" },
+    //{ "array_set_int", pyarray_set, METH_VARARGS, "Set an element in an array allocated in an arena" },
     
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
