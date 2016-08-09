@@ -22,9 +22,9 @@
 
 # Finally we invoke the C compiler to convert to a native code shared library
 
-import getopt
+# import getopt
 import sys
-import commands
+# import commands
 import os.path
 import stat
 import random
@@ -34,9 +34,9 @@ import copy
 
 import fractconfig
 import translate
-import fracttypes
+# import fracttypes
 import absyn
-import cache
+# import cache
 import gradient
 
 class FormulaTypes:
@@ -132,9 +132,11 @@ class Compiler:
     def __init__(self):
         self.c_code = ""
         self.path_lists = [ [], [], [], [] ]
-        self.cache = cache.T()
-        self.cache_dir = os.path.expanduser("~/.gnofract4d-cache/")
-        self.init_cache()
+        self.files = {}
+
+        # self.cache = cache.T()
+        # self.cache_dir = os.path.expanduser("~/.gnofract4d-cache/")
+        # self.init_cache()
         if 'win' != sys.platform[:3]:
             self.compiler_name = "gcc"
             self.flags = "-fPIC -DPIC -g -O3 -shared"
@@ -148,11 +150,6 @@ class Compiler:
         self.tree_cache = {}
         self.leave_dirty = False
         self.next_inline_number = 0
-
-    def _get_files(self):
-        return self.cache.files
-
-    files = property(_get_files)
 
     def update_from_prefs(self,prefs):
         self.compiler_name = prefs.get("compiler","name")
@@ -177,9 +174,6 @@ class Compiler:
         self.path_lists[FormulaTypes.FRACTAL] = copy.copy(list)
         self.path_lists[FormulaTypes.COLORFUNC] = copy.copy(list)
         self.path_lists[FormulaTypes.TRANSFORM] = copy.copy(list)
-
-    def init_cache(self):
-        self.cache.init()
 
     def find_files(self,type):
         files = {}
@@ -251,11 +245,15 @@ class Compiler:
 
     def compile_all_desc(self,formula,cf0,cf1,transforms,options,desc):
         hash = self.hashcode(desc)
+        def makefilename(name, ext):
+            dir = os.path.expanduser("~/.gnofract4d-cache/")
+            return os.path.join(dir, "fract4d_%s%s" % (name, ext))
 
-        outputfile = self.cache.makefilename(hash,".so")
-        if os.path.exists(outputfile):
-            # skip compilation - we already have this code
-            return outputfile
+        outputfile = makefilename(hash,".so")
+        #outputfile = self.cache.makefilename(hash,".so")
+        #if os.path.exists(outputfile):
+        #    # skip compilation - we already have this code
+        #    return outputfile
 
         # print desc
 
@@ -473,12 +471,6 @@ class Compiler:
             formula = None
         return (file,formula)
 
-    def clear_cache(self):
-        self.cache.clear()
-
-    def __del__(self):
-        if not self.leave_dirty:
-            self.clear_cache()
 
 g_compile_cmds = '../gnofract4d.compiler/main_compile.py'
 if not os.path.isfile(g_compile_cmds):
