@@ -52,9 +52,6 @@ class STFractWorker : public IFractWorker {
     // update whether last pixel bailed
     inline void periodSet(int *ppos);
 
-    // top-level function for multi-threaded workers
-    void work(job_info_t &tdata);
-
     // calculate a row of pixels
     void row(int x, int y, int n);
 
@@ -108,9 +105,6 @@ class STFractWorker : public IFractWorker {
     // compare a prediction against the real answer & update stats
     inline void check_guess(int x, int y, rgba_t pixel, fate_t fate, int iter, float index);
 
-    // calculate this point using antialiasing
-    rgba_t antialias(int x, int y);
-
     void reset_counts();
     const pixel_stat_t& get_stats() const;
 
@@ -145,58 +139,5 @@ class STFractWorker : public IFractWorker {
 
 #include "threadpool.h"
 
-void worker(job_info_t& tdata, STFractWorker *pFunc);
-
-// a composite subclass which holds an array of STFractWorkers and
-// divides the work among them
-class MTFractWorker : public IFractWorker
-{
- public:
-    MTFractWorker(int n, 
-		  pf_obj *obj,
-		  ColorMap *cmap,
-		  IImage *im,
-		  IFractalSite *site);
-    ~MTFractWorker();
-
-    void set_fractFunc(fractFunc *ff); 
-
-    // operations
-    virtual void row(int x, int y, int n) ;
-    virtual void box(int x, int y, int rsize) ;
-    virtual void qbox_row(int w, int y, int rsize, int drawsize);
-    virtual void box_row(int w, int y, int rsize);
-    virtual void pixel(int x, int y, int h, int w);
-    virtual void pixel_aa(int x, int y);
-
-    // record keeping
-    virtual void reset_counts();
-    const pixel_stat_t& get_stats() const;
-
-    virtual void flush();
-
-    virtual bool ok();
-    int nWorkers;
-
-    bool find_root(const dvec4& eye, const dvec4& look, dvec4& root);
-
-private:
-
-    /* wait for a ready thread then give it some work */
-    void send_cmd(job_type_t job, int x, int y, int param);
-    void send_cmd(job_type_t job, int x, int y, int param, int param2);
-    void send_quit();
-
-    void send_box(int x, int y, int rsize);
-    void send_row(int x, int y, int n);
-    void send_row_aa(int x, int y, int n);
-    void send_box_row(int w, int y, int rsize);
-    void send_qbox_row(int w, int y, int rsize, int drawsize);
-
-    STFractWorker *ptf;
-    tpool<job_info_t,STFractWorker> *ptp;
-    bool m_ok;
-    mutable pixel_stat_t stats;
-};
 
 #endif /* FRACT_WORKER_H_ */

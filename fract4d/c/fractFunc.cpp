@@ -137,16 +137,6 @@ fractFunc::update_image(int i)
 
 // see if the image needs more (or less) iterations & tolerance to display properly
 
-int
-fractFunc::updateiters()
-{
-    int flags = 0;
-    // add up all the subtotals
-    const pixel_stat_t& stats = worker->get_stats();
-
-    return flags;
-}
-
 void fractFunc::reset_counts()
 {
     worker->reset_counts();    
@@ -185,11 +175,6 @@ void fractFunc::clear_in_fates()
 
 void fractFunc::draw_all()
 {
-    struct timeval startTime, endTime;
-    if(debug_flags & DEBUG_TIMING)
-    {
-        gettimeofday(&startTime, NULL);
-    }
     status_changed(GF4D_FRACTAL_CALCULATING);
     
 #if !defined(NO_CALC)
@@ -200,59 +185,15 @@ void fractFunc::draw_all()
     draw(16,16,minp,maxp);    
 
     minp = 0.5; maxp = 0.9; // (eaa == AA_NONE ? 0.9 : 0.5);
-    int improvement_flags;
-    while((improvement_flags = updateiters()) & SHOULD_IMPROVE)
-    {
-        float delta = (1.0-maxp)/3.0;
-        minp = maxp;
-        maxp = maxp + delta;
-
-        if(improvement_flags & SHOULD_DEEPEN)
-        {
-            maxiter *= 2;
-            iters_changed(maxiter);
-            status_changed(GF4D_FRACTAL_DEEPENING);
-            clear_in_fates();
-        }
-        if(improvement_flags & SHOULD_TIGHTEN)
-        {
-            period_tolerance /= 10.0;
-            tolerance_changed(period_tolerance);
-            status_changed(GF4D_FRACTAL_TIGHTENING);
-            clear_in_fates();
-        }
-        draw(16,1,minp,maxp);
-    }
-    
     {
         set_progress_range(0.0,1.0);
         progress_changed(1.0);
     }
 
-    // we do this after antialiasing because otherwise sometimes the
-    // aa pass makes the image shallower, which is distracting
-    if(improvement_flags & SHOULD_SHALLOWEN)
-    {
-        maxiter /= 2;
-        iters_changed(maxiter);
-    }
-    if(improvement_flags & SHOULD_LOOSEN)
-    {
-        period_tolerance *= 10.0;
-        tolerance_changed(period_tolerance);
-    }
 #endif
 
     progress_changed(0.0);
     status_changed(GF4D_FRACTAL_DONE);
-
-    if(debug_flags & DEBUG_TIMING)
-    {
-        gettimeofday(&endTime, NULL);
-        
-        double diff = gettimediff(startTime, endTime);
-        printf("time:%g\n",diff);
-    }
 }
 
 void 

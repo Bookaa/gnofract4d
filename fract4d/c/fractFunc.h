@@ -30,7 +30,6 @@ class fractFunc {
 
     void draw_all();
     void draw(int rsize, int drawsize, float min_progress, float max_progress);    
-    int updateiters();
 
     // a vector from the eye through the pixel at (x,y)
     dvec4 vec_for_point(double x, double y);
