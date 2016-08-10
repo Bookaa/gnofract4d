@@ -63,38 +63,14 @@ class T(fctutils.T):
         self.transforms = []
         self.next_transform_id = 0
         self.compiler_options = { "optimize" : 1 }
-        self.yflip = False
-        self.periodicity = True
-        self.period_tolerance = 1.0E-9
-        self.auto_epsilon = False # automatically set @epsilon param, if found
-        self.auto_deepen = True # automatically adjust maxiter
-        self.auto_tolerance = True # automatically adjust periodicity
-        self.antialias = 1
         self.compiler = compiler
-        self.render_type = 0
-
-        self.warp_param = None
-        # gradient
 
         # default is just white outside
         self.default_gradient = gradient.Gradient()
-        if False:
-            self.default_gradient.segments[0].left_color = [1.0,1.0,1.0,1.0]
-            self.default_gradient.segments[0].right_color = [1.0,1.0,1.0,1.0]
-        else:
-            self.default_gradient.load(open(self.compiler.find_file('blend.map', 3)))
-
-        # solid colors are black
-        #self.solids = [(0,0,0,255),(0,0,0,255)]
-
-        # formula defaults
-        #self.set_formula(T.DEFAULT_FORMULA_FILE,T.DEFAULT_FORMULA_FUNC,0)
-        #self.set_inner("gf4d.cfrm","zero")
-        #self.set_outer("gf4d.cfrm","continuous_potential")
+        self.default_gradient.segments[0].left_color = [1.0,1.0,1.0,1.0]
+        self.default_gradient.segments[0].right_color = [1.0,1.0,1.0,1.0]
 
         self.reset()
-
-        # interaction with fract4dc library
 
         # colorfunc lookup
         self.colorfunc_names = [
@@ -104,11 +80,6 @@ class T(fctutils.T):
             "ejection_distance",
             "decomposition",
             "external_angle"]
-
-    def serialize(self,comp=False):
-        out = StringIO.StringIO()
-        self.save(out,False,compress=comp)
-        return out.getvalue()
 
     def serialize_formula(self):
         out = StringIO.StringIO()
@@ -149,20 +120,6 @@ class T(fctutils.T):
         g = self.compiler.get_gradient(file, name)
         self.set_gradient(g)
 
-    def parse_periodicity(self,val,f):
-        try:
-            self.set_periodicity(int(val))
-        except ValueError:
-            # might be a bool in 'True'/'False' format
-            self.set_periodicity(bool(val))
-
-    def parse_period_tolerance(self,val,f):
-        self.period_tolerance = float(val)
-
-    def set_period_tolerance(self,val):
-        if val != self.period_tolerance:
-            self.period_tolerance = val
-
     def normalize_formulafile(self,params,formindex,formtype):
         formula = params.dict.get("formula")
         if formula:
@@ -184,7 +141,6 @@ class T(fctutils.T):
         params.load(f)
         (file,func) = self.normalize_formulafile(params,2,fc.FormulaTypes.COLORFUNC)
         self.set_formula_text(func.text, 1, 2)
-        # self.set_inner(file,func)
         self.forms[2].load_param_bag(params)
 
     def parse__outer_(self,val,f):
@@ -192,7 +148,6 @@ class T(fctutils.T):
         params.load(f)
         (file, func) = self.normalize_formulafile(params,1,fc.FormulaTypes.COLORFUNC)
         self.set_formula_text(func.text, 1, 1)
-        # self.set_outer(file,func)
         self.forms[1].load_param_bag(params)
 
     def parse__function_(self,val,f):
@@ -219,10 +174,6 @@ class T(fctutils.T):
         self.set_transform_with_text(params.dict['formula'], which_transform)
         self.transforms[which_transform].load_param_bag(params)
 
-    def reset_angles(self):
-        for i in xrange(self.XYANGLE,self.ZWANGLE+1):
-            self.set_param(i,0.0)
-
     def reset(self):
         # set global default values, then override from formula
         # set up defaults
@@ -236,17 +187,12 @@ class T(fctutils.T):
         self.maxiter = 256
         self.rot_by = math.pi/2
         self.title = self.forms[0].funcName
-        self.yflip = False
-        self.auto_epsilon = False
-        self.period_tolerance = 1.0E-9
-
 
     def set_formula(self,formulafile,func,index=0):
         self.forms[index].set_formula(formulafile,func,self.get_gradient())
 
         if index == 0:
             self.set_bailfunc()
-            self.warp_param = None
 
     def set_formula_text(self, buftext, formtype, formindex):
         assert self.compiler is self.forms[formindex].compiler
@@ -254,7 +200,6 @@ class T(fctutils.T):
 
         if formindex == 0:
             self.set_bailfunc()
-            self.warp_param = None
 
     def set_bailfunc(self):
         bailfuncs = [
@@ -275,16 +220,6 @@ class T(fctutils.T):
     def set_func(self,func,fname,formula):
         if func.cname != fname:
             formula.symbols.set_std_func(func,fname)
-
-    def set_periodicity(self,periodicity):
-        if self.periodicity != periodicity:
-            self.periodicity = periodicity
-
-    def set_inner(self,funcfile,funcname):
-        self.set_formula(funcfile,funcname,2)
-
-    def set_outer(self,funcfile,funcname):
-        self.set_formula(funcfile,funcname,1)
 
     def compile(self):
         if self.forms[0].formula == None:
@@ -309,31 +244,6 @@ class T(fctutils.T):
             p += transform.params
         return p
 
-    def calc5(self, image, colormap, pfunc, xoff, yoff, xres, yres):
-        #assert async == False
-        #warp = self.get_warp()
-        #assert warp == -1
-        assert self.render_type == 0
-        assert self.period_tolerance == 1.0E-9
-        assert self.auto_tolerance == True
-        assert self.auto_deepen == True
-        assert self.periodicity == True
-        #assert self.yflip == False
-        assert self.antialias == 1
-
-        #image.resize_tile(xres,yres)
-        #image.set_offset(xoff,yoff)
-
-        fract4dc.calc(
-            params=self.params,
-            maxiter=self.maxiter,
-            pfo=pfunc,
-            cmap=colormap,
-            image=image._img,
-            # site=site,
-            xoff=xoff, yoff=yoff, xres = xres, yres = yres
-            )
-
     def draw(self, image, outputfile):
         pfunc = fract4dc.pf_load_and_create(outputfile)
 
@@ -345,8 +255,14 @@ class T(fctutils.T):
         colormap = fract4dc.cmap_create_gradient(segs)
 
         for (xoff,yoff,xres,yres) in image.get_tile_list():
-
-            self.calc5(image, colormap, pfunc, xoff, yoff, xres, yres)
+            fract4dc.calc(
+                params=self.params,
+                maxiter=self.maxiter,
+                pfo=pfunc,
+                cmap=colormap,
+                image=image._img,
+                xoff=xoff, yoff=yoff, xres = xres, yres = yres
+                )
 
     def set_param(self,n,val):
         val = float(val)
@@ -357,21 +273,12 @@ class T(fctutils.T):
         # can't set function directly because formula hasn't been parsed yet
         self.bailfunc = int(val)
 
-    def apply_colorizer(self, cf):
-        if cf.read_gradient:
-            self.set_gradient(cf.gradient)
-        #self.set_solids(cf.solids)
-        if cf.direct:
-            # loading a legacy rgb colorizer
-            self.set_outer("gf4d.cfrm", "rgb")
-
-            val = "(%f,%f,%f,1.0)" % tuple(cf.rgb)
-            self.forms[1].set_named_item("@col",val)
-
     def parse__colors_(self,val,f):
         cf = colorizer.T(self)
         cf.load(f)
-        self.apply_colorizer(cf)
+        # apply_colorizer :
+        if cf.read_gradient:
+            self.set_gradient(cf.gradient)
 
     def parse__colorizer_(self,val,f):
         which_cf = int(val)
@@ -383,18 +290,11 @@ class T(fctutils.T):
 
     def parse_inner(self,val,f):
         name = self.colorfunc_names[int(val)]
-        self.set_inner("gf4d.cfrm",name)
+        self.set_formula("gf4d.cfrm", name, 2)
 
     def parse_outer(self,val,f):
         name = self.colorfunc_names[int(val)]
-        self.set_outer("gf4d.cfrm",name)
-
-    def set_yflip(self,yflip):
-        if self.yflip != yflip:
-            self.yflip = yflip
-
-    def parse_yflip(self,val,f):
-        self.yflip = (val == "1" or val == "True")
+        self.set_formula("gf4d.cfrm", name, 1)
 
     def parse_x(self,val,f):
         self.set_param(self.XCENTER,val)
