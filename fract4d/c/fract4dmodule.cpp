@@ -1264,19 +1264,12 @@ image_dims(PyObject *self, PyObject *args)
     return pyret;
 }
 
-static void
-image_writer_delete(ImageWriter *im)
-{
-    delete im;
-}
-
 static PyObject *
-image_writer_create(PyObject *self,PyObject *args)
+image_save_all(PyObject *self,PyObject *args)
 {
     PyObject *pyim;
     PyObject *pyFP;
-    int file_type;
-    if(!PyArg_ParseTuple(args,"OOi",&pyim,&pyFP,&file_type))
+    if(!PyArg_ParseTuple(args,"OO",&pyim,&pyFP))
     {
         return NULL;
     }
@@ -1296,79 +1289,27 @@ image_writer_create(PyObject *self,PyObject *args)
         return NULL;
     }
     
-    ImageWriter *writer = ImageWriter::create((image_file_t)file_type, fp, i);
+    ImageWriter *writer = ImageWriter::create(FILE_TYPE_PNG, fp, i);
     if(NULL == writer)
     {
         PyErr_SetString(PyExc_ValueError, "Unsupported file type");
         return NULL;
     }
 
-    return PyCObject_FromVoidPtr(
-        writer, (void (*)(void *))image_writer_delete);
-}
+    // return PyCObject_FromVoidPtr(writer, (void (*)(void *))image_writer_delete);
 
-static PyObject *
-image_save_header(PyObject *self,PyObject *args)
-{
-    PyObject *pyimwriter;
-    if(!PyArg_ParseTuple(args,"O",&pyimwriter))
-    {
-        return NULL;
-    }
+    writer->save_header();
 
-    ImageWriter *i = (ImageWriter *)PyCObject_AsVoidPtr(pyimwriter);
+    writer->save_tile();
 
-    if(!i || !i->save_header())
-    {
-        PyErr_SetString(PyExc_IOError, "Couldn't save file header");
-        return NULL;
-    }
-    
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-    
-static PyObject *
-image_save_tile(PyObject *self,PyObject *args)
-{
-    PyObject *pyimwriter;
-    if(!PyArg_ParseTuple(args,"O",&pyimwriter))
-    {
-        return NULL;
-    }
+    writer->save_footer();
 
-    ImageWriter *i = (ImageWriter *)PyCObject_AsVoidPtr(pyimwriter);
+    delete writer;
 
-    if(!i || !i->save_tile())
-    {
-        PyErr_SetString(PyExc_IOError, "Couldn't save image tile");
-        return NULL;
-    }
-    
     Py_INCREF(Py_None);
     return Py_None;
 }
 
-static PyObject *
-image_save_footer(PyObject *self,PyObject *args)
-{
-    PyObject *pyimwriter;
-    if(!PyArg_ParseTuple(args,"O",&pyimwriter))
-    {
-        return NULL;
-    }
-
-    ImageWriter *i = (ImageWriter *)PyCObject_AsVoidPtr(pyimwriter);
-
-    if(!i || !i->save_footer())
-    {
-        PyErr_SetString(PyExc_IOError, "Couldn't save image footer");
-        return NULL;
-    }
-    
-    Py_INCREF(Py_None);
-    return Py_None;
-}
 
 static PyObject *
 image_buffer(PyObject *self, PyObject *args)
@@ -1476,11 +1417,12 @@ static PyMethodDef PfMethods[] = {
     { "image_dims", image_dims, METH_VARARGS, "get a tuple containing image's dimensions"},
     //{ "image_clear", image_clear, METH_VARARGS, "Clear all iteration and color data from image" },
 
-    { "image_writer_create", image_writer_create, METH_VARARGS, "create an object used to write image to disk" },
+    //{ "image_writer_create", image_writer_create, METH_VARARGS, "create an object used to write image to disk" },
+    { "image_save_all", image_save_all, METH_VARARGS, "image_sav_all" },
 
-    { "image_save_header", image_save_header, METH_VARARGS, "save an image header - useful for render-to-disk"},
-    { "image_save_tile", image_save_tile, METH_VARARGS, "save an image fragment ('tile') - useful for render-to-disk"},
-    { "image_save_footer", image_save_footer, METH_VARARGS, "save the final footer info for an image - useful for render-to-disk"},
+    //{ "image_save_header", image_save_header, METH_VARARGS, "save an image header - useful for render-to-disk"},
+    //{ "image_save_tile", image_save_tile, METH_VARARGS, "save an image fragment ('tile') - useful for render-to-disk"},
+    //{ "image_save_footer", image_save_footer, METH_VARARGS, "save the final footer info for an image - useful for render-to-disk"},
 
     //{ "image_read", image_read, METH_VARARGS, "read an image in from disk"},
 

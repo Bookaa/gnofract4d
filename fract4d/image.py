@@ -29,10 +29,9 @@ class T:
     WHITE=[255,255,255]
     def __init__(self,xsize,ysize,txsize=-1,tysize=-1):
         self._img = fract4dc.image_create(xsize,ysize,txsize, tysize)
-        self.update_bufs()
-        self.writer = None
-        self.fp = None
-        
+        self.fate_buf = fract4dc.image_fate_buffer(self._img,0,0)
+        self.image_buf = fract4dc.image_buffer(self._img,0,0)
+
     def get_xsize(self):
         return self.get_dim(fract4dc.IMAGE_WIDTH)
 
@@ -90,27 +89,24 @@ class T:
         # start_save :
         ft = self.file_type(name)
         try:
-            self.fp = open(name, "wb")
+            fp = open(name, "wb")
         except IOError, err:
             raise IOError("Unable to save image to '%s' : %s" % (name,err.strerror))
-        self.writer = fract4dc.image_writer_create(self._img, self.fp, ft)
-        fract4dc.image_save_header(self.writer)
 
-        # save_tile :
-        if self.writer:
-            fract4dc.image_save_tile(self.writer)
+        if True:
+            fract4dc.image_save_all(self._img, fp)
+        else:
+            writer = fract4dc.image_writer_create(self._img, fp, ft)
+            fract4dc.image_save_header(writer)
 
-        # finish_save :
-        fract4dc.image_save_footer(self.writer)
-        self.fp.close()
-        self.fp = None
-        self.writer = None
+            # save_tile :
+            if writer:
+                fract4dc.image_save_tile(writer)
 
-    def load(self,name):
-        type = self.file_type(name)
-        fp = open(name,"rb")
-        fract4dc.image_read(self._img, fp,type)
-        
+            # finish_save :
+            fract4dc.image_save_footer(writer)
+        fp.close()
+
     def get_tile_list(self):
         x = 0
         y = 0
@@ -127,43 +123,4 @@ class T:
             x = 0
         return tiles
 
-    def update_bufs(self):
-        self.fate_buf = fract4dc.image_fate_buffer(self._img,0,0)
-        self.image_buf = fract4dc.image_buffer(self._img,0,0)
 
-    def clear(self):
-        fract4dc.image_clear(self._img)
-        
-    def pos(self,x,y,size):
-        return size * (y * self.xsize + x)
-
-    def fate_buffer(self,x=0,y=0):
-        return fract4dc.image_fate_buffer(self._img, x, y)
-
-    def image_buffer(self,x=0,y=0):
-        return fract4dc.image_buffer(self._img, x, y)
-        
-    def get_fate(self,x,y):
-        n = ord(self.fate_buf[self.pos(x,y,T.FATE_SIZE)])
-        if n == T.UNKNOWN:
-            return None
-        elif n & T.SOLID:
-            is_solid = True
-        else:
-            is_solid = False
-        fate = n & ~T.SOLID
-        return (is_solid, fate)
-
-    def get_all_fates(self,x,y):
-        pos = self.pos(x,y,T.FATE_SIZE)
-        return map(ord,list(self.fate_buf[pos:pos+T.FATE_SIZE]))
-
-    def get_color(self,x,y):
-        pos = self.pos(x,y,T.COL_SIZE)
-        return map(ord,list(self.image_buf[pos:pos+T.COL_SIZE]))
-
-    def get_color_index(self,x,y,sub=0):
-        return fract4dc.image_get_color_index(self._img,x,y,sub)
-    
-    def serialize(self):
-        return ""
