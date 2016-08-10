@@ -564,33 +564,6 @@ pf_init(PyObject *self, PyObject *args)
 }
 
 
-/*
- * cmaps
- */
-static PyObject *
-pycmap_set_solid(PyObject *self, PyObject *args)
-{
-    PyObject *pycmap;
-    int which,r,g,b,a;
-    ColorMap *cmap;
-
-    if(!PyArg_ParseTuple(args,"Oiiiii",&pycmap,&which,&r,&g,&b,&a))
-    {
-        return NULL;
-    }
-
-    cmap = (ColorMap *)PyCObject_AsVoidPtr(pycmap);
-    if(!cmap)
-    {
-        return NULL;
-    }
-
-    cmap->set_solid(which,r,g,b,a);
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
 #ifdef THREADS
 #define GET_LOCK PyGILState_STATE gstate; gstate = PyGILState_Ensure()
 #define RELEASE_LOCK PyGILState_Release(gstate)
@@ -1315,70 +1288,19 @@ static PyMethodDef PfMethods[] = {
     {"pf_load",  pf_load, METH_VARARGS, "Load a new point function shared library"},
     {"pf_create", pf_create, METH_VARARGS, "Create a new point function"},
     {"pf_init", pf_init, METH_VARARGS, "Init a point function"},
-    //{"pf_calc", pf_calc, METH_VARARGS, "Calculate one point"},
-    //{"pf_defaults", pf_defaults, METH_VARARGS, "Get defaults for this formula"},
 
-    //{ "cmap_create", cmap_create, METH_VARARGS, "Create a new colormap"},
     { "cmap_create_gradient", cmap_create_gradient, METH_VARARGS, "Create a new gradient-based colormap"},
-    //{ "cmap_lookup", cmap_pylookup, METH_VARARGS, "Get a color tuple from a distance value"},
-    //{ "cmap_lookup_flags", cmap_pylookup_with_flags, METH_VARARGS, "Get a color tuple from a distance value and solid/inside flags"},
-    { "cmap_set_solid", pycmap_set_solid, METH_VARARGS, "Set the inner or outer solid color"},
-    //{ "cmap_set_transfer", pycmap_set_transfer, METH_VARARGS, "Set the inner or outer transfer function"},
+    //{ "cmap_set_solid", pycmap_set_solid, METH_VARARGS, "Set the inner or outer solid color"},
     
-    //{ "rgb_to_hsv", pyrgb_to_hsv, METH_VARARGS, "Convert a rgb(a) list into an hsv(a) one"},
-    //{ "rgb_to_hsl", pyrgb_to_hsl, METH_VARARGS, "Convert a rgb(a) list into an hls(a) one"},
-    //{ "hsl_to_rgb", pyhsl_to_rgb, METH_VARARGS, "Convert an hls(a) list into an rgb(a) one"},
-
     { "image_create", image_create, METH_VARARGS, "Create a new image buffer"},
-    //{ "image_resize", image_resize, METH_VARARGS, "Change image dimensions - data is deleted" },
-    //{ "image_set_offset", image_set_offset, METH_VARARGS, "set the image tile's offset" },
     { "image_dims", image_dims, METH_VARARGS, "get a tuple containing image's dimensions"},
-    //{ "image_clear", image_clear, METH_VARARGS, "Clear all iteration and color data from image" },
 
-    //{ "image_writer_create", image_writer_create, METH_VARARGS, "create an object used to write image to disk" },
     { "image_save_all", image_save_all, METH_VARARGS, "image_sav_all" },
 
-    //{ "image_save_header", image_save_header, METH_VARARGS, "save an image header - useful for render-to-disk"},
-    //{ "image_save_tile", image_save_tile, METH_VARARGS, "save an image fragment ('tile') - useful for render-to-disk"},
-    //{ "image_save_footer", image_save_footer, METH_VARARGS, "save the final footer info for an image - useful for render-to-disk"},
-
-    //{ "image_read", image_read, METH_VARARGS, "read an image in from disk"},
-
-    //{ "image_buffer", image_buffer, METH_VARARGS, "get the rgb data from the image"},
-    //{ "image_fate_buffer", image_fate_buffer, METH_VARARGS, "get the fate data from the image"},
-
-    //{ "image_get_color_index", image_get_color_index, METH_VARARGS, "Get the color index data from a point on the image"},
-    //{ "image_get_fate", image_get_fate, METH_VARARGS, "Get the (solid, fate) info for a point on the image"},
-
-    //{ "image_lookup", pyimage_lookup, METH_VARARGS, "Get the color of a point on an image"},
-
-    //{ "site_create", pysite_create, METH_VARARGS, "Create a new site"},
     { "fdsite_create", pyfdsite_create, METH_VARARGS, "Create a new file-descriptor site"},
 
-    // { "ff_create", ff_create, METH_VARARGS, "Create a fractFunc." },
-    // { "ff_look_vector", ff_look_vector, METH_VARARGS, "Get a vector from the eye to a point on the screen" },
-    // { "ff_get_vector", ff_get_vector, METH_VARARGS, "Get a vector inside the ff" },
-
-    // { "fw_create", fw_create, METH_VARARGS, "Create a fractWorker." },
-    // { "fw_pixel", fw_pixel, METH_VARARGS, "Draw a single pixel." },
-    // { "fw_pixel_aa", fw_pixel_aa, METH_VARARGS, "Draw a single pixel." },
-    // { "fw_find_root", fw_find_root, METH_VARARGS, "Find closest root considering fractal function along a vector"},
-    
     { "calc", (PyCFunction) pycalc, METH_VARARGS | METH_KEYWORDS, "Calculate a fractal image"},
 
-    //{ "interrupt", pystop_calc, METH_VARARGS, "Stop an async calculation" },
-
-    // { "rot_matrix", rot_matrix, METH_VARARGS, "Return a rotated and scaled identity matrix based on params"},
-
-    // { "eye_vector", eye_vector, METH_VARARGS, "Return the line between the user's eye and the center of the screen"},
-
-    //{ "arena_create", pyarena_create, METH_VARARGS, "Create a new arena allocator" },
-    //{ "arena_alloc", pyarena_alloc, METH_VARARGS, "Allocate a chunk of memory from the arena" },
-
-    //{ "array_get_int", pyarray_get, METH_VARARGS, "Get an element from an array allocated in an arena" },
-
-    //{ "array_set_int", pyarray_set, METH_VARARGS, "Set an element in an array allocated in an arena" },
-    
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

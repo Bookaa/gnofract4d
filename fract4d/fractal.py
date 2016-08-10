@@ -93,7 +93,7 @@ class T(fctutils.T):
             self.default_gradient.load(open(self.compiler.find_file('blend.map', 3)))
 
         # solid colors are black
-        self.solids = [(0,0,0,255),(0,0,0,255)]
+        #self.solids = [(0,0,0,255),(0,0,0,255)]
 
         # formula defaults
         self.set_formula(T.DEFAULT_FORMULA_FILE,T.DEFAULT_FORMULA_FUNC,0)
@@ -170,10 +170,10 @@ class T(fctutils.T):
 
         print >>file, "[colors]"
         print >>file, "colorizer=1"
-        print >>file, "solids=["
-        for solid in self.solids:
-            print >>file, "%02x%02x%02x%02x" % solid
-        print >>file, "]"
+        #print >>file, "solids=["
+        #for solid in self.solids:
+        #    print >>file, "%02x%02x%02x%02x" % solid
+        #print >>file, "]"
         print >>file, "[endsection]"
 
         if compress:
@@ -332,7 +332,7 @@ class T(fctutils.T):
                 c.append_transform_(t.formula)
             c.transforms[-1].copy_from(t)
 
-        c.solids = copy.copy(self.solids)
+        #c.solids = copy.copy(self.solids)
         c.yflip = self.yflip
         c.periodicity = self.periodicity
         c.period_tolerance = self.period_tolerance
@@ -451,7 +451,7 @@ class T(fctutils.T):
 
     def copy_colors(self, f):
         self.set_gradient(copy.copy(f.get_gradient()))
-        self.set_solids(f.solids)
+        #self.set_solids(f.solids)
         self.changed(False)
 
     def set_warp_param(self,param):
@@ -464,7 +464,7 @@ class T(fctutils.T):
         file = open(mapfile)
         c.parse_map_file(file)
         self.set_gradient(c.gradient)
-        self.set_solids(c.solids)
+        #self.set_solids(c.solids)
         self.changed(False)
 
     def get_initparam(self,n,param_type):
@@ -474,13 +474,13 @@ class T(fctutils.T):
     def set_initparam(self,n,val, param_type):
         self.forms[param_type].set_param(n,val)
 
-    def set_solid(self,i,newsolid):
+    def nouse_set_solid(self,i,newsolid):
         if self.solids[i] == newsolid:
             return
         self.solids[i] = newsolid
         self.changed(False)
 
-    def set_solids(self, solids):
+    def nouse_set_solids(self, solids):
         same = True
         for i in xrange(len(solids)):
             if self.solids[i] != solids[i]:
@@ -855,10 +855,10 @@ class T(fctutils.T):
     def get_colormap(self):
         cmap = fract4dc.cmap_create_gradient(self.get_gradient().segments)
 
-        (r,g,b,a) = self.solids[0]
-        fract4dc.cmap_set_solid(cmap,0,r,g,b,a)
-        (r,g,b,a) = self.solids[1]
-        fract4dc.cmap_set_solid(cmap,1,r,g,b,a)
+        #(r,g,b,a) = self.solids[0]
+        #fract4dc.cmap_set_solid(cmap,0,r,g,b,a)
+        #(r,g,b,a) = self.solids[1]
+        #fract4dc.cmap_set_solid(cmap,1,r,g,b,a)
 
         return cmap
 
@@ -952,7 +952,7 @@ The image may not display correctly. Please upgrade to version %s or higher.'''
     def apply_colorizer(self, cf):
         if cf.read_gradient:
             self.set_gradient(cf.gradient)
-        self.set_solids(cf.solids)
+        #self.set_solids(cf.solids)
         self.changed(False)
         if cf.direct:
             # loading a legacy rgb colorizer
