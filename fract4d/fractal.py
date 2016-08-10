@@ -105,11 +105,6 @@ class T(fctutils.T):
             "decomposition",
             "external_angle"]
 
-        self.saved = True # initial params not worth saving
-
-    def set_solid(self):
-        pass
-
     def serialize(self,comp=False):
         out = StringIO.StringIO()
         self.save(out,False,compress=comp)
@@ -119,55 +114,6 @@ class T(fctutils.T):
         out = StringIO.StringIO()
         self.save_formula(out)
         return out.getvalue()
-
-    def deserialize(self,string):
-        self.loadFctFile(StringIO.StringIO(string))
-
-    def apply_params(self,dict):
-        for (key,value) in dict.items():
-            self.parseVal(key,value,None)
-
-    def save(self,file,update_saved_flag=True,**kwds):
-        print >>file, "gnofract4d parameter file"
-        print >>file, "version=%s" % THIS_FORMAT_VERSION
-
-        compress = kwds.get("compress",False)
-        if compress != False:
-            # compress this file
-            main_file = file
-            file = fctutils.Compressor()
-
-        for pair in zip(self.paramnames,self.params):
-            print >>file, "%s=%.17f" % pair
-
-        print >>file, "maxiter=%d" % self.maxiter
-        print >>file, "yflip=%s" % self.yflip
-        print >>file, "periodicity=%s" % int(self.periodicity)
-        print >>file, "period_tolerance=%.17f" % self.period_tolerance
-
-        self.forms[0].save_formula_params(file,self.warp_param)
-        self.forms[1].save_formula_params(file)
-        self.forms[2].save_formula_params(file)
-
-        i = 0
-        for transform in self.transforms:
-            transform.save_formula_params(file,None,i)
-            i += 1
-
-        print >>file, "[colors]"
-        print >>file, "colorizer=1"
-        #print >>file, "solids=["
-        #for solid in self.solids:
-        #    print >>file, "%02x%02x%02x%02x" % solid
-        #print >>file, "]"
-        print >>file, "[endsection]"
-
-        if compress:
-            file.close()
-            print >> main_file, file.getvalue()
-
-        if update_saved_flag:
-            self.saved = True
 
     def save_formula(self,file):
         print >>file, "gnofract4d formula desc"
@@ -294,72 +240,6 @@ class T(fctutils.T):
         self.auto_epsilon = False
         self.period_tolerance = 1.0E-9
 
-        self.set_formula_defaults()
-
-    def copy_colors(self, f):
-        self.set_gradient(copy.copy(f.get_gradient()))
-        #self.set_solids(f.solids)
-
-    def set_warp_param(self,param):
-        if self.warp_param != param:
-            self.warp_param = param
-
-    def set_cmap(self,mapfile):
-        c = colorizer.T(self)
-        file = open(mapfile)
-        c.parse_map_file(file)
-        self.set_gradient(c.gradient)
-        #self.set_solids(c.solids)
-
-    def get_initparam(self,n,param_type):
-        params = self.forms[param_type].params
-        return params[n]
-
-    def set_initparam(self,n,val, param_type):
-        self.forms[param_type].set_param(n,val)
-
-    def refresh(self):
-        for i in xrange(3):
-            if self.compiler.out_of_date(self.forms[i].funcFile):
-                self.set_formula(
-                    self.forms[i].funcFile,self.forms[i].funcName,i)
-
-    def set_formula_defaults(self):
-        if self.forms[0].formula == None:
-            return
-
-        #g = self.get_gradient()
-
-        #self.forms[0].set_initparams_from_formula(g)
-
-        lst = self.forms[0].formula.defaults.items()
-        for (name,val) in lst:
-            # FIXME helpfile,helptopic,method,precision,
-            #render,skew,stretch
-            if name == "maxiter":
-                self.maxiter = int(val.value)
-            elif name == "center" or name == "xycenter":
-                self.params[self.XCENTER] = float(val.value[0].value)
-                self.params[self.YCENTER] = float(val.value[1].value)
-            elif name == "zwcenter":
-                self.params[self.ZCENTER] = float(val.value[0].value)
-                self.params[self.WCENTER] = float(val.value[1].value)
-            elif name == "angle":
-                self.params[self.XYANGLE] = float(val.value)
-            elif name == "magn":
-                self.params[self.MAGNITUDE] = float(val.value)
-            elif name == "title":
-                self.title = val.value
-            elif name == "periodicity":
-                self.periodicity=int(val.value)
-            else:
-                if hasattr(self,name.upper()):
-                    self.params[getattr(self,name.upper())] = float(val.value)
-                else:
-                    print "ignored unknown parameter %s" % name
-
-        for form in self.forms[1:] + self.transforms:
-            form.reset_params()
 
     def set_formula(self,formulafile,func,index=0):
         self.forms[index].set_formula(formulafile,func,self.get_gradient())
@@ -375,9 +255,6 @@ class T(fctutils.T):
         if formindex == 0:
             self.set_bailfunc()
             self.warp_param = None
-
-    def get_saved(self):
-        return self.saved
 
     def set_bailfunc(self):
         bailfuncs = [
@@ -476,12 +353,6 @@ class T(fctutils.T):
         if self.params[n] != val:
             self.params[n] = val
 
-    def get_param(self,n):
-        return self.params[n]
-
-    def warn(self,msg):
-        print msg
-
     def parse_bailfunc(self,val,f):
         # can't set function directly because formula hasn't been parsed yet
         self.bailfunc = int(val)
@@ -570,8 +441,6 @@ class T(fctutils.T):
             raise Exception("Not a valid parameter file")
 
         self.load(f)
-
-        self.saved = True
 
 if __name__ == '__main__':
     g_comp = fc.Compiler()
