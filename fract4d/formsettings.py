@@ -325,8 +325,6 @@ class T:
 
     def changed(self):
         self.dirty = True
-        if self.parent:
-            self.parent().changed()
 
     def is_direct(self):
         return self.formula.is_direct()

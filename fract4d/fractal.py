@@ -91,8 +91,6 @@ class T(fctutils.T):
         #self.set_formula(T.DEFAULT_FORMULA_FILE,T.DEFAULT_FORMULA_FUNC,0)
         #self.set_inner("gf4d.cfrm","zero")
         #self.set_outer("gf4d.cfrm","continuous_potential")
-        self.dirty = True # parameters have changed
-        self.clear_image = True
 
         self.reset()
 
@@ -124,7 +122,6 @@ class T(fctutils.T):
 
     def deserialize(self,string):
         self.loadFctFile(StringIO.StringIO(string))
-        self.changed()
 
     def apply_params(self,dict):
         for (key,value) in dict.items():
@@ -202,8 +199,6 @@ class T(fctutils.T):
                self.forms[2].is_direct():
                 needs_redraw = True
 
-            self.changed(True) #needs_redraw)
-
     def set_gradient_from_file(self, file, name):
         g = self.compiler.get_gradient(file, name)
         self.set_gradient(g)
@@ -221,7 +216,6 @@ class T(fctutils.T):
     def set_period_tolerance(self,val):
         if val != self.period_tolerance:
             self.period_tolerance = val
-            self.changed(False)
 
     def normalize_formulafile(self,params,formindex,formtype):
         formula = params.dict.get("formula")
@@ -305,12 +299,10 @@ class T(fctutils.T):
     def copy_colors(self, f):
         self.set_gradient(copy.copy(f.get_gradient()))
         #self.set_solids(f.solids)
-        self.changed(False)
 
     def set_warp_param(self,param):
         if self.warp_param != param:
             self.warp_param = param
-            self.changed(True)
 
     def set_cmap(self,mapfile):
         c = colorizer.T(self)
@@ -318,7 +310,6 @@ class T(fctutils.T):
         c.parse_map_file(file)
         self.set_gradient(c.gradient)
         #self.set_solids(c.solids)
-        self.changed(False)
 
     def get_initparam(self,n,param_type):
         params = self.forms[param_type].params
@@ -376,7 +367,6 @@ class T(fctutils.T):
         if index == 0:
             self.set_bailfunc()
             self.warp_param = None
-        self.changed()
 
     def set_formula_text(self, buftext, formtype, formindex):
         assert self.compiler is self.forms[formindex].compiler
@@ -385,7 +375,6 @@ class T(fctutils.T):
         if formindex == 0:
             self.set_bailfunc()
             self.warp_param = None
-        self.changed()
 
     def get_saved(self):
         return self.saved
@@ -406,99 +395,19 @@ class T(fctutils.T):
         if func != None:
             self.set_func(func[0],funcname,self.forms[0].formula)
 
-    def changed(self,clear_image=True):
-        self.dirty = True
-        self.saved = False
-        self.clear_image = clear_image
-
     def set_func(self,func,fname,formula):
         if func.cname != fname:
             formula.symbols.set_std_func(func,fname)
-            self.changed()
 
     def set_periodicity(self,periodicity):
         if self.periodicity != periodicity:
             self.periodicity = periodicity
-            self.changed()
 
     def set_inner(self,funcfile,funcname):
         self.set_formula(funcfile,funcname,2)
 
     def set_outer(self,funcfile,funcname):
         self.set_formula(funcfile,funcname,1)
-
-    def get_transform_prefix(self):
-        i = self.next_transform_id
-        prefix = "t%d" % i
-        self.next_transform_id += 1
-        return prefix
-
-    def append_transform(self,funcfile,funcname):
-        fs = formsettings.T(self.compiler,self,self.get_transform_prefix())
-        fs.set_formula(funcfile, funcname, self.get_gradient())
-        self.transforms.append(fs)
-        self.changed()
-
-    def append_transform_(self,formula):
-        fs = formsettings.T(self.compiler,self,self.get_transform_prefix())
-        fs.set_formula_(formula, self.get_gradient())
-        self.transforms.append(fs)
-        self.changed()
-
-    def set_transform(self,funcfile,funcname,i):
-        fs = formsettings.T(self.compiler,self,self.get_transform_prefix())
-        fs.set_formula(funcfile, funcname, self.get_gradient())
-        if len(self.transforms) <= i:
-            self.transforms.extend([None] * (i- len(self.transforms)+1))
-
-        self.transforms[i] = fs
-        self.changed()
-
-    def set_transform_with_text(self, formulatext, i):
-        fs = formsettings.T(self.compiler,self,self.get_transform_prefix())
-        import translate
-        type = translate.Transform
-        fs.set_formula_with_text(type, formulatext, self.get_gradient())
-        if len(self.transforms) <= i:
-            self.transforms.extend([None] * (i- len(self.transforms)+1))
-
-        self.transforms[i] = fs
-        self.changed()
-
-    def remove_transform(self,i):
-        self.transforms.pop(i)
-        self.changed()
-
-    def set_compiler_option(self,option,val):
-        self.compiler_options[option] = val
-
-    def apply_options(self,options):
-        if options.basename and options.func:
-            self.set_formula(options.basename,options.func)
-            self.reset()
-
-        if options.innername and options.innerfunc:
-            self.set_inner(options.innername, options.innerfunc)
-            self.reset()
-
-        if options.outername and options.outerfunc:
-            self.set_outer(options.outername, options.outerfunc)
-            self.reset()
-
-        if options.maxiter != -1:
-            self.set_maxiter(options.maxiter)
-
-        for (num,val) in options.paramchanges.items():
-            self.set_param(num,val)
-
-        for (file,func) in options.transforms:
-            self.append_transform(file,func)
-
-        if options.map:
-            self.set_cmap(options.map)
-
-        if options.antialias != None:
-            self.antialias = options.antialias
 
     def compile(self):
         if self.forms[0].formula == None:
@@ -515,31 +424,6 @@ class T(fctutils.T):
 
         return outputfile
 
-    def relocate(self,dx,dy,zoom,axis=0):
-        if dx == 0 and dy == 0 and zoom == 1.0:
-            return
-
-        m = fract4dc.rot_matrix(self.params)
-
-        deltax = self.mul_vs(m[axis],dx)
-        if self.yflip:
-            deltay = self.mul_vs(m[axis+1],dy)
-        else:
-            deltay = self.mul_vs(m[axis+1],-dy)
-
-        self.params[self.XCENTER] += deltax[0] + deltay[0]
-        self.params[self.YCENTER] += deltax[1] + deltay[1]
-        self.params[self.ZCENTER] += deltax[2] + deltay[2]
-        self.params[self.WCENTER] += deltax[3] + deltay[3]
-        self.params[self.MAGNITUDE] *= zoom
-        self.changed()
-
-    def flip_to_julia(self):
-        self.params[self.XZANGLE] += self.rot_by
-        self.params[self.YWANGLE] += self.rot_by
-        self.rot_by = - self.rot_by
-        self.changed()
-
     def all_params(self):
         p = []
         for form in self.forms:
@@ -548,19 +432,10 @@ class T(fctutils.T):
             p += transform.params
         return p
 
-    def get_warp(self):
-        if self.warp_param:
-            warp = self.forms[0].order_of_name(self.warp_param)
-        else:
-            warp = -1
-        return warp
-
-
     def calc5(self, image, colormap, pfunc, xoff, yoff, xres, yres):
         #assert async == False
-        #assert self.clear_image == False
-        warp = self.get_warp()
-        assert warp == -1
+        #warp = self.get_warp()
+        #assert warp == -1
         assert self.render_type == 0
         assert self.period_tolerance == 1.0E-9
         assert self.auto_tolerance == True
@@ -600,7 +475,6 @@ class T(fctutils.T):
         val = float(val)
         if self.params[n] != val:
             self.params[n] = val
-            self.changed()
 
     def get_param(self,n):
         return self.params[n]
@@ -616,7 +490,6 @@ class T(fctutils.T):
         if cf.read_gradient:
             self.set_gradient(cf.gradient)
         #self.set_solids(cf.solids)
-        self.changed(False)
         if cf.direct:
             # loading a legacy rgb colorizer
             self.set_outer("gf4d.cfrm", "rgb")
@@ -648,7 +521,6 @@ class T(fctutils.T):
     def set_yflip(self,yflip):
         if self.yflip != yflip:
             self.yflip = yflip
-            self.changed()
 
     def parse_yflip(self,val,f):
         self.yflip = (val == "1" or val == "True")
