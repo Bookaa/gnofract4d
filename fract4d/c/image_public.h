@@ -78,8 +78,6 @@ public:
     virtual bool hasFate() const = 0;
     virtual fate_t getFate(int x, int y, int sub) const = 0;
     virtual void setFate(int x, int y, int sub, fate_t fate) = 0;
-    // set all subpixels equal to zero'th one
-    virtual void fill_subpixels(int x, int y) = 0;
 
     // accessors for index data
     virtual float getIndex(int x, int y, int sub) const = 0;
@@ -126,8 +124,6 @@ class ImageReader
 {
 public:
     virtual ~ImageReader() {};
-    static ImageReader *create(
-	image_file_t type, FILE *fp, IImage *image);
 
     virtual bool read_header() = 0;
     virtual bool read_tile() = 0;

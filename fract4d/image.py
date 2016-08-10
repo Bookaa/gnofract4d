@@ -87,16 +87,7 @@ class T:
         return type
     
     def save(self,name):
-        self.start_save(name)
-        self.save_tile()
-        self.finish_save()
-
-    def load(self,name):
-        type = self.file_type(name)
-        fp = open(name,"rb")
-        fract4dc.image_read(self._img, fp,type)
-        
-    def start_save(self,name):
+        # start_save :
         ft = self.file_type(name)
         try:
             self.fp = open(name, "wb")
@@ -104,18 +95,26 @@ class T:
             raise IOError("Unable to save image to '%s' : %s" % (name,err.strerror))
         self.writer = fract4dc.image_writer_create(self._img, self.fp, ft)
         fract4dc.image_save_header(self.writer)
-        return file
+
+        # save_tile :
+        if self.writer:
+            fract4dc.image_save_tile(self.writer)
+
+        # finish_save :
+        fract4dc.image_save_footer(self.writer)
+        self.fp.close()
+        self.fp = None
+        self.writer = None
 
     def save_tile(self):
         if None == self.writer:
             return
         fract4dc.image_save_tile(self.writer)
 
-    def finish_save(self):
-        fract4dc.image_save_footer(self.writer)
-        self.fp.close()
-        self.fp = None
-        self.writer = None
+    def load(self,name):
+        type = self.file_type(name)
+        fp = open(name,"rb")
+        fract4dc.image_read(self._img, fp,type)
         
     def get_tile_list(self):
         x = 0
