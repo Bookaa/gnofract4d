@@ -906,8 +906,8 @@ class T(fctutils.T):
         #assert self.yflip == False
         assert self.antialias == 1
 
-        image.resize_tile(xres,yres)
-        image.set_offset(xoff,yoff)
+        #image.resize_tile(xres,yres)
+        #image.set_offset(xoff,yoff)
 
         fract4dc.calc(
             params=self.params,
@@ -915,7 +915,9 @@ class T(fctutils.T):
             pfo=self.pfunc,
             cmap=colormap,
             image=image._img,
-            site=site)
+            site=site,
+            xoff=xoff, yoff=yoff, xres = xres, yres = yres
+            )
 
     def draw(self,image):
         self.init_pfunc()

@@ -801,6 +801,7 @@ struct calc_args
     ColorMap *cmap;
     IImage *im;
     IFractalSite *site;
+    int xoff,yoff,xres,yres;
 
     PyObject *pycmap, *pypfo, *pyim, *pysite;
     calc_args()
@@ -1061,19 +1062,20 @@ parse_calc_args(PyObject *args, PyObject *kwds)
         //"warp_param",
         //"tolerance",
         //"auto_tolerance",
+        "xoff", "yoff", "xres", "yres",
         NULL};
 
     if(!PyArg_ParseTupleAndKeywords(
            args,
            kwds,
-           "OOOOO|i",
+           "OOOOO|iiiii",
            const_cast<char **>(kwlist),
 
            &pyim, &pysite,
            &pypfo,&pycmap,
            &pyparams,
            //&cargs->eaa,
-           &cargs->maxiter
+           &cargs->maxiter,
            //&cargs->yflip,
             // &cargs->nThreads,
            //&cargs->auto_deepen,
@@ -1084,6 +1086,7 @@ parse_calc_args(PyObject *args, PyObject *kwds)
            //&cargs->warp_param,
            //&cargs->tolerance,
            //&cargs->auto_tolerance
+           &cargs->xoff, &cargs->yoff, &cargs->xres, &cargs->yres
            ))
     {
         goto error;
@@ -1151,7 +1154,27 @@ pycalc(PyObject *self, PyObject *args, PyObject *kwds)
     {
         return NULL;
     }
+    if (true)
+    {
+        /*
+        dims = fract4dc.image_dims(self._img)
+        fract4dc.image_resize(
+            self._img, xres, yres,
+            dims[fract4dc.IMAGE_TOTAL_WIDTH],
+            dims[fract4dc.IMAGE_TOTAL_HEIGHT])
+        
+        */
 
+        int xtotalsize = cargs->im->totalXres();
+        int ytotalsize = cargs->im->totalYres();
+
+
+        cargs->im->set_resolution(cargs->xres, cargs->yres, xtotalsize, ytotalsize);
+
+        // fract4dc.image_set_offset(self._img,xoff,yoff)
+
+        cargs->im->set_offset(cargs->xoff, cargs->yoff);
+    }
     {
         Py_BEGIN_ALLOW_THREADS
         // synchronous
