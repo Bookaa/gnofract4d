@@ -26,9 +26,8 @@ class pf_wrapper : public pointFunc
 private:
     pf_obj *m_pfo;
     ColorMap *m_cmap;
-    IFractalSite *m_site;
 public:
-    pf_wrapper(pf_obj *pfo,	ColorMap *cmap,	IFractalSite *site	) :	m_pfo(pfo), m_cmap(cmap), m_site(site)
+    pf_wrapper(pf_obj *pfo,	ColorMap *cmap) :	m_pfo(pfo), m_cmap(cmap)
 	{
 
 	}
@@ -91,11 +90,11 @@ public:
 	    *pFate = (fate_t) fate;
 	    *pIndex = (float) dist;
 
-	    int color_iters = (fate & FATE_INSIDE) ? -1 : *pnIters;
-	    m_site->pixel_changed(params,nIters, min_period_iters,
-            x,y,aa,
-            dist,fate,color_iters,
-            color->r, color->g, color->b, color->a);
+	    //int color_iters = (fate & FATE_INSIDE) ? -1 : *pnIters;
+	    //m_site->pixel_changed(params,nIters, min_period_iters,
+        //    x,y,aa,
+        //    dist,fate,color_iters,
+        //    color->r, color->g, color->b, color->a);
 	}
 
     inline rgba_t recolor(double dist, fate_t fate, rgba_t current) const
@@ -119,16 +118,13 @@ public:
 };
 
 
-pointFunc *pointFunc::create(
-    pf_obj *pfo,
-    ColorMap *cmap,
-    IFractalSite *site)
+pointFunc *pointFunc::create(pf_obj *pfo, ColorMap *cmap)
 {
     if (NULL == pfo || NULL == cmap)
     {
 	    return NULL;
     }
 
-    return new pf_wrapper(pfo,cmap,site);
+    return new pf_wrapper(pfo,cmap);
 }
 

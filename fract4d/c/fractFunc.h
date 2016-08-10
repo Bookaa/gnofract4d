@@ -21,38 +21,13 @@ class fractFunc {
     fractFunc(d *params,
         int maxiter,
         IFractWorker *fw,
-        IImage *_im, 
-        IFractalSite *_site);
+        IImage *_im);
     // ~fractFunc();
 
     void draw_all();
     void draw(int rsize, int drawsize, float min_progress, float max_progress);    
 
     friend class STFractWorker;
-
-    // callback wrappers
-    inline void image_changed(int x1, int x2, int y1, int y2)
-    {
-        site->image_changed(x1,x2,y1,y2);
-    }
-    inline void progress_changed(float progress)
-    {
-        float adjusted_progress = min_progress + progress * delta_progress;
-        site->progress_changed(adjusted_progress);
-    }
-    inline void stats_changed()
-    {
-        stats.add(worker->get_stats());
-        site->stats_changed(stats);         
-    }
-    inline void status_changed(int status_val)
-    {
-        site->status_changed(status_val);
-    }
-    inline bool try_finished_cond()
-    {
-        return site->is_interrupted();
-    }
 
     // used for calculating (x,y,z,w) pixel coords
     dmat4 rot; // scaled rotation matrix
@@ -98,7 +73,7 @@ class fractFunc {
     IImage *im;    
     IFractWorker *worker;
     // for callbacks
-    IFractalSite *site;
+    //IFractalSite *site;
 
     // last time we redrew the image to this line
     int last_update_y; 
@@ -106,7 +81,6 @@ class fractFunc {
     float min_progress;
     float delta_progress;
 
-    pixel_stat_t stats;
     void set_progress_range(float min, float max) { 
         min_progress = min;
         delta_progress = max-min;
@@ -147,8 +121,7 @@ extern void calc_4(
     int maxiter,
     pf_obj *pfo, 
     ColorMap *cmap, 
-    IImage *im, 
-    IFractalSite *site);
+    IImage *im);
 
 #ifdef __cplusplus
 }

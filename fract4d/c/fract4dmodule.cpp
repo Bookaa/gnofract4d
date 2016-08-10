@@ -720,10 +720,6 @@ public:
                 RELEASE_LOCK;
             }
         };
-    virtual void interrupt() 
-        {
-            // FIXME? interrupted = true;
-        }
     
     virtual void start(calc_args *tid_)
         {
@@ -773,7 +769,7 @@ struct calc_args
     pf_obj *pfo;
     ColorMap *cmap;
     IImage *im;
-    IFractalSite *site;
+    //IFractalSite *site;
     int xoff,yoff,xres,yres;
 
     PyObject *pycmap, *pypfo, *pyim, *pysite;
@@ -822,13 +818,6 @@ struct calc_args
         Py_XINCREF(pyim);
     }
 
-    void set_site(PyObject *pysite_)
-    {
-        pysite = pysite_;
-        site = (IFractalSite *)PyCObject_AsVoidPtr(pysite);
-        Py_XINCREF(pysite);
-    }
-
     ~calc_args()
     {
 #ifdef DEBUG_CREATION
@@ -845,8 +834,7 @@ struct calc_args
 class FDSite :public IFractalSite
 {
 public:
-    FDSite(int fd_) : fd(fd_), tid((pthread_t)0),
-        interrupted(false), params(NULL)
+    FDSite(int fd_) : fd(fd_), interrupted(false)
     {
 #ifdef DEBUG_CREATION
         fprintf(stderr, "%p : FD : CTOR\n", this);
@@ -864,14 +852,6 @@ public:
         if (write(fd, buf, size))
         {};
         pthread_mutex_unlock(&write_lock);
-    }
-    virtual void iters_changed(int numiters)
-    {
-        send(ITERS, sizeof(int), &numiters);
-    }
-    virtual void tolerance_changed(double tolerance)
-    {
-        send(TOLERANCE, sizeof(tolerance), &tolerance);
     }
 
     // we've drawn a rectangle of image
@@ -908,63 +888,6 @@ public:
         send(STATUS, sizeof(status_val), &status_val);
     }
 
-    // return true if we've been interrupted and are supposed to stop
-    virtual bool is_interrupted()
-    {
-        //fprintf(stderr,"int: %d\n",interrupted);
-        return interrupted;
-    }
-
-    // pixel changed
-    virtual void pixel_changed(
-        const double *params, int maxIters, int nNoPeriodIters,
-        int x, int y, int aa,
-        double dist, int fate, int nIters,
-        int r, int g, int b, int a)
-    {
-        /*
-        fprintf(stderr,"pixel: <%g,%g,%g,%g>(%d,%d,%d) = (%g,%d,%d)\n",
-               params[0],params[1],params[2],params[3],
-               x,y,aa,dist,fate,nIters);
-        */
-        return; // FIXME
-    };
-
-    virtual void interrupt()
-    {
-#ifdef DEBUG_THREADS
-        fprintf(stderr, "%p : CA : INT(%p)\n", this, tid);
-#endif
-        interrupted = true;
-    }
-
-    virtual void start(calc_args *params_)
-    {
-#ifdef DEBUG_THREADS
-        fprintf(stderr, "clear interruption\n");
-#endif
-        interrupted = false;
-        params = params_;
-    }
-
-    virtual void set_tid(pthread_t tid_)
-    {
-#ifdef DEBUG_THREADS
-        fprintf(stderr, "%p : CA : SET(%p)\n", this, tid_);
-#endif
-        tid = tid_;
-    }
-
-    virtual void wait()
-    {
-        if (tid != 0)
-        {
-#ifdef DEBUG_THREADS
-            fprintf(stderr, "%p : CA : WAIT(%p)\n", this, tid);
-#endif
-            pthread_join(tid, NULL);
-        }
-    }
     ~FDSite()
     {
 #ifdef DEBUG_CREATION
@@ -974,9 +897,7 @@ public:
     }
 private:
     int fd;
-    pthread_t tid;
     volatile bool interrupted;
-    calc_args *params;
     pthread_mutex_t write_lock;
 };
 
@@ -1013,13 +934,13 @@ pyfdsite_create(PyObject *self, PyObject *args)
 static calc_args *
 parse_calc_args(PyObject *args, PyObject *kwds)
 {
-    PyObject *pyparams, *pypfo, *pycmap, *pyim, *pysite;
+    PyObject *pyparams, *pypfo, *pycmap, *pyim;
     calc_args *cargs = new calc_args();
     double *p = NULL;
 
     static const char *kwlist[] = {
         "image",
-        "site",
+        //"site",
         "pfo",
         "cmap",
         "params",
@@ -1041,10 +962,10 @@ parse_calc_args(PyObject *args, PyObject *kwds)
     if(!PyArg_ParseTupleAndKeywords(
            args,
            kwds,
-           "OOOOO|iiiii",
+           "OOOO|iiiii",
            const_cast<char **>(kwlist),
 
-           &pyim, &pysite,
+           &pyim, // &pysite,
            &pypfo,&pycmap,
            &pyparams,
            //&cargs->eaa,
@@ -1098,9 +1019,8 @@ parse_calc_args(PyObject *args, PyObject *kwds)
     cargs->set_cmap(pycmap);
     cargs->set_pfo(pypfo);
     cargs->set_im(pyim);
-    cargs->set_site(pysite);
-    if(!cargs->cmap || !cargs->pfo || 
-       !cargs->im   || !cargs->site)
+    // cargs->set_site(pysite);
+    if(!cargs->cmap || !cargs->pfo || !cargs->im)
     {
         PyErr_SetString(PyExc_ValueError, "bad argument passed to calc");
         goto error;
@@ -1156,8 +1076,7 @@ pycalc(PyObject *self, PyObject *args, PyObject *kwds)
              cargs->maxiter,
              cargs->pfo,
              cargs->cmap,
-             cargs->im,
-             cargs->site);
+             cargs->im);
 
         delete cargs;
         Py_END_ALLOW_THREADS

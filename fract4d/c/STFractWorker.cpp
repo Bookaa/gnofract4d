@@ -5,22 +5,22 @@
 #include <stdlib.h>
 
 IFractWorker *
-IFractWorker::create(pf_obj *pfo, ColorMap *cmap, IImage *im_, IFractalSite *site)
+IFractWorker::create(pf_obj *pfo, ColorMap *cmap, IImage *im_)
 {
     STFractWorker *w = new STFractWorker();
     if(!w) return w;
-    w->init(pfo,cmap,im_,site);
+    w->init(pfo,cmap,im_);
     return w;
 } 
 
 bool
-STFractWorker::init(pf_obj *pfo, ColorMap *cmap, IImage *im_, IFractalSite *site)
+STFractWorker::init(pf_obj *pfo, ColorMap *cmap, IImage *im_)
 {
     ff = NULL;
     im = im_;
     m_ok = true;
 
-    pf = pointFunc::create(pfo,cmap,site);
+    pf = pointFunc::create(pfo,cmap);
     if(NULL == pf)
     {
         m_ok = false;

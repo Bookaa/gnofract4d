@@ -28,11 +28,6 @@ import fc
 # this version can output
 THIS_FORMAT_VERSION="3.10"
 
-BLEND_NEAREST=0
-BLEND_FURTHEST=1
-BLEND_CW=2
-BLEND_CCW=3
-
 class T(fctutils.T):
     XCENTER = 0
     YCENTER = 1
@@ -52,7 +47,7 @@ class T(fctutils.T):
     DEFAULT_FORMULA_FILE="gf4d.frm"
     DEFAULT_FORMULA_FUNC="Mandelbrot"
     paramnames = ["x","y","z","w","size","xy","xz","xw","yz","yw","zw"]
-    def __init__(self, compiler, site):
+    def __init__(self, compiler):
         fctutils.T.__init__(self)
 
         self.format_version = 2.8
@@ -96,9 +91,9 @@ class T(fctutils.T):
         #self.solids = [(0,0,0,255),(0,0,0,255)]
 
         # formula defaults
-        self.set_formula(T.DEFAULT_FORMULA_FILE,T.DEFAULT_FORMULA_FUNC,0)
-        self.set_inner("gf4d.cfrm","zero")
-        self.set_outer("gf4d.cfrm","continuous_potential")
+        #self.set_formula(T.DEFAULT_FORMULA_FILE,T.DEFAULT_FORMULA_FUNC,0)
+        #self.set_inner("gf4d.cfrm","zero")
+        #self.set_outer("gf4d.cfrm","continuous_potential")
         self.dirtyFormula = True # formula needs recompiling
         self.dirty = True # parameters have changed
         self.clear_image = True
@@ -106,8 +101,6 @@ class T(fctutils.T):
         self.reset()
 
         # interaction with fract4dc library
-        assert site
-        self.site = site # or fract4dc.site_create(self)
 
         # colorfunc lookup
         self.colorfunc_names = [
@@ -287,131 +280,8 @@ class T(fctutils.T):
         which_transform = int(val)
         params = fctutils.ParamBag()
         params.load(f)
-        if False:
-            self.set_transform(
-                params.dict["formulafile"],
-                params.dict["function"],
-                which_transform)
-        else:
-            self.set_transform_with_text(params.dict['formula'], which_transform)
-
+        self.set_transform_with_text(params.dict['formula'], which_transform)
         self.transforms[which_transform].load_param_bag(params)
-
-    def __del__(self):
-        #print "deleting fractal %s" % self
-        del self.pfunc
-        del self.handle
-
-    def __copy__(self):
-        # override shallow-copy to do a deeper copy than normal,
-        # but still don't try and copy *everything*
-
-        c = T(self.compiler,self.site)
-
-        c.maxiter = self.maxiter
-        c.params = copy.copy(self.params)
-
-        c.bailfunc = self.bailfunc
-
-        for i in range(3):
-            if not self.forms[i].funcFile:
-                theform = self.forms[i]
-                text = theform.formula.basef.text
-                formtype = [0,1,1][i]
-                c.set_formula_text(text, formtype, i)
-            else:
-                c.set_formula(self.forms[i].funcFile,self.forms[i].funcName,i)
-            c.forms[i].copy_from(self.forms[i])
-
-        for t in self.transforms:
-            if t.funcFile is None:
-                pass
-            if False:
-                c.append_transform(t.funcFile, t.funcName)
-            else:
-                c.append_transform_(t.formula)
-            c.transforms[-1].copy_from(t)
-
-        #c.solids = copy.copy(self.solids)
-        c.yflip = self.yflip
-        c.periodicity = self.periodicity
-        c.period_tolerance = self.period_tolerance
-        c.auto_deepen = self.auto_deepen
-        c.auto_tolerance = self.auto_tolerance
-        c.saved = self.saved
-        c.clear_image = self.clear_image
-        c.warp_param = self.warp_param
-        return c
-
-    def determine_direction(self,a,b,mode):
-        isClockwise = False
-
-        if mode==BLEND_NEAREST:
-            if abs(b-a)<=math.pi and a<b:
-                isClockwise=True
-            elif abs(b-a)>math.pi and a>b:
-                isClockwise=True
-        elif mode==BLEND_FURTHEST:
-            if abs(b-a)<=math.pi and a>b:
-                isClockwise=True
-            if abs(b-a)>math.pi and a<b:
-                isClockwise=True
-        elif mode==BLEND_CW:
-            isClockwise = True
-        elif mode==BLEND_CCW:
-            isClockwise = False
-        else:
-            raise ValueError("Unknown angle blend mode %s" % mode)
-
-        return isClockwise
-
-    def blend_angle(self,a,b,ratio,mode):
-        angle = 0.0
-        isClockwise = self.determine_direction(a,b,mode)
-
-        if isClockwise and b < a:
-            b = b + math.pi * 2.0
-        if not isClockwise and b > a:
-            a = a + math.pi * 2.0
-
-        angle = a * (1-ratio) + b * ratio
-        while angle > math.pi:
-            angle -= math.pi * 2.0
-
-        return angle
-
-    def blend(self,other,ratio,angle_options=()):
-        """Create a new fractal which blends the this and other's parameter sets using ratio.
-        'angle_options' can be used to override the default method of interpolating angles."""
-        new = copy.copy(self)
-        for i in xrange(self.XCENTER,self.MAGNITUDE):
-            (a,b) = (self.params[i], other.params[i])
-            new.set_param(i, a*(1-ratio) + b* ratio)
-
-        # magnitude is exponential
-        (a,b) = (self.params[self.MAGNITUDE], other.params[self.MAGNITUDE])
-        if abs(a) > abs(b):
-            factor = (a-b)/(math.e-1)
-            val = factor * math.exp(1-ratio) + (b - factor)
-        else:
-            factor = (b-a)/(math.e-1)
-            val = factor * math.exp(ratio) + (a - factor)
-
-        new.set_param(self.MAGNITUDE, val)
-
-        for i in xrange(self.XYANGLE, self.ZWANGLE+1):
-            (a,b) = (self.params[i], other.params[i])
-            option = angle_options[i-self.XYANGLE:i-self.XYANGLE]
-            if len(option):
-                mode = option[0]
-            else:
-                mode = BLEND_NEAREST
-            new.set_param(i, self.blend_angle(a,b,ratio,mode))
-
-        for (form1,form2) in zip(new.forms,other.forms):
-            form1.blend(form2,ratio)
-
-        return new
 
     def reset_angles(self):
         for i in xrange(self.XYANGLE,self.ZWANGLE+1):
@@ -434,20 +304,7 @@ class T(fctutils.T):
         self.auto_epsilon = False
         self.period_tolerance = 1.0E-9
 
-        g = self.get_gradient()
-        self.set_formula_defaults(g)
-
-    def reset_zoom(self):
-        mag = self.forms[0].formula.defaults.get("magn")
-        if mag:
-            mag = mag.value
-        else:
-            mag = self.forms[0].formula.defaults.get("magnitude")
-            if mag:
-                mag = mag.value
-            else:
-                mag = 4.0
-        self.set_param(self.MAGNITUDE, mag)
+        self.set_formula_defaults()
 
     def copy_colors(self, f):
         self.set_gradient(copy.copy(f.get_gradient()))
@@ -474,38 +331,19 @@ class T(fctutils.T):
     def set_initparam(self,n,val, param_type):
         self.forms[param_type].set_param(n,val)
 
-    def nouse_set_solid(self,i,newsolid):
-        if self.solids[i] == newsolid:
-            return
-        self.solids[i] = newsolid
-        self.changed(False)
-
-    def nouse_set_solids(self, solids):
-        same = True
-        for i in xrange(len(solids)):
-            if self.solids[i] != solids[i]:
-               same = False
-               break
-        if same:
-            return
-
-        self.solids[0:len(solids)] = solids[:]
-        self.changed(False)
-
     def refresh(self):
         for i in xrange(3):
             if self.compiler.out_of_date(self.forms[i].funcFile):
                 self.set_formula(
                     self.forms[i].funcFile,self.forms[i].funcName,i)
 
-    def set_formula_defaults(self, g=None):
+    def set_formula_defaults(self):
         if self.forms[0].formula == None:
             return
 
-        if g == None:
-            g = self.get_gradient()
+        #g = self.get_gradient()
 
-        self.forms[0].set_initparams_from_formula(g)
+        #self.forms[0].set_initparams_from_formula(g)
 
         lst = self.forms[0].formula.defaults.items()
         for (name,val) in lst:
@@ -546,9 +384,7 @@ class T(fctutils.T):
         self.changed()
 
     def set_formula_text(self, buftext, formtype, formindex):
-        #(fileName, formName) = self.compiler.add_inline_formula(buftext, formtype)
         assert self.compiler is self.forms[formindex].compiler
-        #self.forms[formindex].set_formula(fileName, formName, self.get_gradient())
         self.forms[formindex].set_formula_text_1(buftext, formtype, self.get_gradient())
 
         if formindex == 0:
@@ -852,20 +688,6 @@ class T(fctutils.T):
             p += transform.params
         return p
 
-    def get_colormap(self):
-        cmap = fract4dc.cmap_create_gradient(self.get_gradient().segments)
-
-        #(r,g,b,a) = self.solids[0]
-        #fract4dc.cmap_set_solid(cmap,0,r,g,b,a)
-        #(r,g,b,a) = self.solids[1]
-        #fract4dc.cmap_set_solid(cmap,1,r,g,b,a)
-
-        return cmap
-
-    def init_pfunc(self):
-        initparams = self.all_params()
-        fract4dc.pf_init(self.pfunc,self.params,initparams)
-
     def get_warp(self):
         if self.warp_param:
             warp = self.forms[0].order_of_name(self.warp_param)
@@ -896,17 +718,24 @@ class T(fctutils.T):
             pfo=self.pfunc,
             cmap=colormap,
             image=image._img,
-            site=site,
+            # site=site,
             xoff=xoff, yoff=yoff, xres = xres, yres = yres
             )
 
     def draw(self,image):
-        self.init_pfunc()
+        initparams = self.all_params()
+        fract4dc.pf_init(self.pfunc,self.params,initparams)
 
-        colormap = self.get_colormap()
+        # get_colormap:
+        colormap = fract4dc.cmap_create_gradient(self.get_gradient().segments)
+
+        (self_readfd, self_writefd) = os.pipe()
+
+        site = fract4dc.fdsite_create(self_writefd)
+
         for (xoff,yoff,xres,yres) in image.get_tile_list():
 
-            self.calc5(image, colormap, self.site, xoff, yoff, xres, yres)
+            self.calc5(image, colormap, site, xoff, yoff, xres, yres)
 
     def set_param(self,n,val):
         val = float(val)
@@ -1074,7 +903,6 @@ The image may not display correctly. Please upgrade to version %s or higher.'''
         return self.param_display_name(name,param)
 
     def loadFctFile(self,f):
-        old_gradient = self.get_gradient()
         line = f.readline()
         if line == None or not line.startswith("gnofract4d parameter file"):
             raise Exception("Not a valid parameter file")
@@ -1082,7 +910,6 @@ The image may not display correctly. Please upgrade to version %s or higher.'''
         self.load(f)
 
         self.fix_bailout()
-        #self.fix_gradients(old_gradient)
         self.saved = True
 
 if __name__ == '__main__':
@@ -1095,10 +922,7 @@ if __name__ == '__main__':
     g_comp.add_func_path(
             os.path.join(sys.exec_prefix, "share/gnofract4d/formulas"))
 
-    (self_readfd, self_writefd) = os.pipe()
-
-    site = fract4dc.fdsite_create(self_writefd)
-    f = T(g_comp, site)
+    f = T(g_comp)
     for arg in sys.argv[1:]:
         file = open(arg)
         f.loadFctFile(file)

@@ -79,10 +79,6 @@ class IFractalSite
  public:
     virtual ~IFractalSite() {};
 
-    // the parameters have changed (usually due to auto-deepening)
-    virtual void iters_changed(int numiters) {};
-    // tolerance has changed due to auto-tolerance
-    virtual void tolerance_changed(double tolerance) {};
     // we've drawn a rectangle of image
     virtual void image_changed(int x1, int y1, int x2, int y2) {};
     // estimate of how far through current pass we are
@@ -92,29 +88,6 @@ class IFractalSite
     // statistics about image
     virtual void stats_changed(pixel_stat_t& stats) {};
 
-    // per-pixel callback for debugging
-    virtual void pixel_changed(
-	const double *params, int maxIters, int min_period_iter,
-	int x, int y, int aa,
-	double dist, int fate, int nIters,
-	int r, int g, int b, int a) {};
- 
-    // async support
-
-    // return true if we've been interrupted and are supposed to stop
-    virtual bool is_interrupted() { return false; };
-
-    // tell an async fractal to stop calculating
-    virtual void interrupt() { };
-
-    // set things up before starting a new calc thread
-    virtual void start(calc_args *params) {};
-
-    // having started it, set the thread id of the calc thread to wait for
-    virtual void set_tid(pthread_t tid) {};
-
-    // wait for it to finish
-    virtual void wait() {};
 };
 
 

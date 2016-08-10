@@ -18,6 +18,7 @@ bailfunc=4
 inner=2
 outer=1
 [function]
+formulafile=gf4d.frm
 function=Mandelbrot
 [endsection]
 [colors]

@@ -30,7 +30,7 @@ class STFractWorker : public IFractWorker {
     IImage *im;    
 
     /* not a ctor because we always create a whole array then init them */
-    bool init(pf_obj *pfo, ColorMap *cmap, IImage *im, IFractalSite *site);
+    bool init(pf_obj *pfo, ColorMap *cmap, IImage *im);
 
     ~STFractWorker() {
         delete pf;

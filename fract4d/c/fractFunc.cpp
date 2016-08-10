@@ -63,10 +63,9 @@ fractFunc::fractFunc(
         d *params_,
         int maxiter_,
         IFractWorker *fw,
-        IImage *im_, 
-        IFractalSite *site_)
+        IImage *im_)
 {
-    site = site_;
+    //site = site_;
     im = im_;
     ok = true;
     debug_flags = 0;
@@ -125,11 +124,9 @@ fractFunc::fractFunc(
 bool
 fractFunc::update_image(int i)
 {
-    bool done = try_finished_cond();
+    bool done = false;
     if(!done)
     {
-        image_changed(0,last_update_y,im->Xres(),i);
-        progress_changed((float)i/(float)im->Yres());
     }
     last_update_y = i;
     return done; 
@@ -145,8 +142,6 @@ void fractFunc::reset_counts()
 void fractFunc::reset_progress(float progress)
 {
     worker->flush();
-    image_changed(0,0,im->Xres(),im->Yres());
-    progress_changed(progress);
 }
 
 // change everything with a fate of IN to UNKNOWN, because 
@@ -175,8 +170,6 @@ void fractFunc::clear_in_fates()
 
 void fractFunc::draw_all()
 {
-    status_changed(GF4D_FRACTAL_CALCULATING);
-    
 #if !defined(NO_CALC)
     // NO_CALC is used to stub out the actual fractal stuff so we can
     // profile & optimize the rest of the code without it confusing matters
@@ -187,13 +180,8 @@ void fractFunc::draw_all()
     minp = 0.5; maxp = 0.9; // (eaa == AA_NONE ? 0.9 : 0.5);
     {
         set_progress_range(0.0,1.0);
-        progress_changed(1.0);
     }
-
 #endif
-
-    progress_changed(0.0);
-    status_changed(GF4D_FRACTAL_DONE);
 }
 
 void 
@@ -259,19 +247,17 @@ fractFunc::draw(
  done:
     /* refresh entire image & reset progress bar */
     reset_progress(1.0);
-    stats_changed();
 }
 
 void calc_4(d *params,
     int maxiter,
     pf_obj *pfo, 
     ColorMap *cmap, 
-    IImage *im, 
-    IFractalSite *site)
+    IImage *im)
 {
     assert(NULL != im && NULL != site && 
            NULL != cmap && NULL != pfo && NULL != params);
-    IFractWorker *worker = IFractWorker::create(pfo,cmap,im,site);
+    IFractWorker *worker = IFractWorker::create(pfo,cmap,im);
 
     if(worker && worker->ok())
     {
@@ -279,8 +265,7 @@ void calc_4(d *params,
             params, 
             maxiter,
             worker,
-            im,
-            site);
+            im);
 
         ff.draw_all();
     }

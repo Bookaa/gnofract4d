@@ -11,10 +11,7 @@ class IFractalSite;
 class pointFunc {
  public:
     /* factory method for making new pointFuncs */
-    static pointFunc *create(
-        pf_obj *pfo,
-        ColorMap *cmap,
-        IFractalSite *site);
+    static pointFunc *create(pf_obj *pfo, ColorMap *cmap);
 	
     virtual ~pointFunc() {};
     virtual void calc_pf(
