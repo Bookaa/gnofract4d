@@ -110,6 +110,7 @@ struct pfHandle
     pf_obj *pfo;
 
     // below init later :
+    int maxiter;
     ColorMap *cmap;
     double params[N_PARAMS];
 } ;
@@ -521,8 +522,9 @@ static PyObject *
 pf_init2(PyObject *self, PyObject *args)
 {
     PyObject *pyobj, *pyarray;
+    int maxiter;
 
-    if (!PyArg_ParseTuple(args,"OO",&pyobj,&pyarray))
+    if (!PyArg_ParseTuple(args,"OOi",&pyobj,&pyarray,&maxiter))
     {
         return NULL;
     }
@@ -552,6 +554,7 @@ pf_init2(PyObject *self, PyObject *args)
         return NULL;
     }
     pfh->cmap = cmap;
+    pfh->maxiter = maxiter;
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -594,6 +597,7 @@ struct calc_args
         pfHandle* pfh = (pfHandle *)PyCObject_AsVoidPtr(pypfo);
         this->params = pfh->params;
         this->cmap = pfh->cmap;
+        this->maxiter = pfh->maxiter;
 
         pfo = pfh->pfo;
         Py_XINCREF(pypfo);
@@ -630,13 +634,12 @@ parse_calc_args(PyObject *args, PyObject *kwds)
 
     static const char *kwlist[] = {
         "image", "pfo", //"cmap", //"params", 
-        "maxiter",
+        //"maxiter",
         "xoff", "yoff", "xres", "yres", NULL};
 
     PyObject *pypfo, *pyim;
-    if(!PyArg_ParseTupleAndKeywords(args, kwds, "OO|iiiii", const_cast<char **>(kwlist),
-           &pyim, &pypfo, //&pycmap, //&pyparams, 
-                                    &cargs->maxiter,
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "OO|iiii", const_cast<char **>(kwlist),
+           &pyim, &pypfo, //&pycmap, //&pyparams, //&cargs->maxiter,
            &cargs->xoff, &cargs->yoff, &cargs->xres, &cargs->yres))
     {
 error:
