@@ -893,8 +893,8 @@ class T(fctutils.T):
             self.auto_tolerance = auto_tolerance
             self.changed(True)
 
-    def calc5(self,image,colormap,site,async):
-        assert async == False
+    def calc5(self, image, colormap, site, xoff, yoff, xres, yres):
+        #assert async == False
         #assert self.clear_image == False
         warp = self.get_warp()
         assert warp == -1
@@ -905,6 +905,9 @@ class T(fctutils.T):
         assert self.periodicity == True
         #assert self.yflip == False
         assert self.antialias == 1
+
+        image.resize_tile(xres,yres)
+        image.set_offset(xoff,yoff)
 
         fract4dc.calc(
             params=self.params,
@@ -919,10 +922,8 @@ class T(fctutils.T):
 
         colormap = self.get_colormap()
         for (xoff,yoff,xres,yres) in image.get_tile_list():
-            image.resize_tile(xres,yres)
-            image.set_offset(xoff,yoff)
 
-            self.calc5(image,colormap,self.site,False)
+            self.calc5(image, colormap, self.site, xoff, yoff, xres, yres)
 
     def set_param(self,n,val):
         val = float(val)
