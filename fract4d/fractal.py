@@ -71,9 +71,7 @@ class T(fctutils.T):
         self.auto_tolerance = True # automatically adjust periodicity
         self.antialias = 1
         self.compiler = compiler
-        self.outputfile = None
         self.render_type = 0
-        self.pfunc = None
 
         self.warp_param = None
         # gradient
@@ -93,7 +91,6 @@ class T(fctutils.T):
         #self.set_formula(T.DEFAULT_FORMULA_FILE,T.DEFAULT_FORMULA_FUNC,0)
         #self.set_inner("gf4d.cfrm","zero")
         #self.set_outer("gf4d.cfrm","continuous_potential")
-        self.dirtyFormula = True # formula needs recompiling
         self.dirty = True # parameters have changed
         self.clear_image = True
 
@@ -379,7 +376,6 @@ class T(fctutils.T):
         if index == 0:
             self.set_bailfunc()
             self.warp_param = None
-        self.formula_changed()
         self.changed()
 
     def set_formula_text(self, buftext, formtype, formindex):
@@ -389,7 +385,6 @@ class T(fctutils.T):
         if formindex == 0:
             self.set_bailfunc()
             self.warp_param = None
-        self.formula_changed()
         self.changed()
 
     def get_saved(self):
@@ -416,13 +411,9 @@ class T(fctutils.T):
         self.saved = False
         self.clear_image = clear_image
 
-    def formula_changed(self):
-        self.dirtyFormula = True
-
     def set_func(self,func,fname,formula):
         if func.cname != fname:
             formula.symbols.set_std_func(func,fname)
-            self.dirtyFormula = True
             self.changed()
 
     def set_periodicity(self,periodicity):
@@ -446,14 +437,12 @@ class T(fctutils.T):
         fs = formsettings.T(self.compiler,self,self.get_transform_prefix())
         fs.set_formula(funcfile, funcname, self.get_gradient())
         self.transforms.append(fs)
-        self.formula_changed()
         self.changed()
 
     def append_transform_(self,formula):
         fs = formsettings.T(self.compiler,self,self.get_transform_prefix())
         fs.set_formula_(formula, self.get_gradient())
         self.transforms.append(fs)
-        self.formula_changed()
         self.changed()
 
     def set_transform(self,funcfile,funcname,i):
@@ -463,7 +452,6 @@ class T(fctutils.T):
             self.transforms.extend([None] * (i- len(self.transforms)+1))
 
         self.transforms[i] = fs
-        self.formula_changed()
         self.changed()
 
     def set_transform_with_text(self, formulatext, i):
@@ -475,17 +463,14 @@ class T(fctutils.T):
             self.transforms.extend([None] * (i- len(self.transforms)+1))
 
         self.transforms[i] = fs
-        self.formula_changed()
         self.changed()
 
     def remove_transform(self,i):
         self.transforms.pop(i)
-        self.formula_changed()
         self.changed()
 
     def set_compiler_option(self,option,val):
         self.compiler_options[option] = val
-        self.dirtyFormula = True
 
     def apply_options(self,options):
         if options.basename and options.func:
@@ -518,8 +503,6 @@ class T(fctutils.T):
     def compile(self):
         if self.forms[0].formula == None:
             raise ValueError("no formula")
-        if self.dirtyFormula == False:
-            return self.outputfile
 
         desc = self.serialize_formula()
 
@@ -530,95 +513,7 @@ class T(fctutils.T):
             [x.formula for x in self.transforms],
             self.compiler_options, desc)
 
-        if outputfile != None:
-            self.set_output_file(outputfile)
-
-        self.dirtyFormula = False
-        return self.outputfile
-
-    def set_output_file(self, outputfile):
-        if self.outputfile != outputfile:
-            self.outputfile = outputfile
-            self.pfunc = fract4dc.pf_load_and_create(outputfile)
-
-    def make_random_colors(self, n):
-        self.get_gradient().randomize(n)
-        self.changed(False)
-
-    def mul_vs(self,v,s):
-        return map(lambda x : x * s, v)
-
-    def xy_random(self,weirdness,size):
-        return weirdness * 0.5 * size * (random.random() - 0.5)
-
-    def zw_random(self,weirdness,size):
-        factor = math.fabs(1.0 - math.log(size)) + 1.0
-        return weirdness * (random.random() - 0.5 ) * 1.0 / factor
-
-    def angle_random(self, weirdness):
-        action = random.random()
-        if action > weirdness:
-            return 0.0 # no change
-
-        action = random.random()
-        if action < weirdness/6.0:
-            # +/- pi/2
-            if random.random() > 0.5:
-                return math.pi/2.0
-            else:
-                return math.pi/2.0
-
-        return weirdness * (random.random() - 0.5) * math.pi/2.0
-
-    def is4D(self):
-        return self.warp_param != None or self.forms[0].formula.is4D()
-
-    def mutate(self,weirdness,color_weirdness):
-        '''randomly adjust position, colors, angles and parameters.
-        weirdness is between 0 and 1 - 0 is no change, 1 is lots'''
-
-        size = self.params[self.MAGNITUDE]
-        self.params[self.XCENTER] += self.xy_random(weirdness, size)
-        self.params[self.YCENTER] += self.xy_random(weirdness, size)
-
-        self.params[self.XYANGLE] += self.angle_random(weirdness)
-
-        if self.is4D():
-            self.params[self.ZCENTER] += self.zw_random(weirdness, size)
-            self.params[self.WCENTER] += self.zw_random(weirdness, size)
-
-            for a in xrange(self.XZANGLE,self.ZWANGLE):
-                self.params[a] += self.angle_random(weirdness)
-
-        if random.random() < weirdness * 0.75:
-            self.params[self.MAGNITUDE] *= 1.0 + (0.5 - random.random())
-
-        for f in self.forms:
-            f.mutate(weirdness, size)
-
-        if random.random() < color_weirdness:
-            try:
-                (file, formula) = self.compiler.get_random_gradient()
-                self.set_gradient_from_file(file,formula)
-            except IndexError:
-                # can occur if no gradients available or occasionally
-                # because random.choice is horked
-                pass
-
-    def nudge(self,x,y,axis=0):
-        # move a little way in x or y
-        self.relocate(0.025 * x , 0.025 * y, 1.0,axis)
-
-    def get_form(self,param_type):
-        if param_type > 2:
-            form = self.transforms[param_type-3]
-        else:
-            form = self.forms[param_type]
-        return form
-
-    def nudge_param(self, i, param_type, x, y):
-        form = self.get_form(param_type)
-        form.nudge_param(i,x,y)
+        return outputfile
 
     def relocate(self,dx,dy,zoom,axis=0):
         if dx == 0 and dy == 0 and zoom == 1.0:
@@ -645,39 +540,6 @@ class T(fctutils.T):
         self.rot_by = - self.rot_by
         self.changed()
 
-    # status callbacks
-    def status_changed(self,val):
-        pass
-
-    def progress_changed(self,d):
-        pass
-
-    def stats_changed(self,s):
-        pass
-
-    def is_interrupted(self):
-        return False
-
-    def iters_changed(self,iters):
-        #print "iters changed to %d" % iters
-        self.maxiter = iters
-
-    def tolerance_changed(self,tolerance):
-        #print "tolerance changed to %g" % tolerance
-        self.period_tolerance = tolerance
-
-    def image_changed(self,x1,y1,x2,y2):
-        pass
-
-    def _pixel_changed(self,params,x,y,aa,maxIters,nNoPeriodIters,dist,fate,nIters,r,g,b,a):
-        # remove underscore to debug fractal generation
-        print "pixel: (%g,%g,%g,%g) %d %d %d %d %d %g %d %d (%d %d %d %d)" % \
-              (params[0],params[1],params[2],params[3],x,y,aa,maxIters,nNoPeriodIters,dist,fate,nIters,r,g,b,a)
-
-    def epsilon_tolerance(self,w,h):
-        #5% of the size of a pixel
-        return self.params[self.MAGNITUDE]/(20.0 * max(w,h))
-
     def all_params(self):
         p = []
         for form in self.forms:
@@ -694,7 +556,7 @@ class T(fctutils.T):
         return warp
 
 
-    def calc5(self, image, colormap, xoff, yoff, xres, yres):
+    def calc5(self, image, colormap, pfunc, xoff, yoff, xres, yres):
         #assert async == False
         #assert self.clear_image == False
         warp = self.get_warp()
@@ -713,16 +575,18 @@ class T(fctutils.T):
         fract4dc.calc(
             params=self.params,
             maxiter=self.maxiter,
-            pfo=self.pfunc,
+            pfo=pfunc,
             cmap=colormap,
             image=image._img,
             # site=site,
             xoff=xoff, yoff=yoff, xres = xres, yres = yres
             )
 
-    def draw(self,image):
+    def draw(self, image, outputfile):
+        pfunc = fract4dc.pf_load_and_create(outputfile)
+
         initparams = self.all_params()
-        fract4dc.pf_init(self.pfunc,self.params,initparams)
+        fract4dc.pf_init(pfunc,self.params,initparams)
 
         # get_colormap:
         segs = self.get_gradient().segments
@@ -730,7 +594,7 @@ class T(fctutils.T):
 
         for (xoff,yoff,xres,yres) in image.get_tile_list():
 
-            self.calc5(image, colormap, xoff, yoff, xres, yres)
+            self.calc5(image, colormap, pfunc, xoff, yoff, xres, yres)
 
     def set_param(self,n,val):
         val = float(val)
@@ -828,50 +692,6 @@ class T(fctutils.T):
     def parse_maxiter(self,val,f):
         self.maxiter = int(val)
 
-    def parse_antialias(self,val,f):
-        # antialias now a user pref, not saved in file
-        #self.antialias = int(val)
-        pass
-
-    def order_of_name(self,name,symbol_table):
-        op = symbol_table.order_of_params()
-        rn = symbol_table.mangled_name(name)
-        ord = op.get(rn)
-        if ord == None:
-            #print "can't find %s (%s) in %s" % (name,rn,op)
-            pass
-        return ord
-
-    def fix_bailout(self):
-        # because bailout occurs before we know which function this is
-        # in older files, we save it in self.bailout then apply to the
-        # initparams later
-        if self.bailout != 0.0:
-            for f in self.forms:
-                f.try_set_named_item("@bailout",self.bailout)
-
-    def fix_gradients(self, old_gradient):
-        # new gradient is read in after the gradient params have been set,
-        # so this is needed to fix any which are using that default
-        p = self.forms[0].params
-        for i in xrange(len(p)):
-            if p[i] == old_gradient:
-                p[i] = self.get_gradient()
-
-    def param_display_name(self,name,param):
-        if hasattr(param,"title"):
-            return param.title.value
-        if hasattr(param,"caption"):
-            return param.caption.value
-        if name[:5] == "t__a_":
-            name = name[5:]
-        return name.title()
-
-    def param_tip(self,name,param):
-        if hasattr(param,"hint"):
-            return param.hint.value
-        return self.param_display_name(name,param)
-
     def loadFctFile(self,f):
         line = f.readline()
         if line == None or not line.startswith("gnofract4d parameter file"):
@@ -879,7 +699,6 @@ class T(fctutils.T):
 
         self.load(f)
 
-        self.fix_bailout()
         self.saved = True
 
 if __name__ == '__main__':
@@ -896,8 +715,8 @@ if __name__ == '__main__':
     for arg in sys.argv[1:]:
         file = open(arg)
         f.loadFctFile(file)
-        f.compile()
+        outputfile = f.compile()
         im = image.T(640,480)
-        f.draw(im)
+        f.draw(im, outputfile)
         im.save(os.path.basename(arg) + ".png")
 
