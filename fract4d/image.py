@@ -106,11 +106,6 @@ class T:
         self.fp = None
         self.writer = None
 
-    def save_tile(self):
-        if None == self.writer:
-            return
-        fract4dc.image_save_tile(self.writer)
-
     def load(self,name):
         type = self.file_type(name)
         fp = open(name,"rb")

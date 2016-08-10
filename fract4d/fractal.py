@@ -893,9 +893,9 @@ class T(fctutils.T):
             self.auto_tolerance = auto_tolerance
             self.changed(True)
 
-    def calc(self,image,colormap,site,async):
+    def calc5(self,image,colormap,site,async):
         assert async == False
-        assert self.clear_image == False
+        #assert self.clear_image == False
         warp = self.get_warp()
         assert warp == -1
         assert self.render_type == 0
@@ -903,7 +903,7 @@ class T(fctutils.T):
         assert self.auto_tolerance == True
         assert self.auto_deepen == True
         assert self.periodicity == True
-        assert self.yflip == False
+        #assert self.yflip == False
         assert self.antialias == 1
 
         fract4dc.calc(
@@ -913,35 +913,6 @@ class T(fctutils.T):
             cmap=colormap,
             image=image._img,
             site=site)
-        '''
-        fract4dc.calc(
-            params=self.params,
-            antialias=self.antialias,
-            maxiter=self.maxiter,
-            yflip=self.yflip,
-            periodicity=self.periodicity,
-            # nthreads=nthreads,
-            pfo=self.pfunc,
-            cmap=colormap,
-            auto_deepen=self.auto_deepen,
-            auto_tolerance=self.auto_tolerance,
-            tolerance=self.period_tolerance,
-            render_type=self.render_type,
-            warp_param=warp,
-            image=image._img,
-            site=site,
-            dirty=self.clear_image,
-            async=async)'''
-
-    def drawpoint(self):
-        self.init_pfunc()
-        print "x:\t\t%.17f\ny:\t\t%.17f\nz:\t\t%.17f\nw:\t\t%.17f\n" % tuple(self.params[0:4])
-        startTime = now()
-        result = fract4dc.pf_calc(
-            self.pfunc,self.params[0:4],self.maxiter,0,0,0,100 *1000 *1000)
-        duration = now() - startTime
-        print "iterations:\t%s\nfate:\t\t%s\ndistance:\t%s\nsolid:\t\t%s" % result
-        print "duration:\t%.4g" % duration
 
     def draw(self,image):
         self.init_pfunc()
@@ -951,12 +922,7 @@ class T(fctutils.T):
             image.resize_tile(xres,yres)
             image.set_offset(xoff,yoff)
 
-            self.calc(image,colormap,self.site,False)
-
-            image.save_tile()
-
-    def clean(self):
-        self.dirty = False
+            self.calc5(image,colormap,self.site,False)
 
     def set_param(self,n,val):
         val = float(val)
@@ -966,9 +932,6 @@ class T(fctutils.T):
 
     def get_param(self,n):
         return self.params[n]
-
-    def parse_gnofract4d_parameter_file(self,val,f):
-        pass
 
     def parse_version_string(self,s):
         try:
