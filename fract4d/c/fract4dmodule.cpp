@@ -104,9 +104,25 @@ ensure_cmap_loaded()
     }
     return 1;
 }
+struct pfHandle
+{
+    PyObject *pyhandle;
+    pf_obj *pfo;
+} ;
+static void
+pf_delete(void *p)
+{
+    struct pfHandle *pfh = (struct pfHandle *)p;
+#ifdef DEBUG_CREATION
+    fprintf(stderr,"%p : PF : DTOR\n",pfh);
+#endif
+    pfh->pfo->vtbl->kill(pfh->pfo);
+    Py_DECREF(pfh->pyhandle);
+    free(pfh);
+}
 
 static PyObject *
-pf_load(PyObject *self, PyObject *args)
+pf_load_and_create(PyObject *self, PyObject *args)
 {
     #ifdef STATIC_CALC
     Py_INCREF(Py_None);
@@ -133,52 +149,11 @@ pf_load(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_ValueError,dlerror());
         return NULL;
     }
-    return PyCObject_FromVoidPtr(dlHandle,pf_unload);
-    #endif
-}
 
-struct pfHandle
-{
-    PyObject *pyhandle;
-    pf_obj *pfo;
-} ;
+    PyObject *pyobj = PyCObject_FromVoidPtr(dlHandle,pf_unload);
+    //return PyCObject_FromVoidPtr(dlHandle,pf_unload);
 
-static void
-pf_delete(void *p)
-{
-    struct pfHandle *pfh = (struct pfHandle *)p;
-#ifdef DEBUG_CREATION
-    fprintf(stderr,"%p : PF : DTOR\n",pfh);
-#endif
-    pfh->pfo->vtbl->kill(pfh->pfo);
-    Py_DECREF(pfh->pyhandle);
-    free(pfh);
-}
-
-static PyObject *
-pf_create(PyObject *self, PyObject *args)
-{
-    struct pfHandle *pfh = (pfHandle *)malloc(sizeof(struct pfHandle));
-    void *dlHandle;
     pf_obj *(*pfn)(void); 
-
-    PyObject *pyobj;
-#ifdef STATIC_CALC
-    pf_obj *p = pf_new();
-    pyobj = Py_None;
-#else
-
-    if(!PyArg_ParseTuple(args,"O",&pyobj))
-    {
-        return NULL;
-    }
-    if(!PyCObject_Check(pyobj))
-    {
-        PyErr_SetString(PyExc_ValueError,"Not a valid handle");
-        return NULL;
-    }
-
-    dlHandle = PyCObject_AsVoidPtr(pyobj);
     pfn = (pf_obj *(*)(void))dlsym(dlHandle,"pf_new");
     if(NULL == pfn)
     {
@@ -186,15 +161,19 @@ pf_create(PyObject *self, PyObject *args)
         return NULL;
     }
     pf_obj *p = pfn();
-#endif
+
+    struct pfHandle *pfh = (pfHandle *)malloc(sizeof(struct pfHandle));
     pfh->pfo = p;
     pfh->pyhandle = pyobj;
 #ifdef DEBUG_CREATION
     fprintf(stderr,"%p : PF : CTOR (%p)\n",pfh,pfh->pfo);
 #endif
+
     // refcount module so it can't be unloaded before all funcs are gone
-    Py_INCREF(pyobj); 
+    //Py_INCREF(pyobj); 
     return PyCObject_FromVoidPtr(pfh,pf_delete);
+
+    #endif
 }
 
 void *
@@ -889,8 +868,8 @@ image_save_all(PyObject *self,PyObject *args)
 
 
 static PyMethodDef PfMethods[] = {
-    {"pf_load",  pf_load, METH_VARARGS, "Load a new point function shared library"},
-    {"pf_create", pf_create, METH_VARARGS, "Create a new point function"},
+    {"pf_load_and_create",  pf_load_and_create, METH_VARARGS, "Load a new point function shared library, and Create a new point function"},
+    // {"pf_create", pf_create, METH_VARARGS, "Create a new point function"},
     {"pf_init", pf_init, METH_VARARGS, "Init a point function"},
 
     { "cmap_create_gradient", cmap_create_gradient, METH_VARARGS, "Create a new gradient-based colormap"},

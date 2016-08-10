@@ -74,7 +74,6 @@ class T(fctutils.T):
         self.outputfile = None
         self.render_type = 0
         self.pfunc = None
-        self.handle = None
 
         self.warp_param = None
         # gradient
@@ -540,8 +539,7 @@ class T(fctutils.T):
     def set_output_file(self, outputfile):
         if self.outputfile != outputfile:
             self.outputfile = outputfile
-            self.handle = fract4dc.pf_load(self.outputfile)
-            self.pfunc = fract4dc.pf_create(self.handle)
+            self.pfunc = fract4dc.pf_load_and_create(outputfile)
 
     def make_random_colors(self, n):
         self.get_gradient().randomize(n)
@@ -727,7 +725,8 @@ class T(fctutils.T):
         fract4dc.pf_init(self.pfunc,self.params,initparams)
 
         # get_colormap:
-        colormap = fract4dc.cmap_create_gradient(self.get_gradient().segments)
+        segs = self.get_gradient().segments
+        colormap = fract4dc.cmap_create_gradient(segs)
 
         for (xoff,yoff,xres,yres) in image.get_tile_list():
 
@@ -742,31 +741,6 @@ class T(fctutils.T):
     def get_param(self,n):
         return self.params[n]
 
-    def parse_version_string(self,s):
-        try:
-            (major,minor) = tuple([int(a) for a in s.split(".")])
-            return major * 1000.0 + minor
-        except Exception, exn:
-            raise ValueError("Invalid version number %s" % s)
-
-    def parse_version(self,val,f):
-        global THIS_FORMAT_VERSION
-        self.format_version = self.parse_version_string(val)
-        this_format_version = self.parse_version_string(THIS_FORMAT_VERSION)
-        if self.format_version < 2000.0:
-            # old versions displayed everything upside down
-            # switch the rotation so they load OK
-            self.yflip = True
-        if 1700.0 < self.format_version < 2000.0:
-            # a version that used auto-tolerance for Nova and Newton
-            self.auto_epsilon = True
-
-        if self.format_version > this_format_version:
-            warning = \
-'''This file was created by a newer version of Gnofract 4D.
-The image may not display correctly. Please upgrade to version %s or higher.'''
-
-            self.warn(warning % val)
     def warn(self,msg):
         print msg
 
