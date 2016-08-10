@@ -873,25 +873,6 @@ class T(fctutils.T):
             warp = -1
         return warp
 
-    def set_maxiter(self,new_iter):
-        if self.maxiter != new_iter:
-            self.maxiter = new_iter
-            self.changed(False)
-
-    def set_antialias(self,aa):
-        if aa != self.antialias:
-            self.antialias = aa
-            self.changed(True)
-
-    def set_auto_deepen(self,auto_deepen):
-        if auto_deepen != self.auto_deepen:
-            self.auto_deepen = auto_deepen
-            self.changed(True)
-
-    def set_auto_tolerance(self,auto_tolerance):
-        if auto_tolerance != self.auto_tolerance:
-            self.auto_tolerance = auto_tolerance
-            self.changed(True)
 
     def calc5(self, image, colormap, site, xoff, yoff, xres, yres):
         #assert async == False

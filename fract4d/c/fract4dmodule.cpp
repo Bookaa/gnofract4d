@@ -1235,36 +1235,6 @@ image_create(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-image_resize(PyObject *self, PyObject *args)
-{
-    int x, y;
-    int totalx=-1, totaly=-1;
-    PyObject *pyim;
-
-    if(!PyArg_ParseTuple(args,"Oiiii",&pyim,&x,&y,&totalx,&totaly))
-    { 
-        return NULL;
-    }
-
-    IImage *i = (IImage *)PyCObject_AsVoidPtr(pyim);
-    if(NULL == i)
-    {
-        return NULL;
-    }
-
-    i->set_resolution(x,y,totalx,totaly);
-
-    if(! i->ok())
-    {
-        PyErr_SetString(PyExc_MemoryError, "Image too large");
-        return NULL;
-    }
-
-    Py_INCREF(Py_None);
-    return Py_None;
-}
-
-static PyObject *
 image_dims(PyObject *self, PyObject *args)
 {
     PyObject *pyim;
@@ -1292,34 +1262,6 @@ image_dims(PyObject *self, PyObject *args)
         "(iiiiii)", xsize,ysize,xtotalsize, ytotalsize, xoffset, yoffset);
 
     return pyret;
-}
-
-static PyObject *
-image_set_offset(PyObject *self, PyObject *args)
-{
-    int x, y;
-    PyObject *pyim;
-
-    if(!PyArg_ParseTuple(args,"Oii",&pyim,&x,&y))
-    { 
-        return NULL;
-    }
-
-    IImage *i = (IImage *)PyCObject_AsVoidPtr(pyim);
-    if(NULL == i)
-    {
-        return NULL;
-    }
-
-    bool ok = i->set_offset(x,y);
-    if(!ok)
-    {
-        PyErr_SetString(PyExc_ValueError, "Offset out of bounds");
-        return NULL;
-    }
-
-    Py_INCREF(Py_None);
-    return Py_None;
 }
 
 static void
@@ -1529,8 +1471,8 @@ static PyMethodDef PfMethods[] = {
     //{ "hsl_to_rgb", pyhsl_to_rgb, METH_VARARGS, "Convert an hls(a) list into an rgb(a) one"},
 
     { "image_create", image_create, METH_VARARGS, "Create a new image buffer"},
-    { "image_resize", image_resize, METH_VARARGS, "Change image dimensions - data is deleted" },
-    { "image_set_offset", image_set_offset, METH_VARARGS, "set the image tile's offset" },
+    //{ "image_resize", image_resize, METH_VARARGS, "Change image dimensions - data is deleted" },
+    //{ "image_set_offset", image_set_offset, METH_VARARGS, "set the image tile's offset" },
     { "image_dims", image_dims, METH_VARARGS, "get a tuple containing image's dimensions"},
     //{ "image_clear", image_clear, METH_VARARGS, "Clear all iteration and color data from image" },
 

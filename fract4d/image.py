@@ -126,25 +126,11 @@ class T:
             y += base_yres
             x = 0
         return tiles
-    
-    def set_offset(self,x,y):
-        fract4dc.image_set_offset(self._img,x,y)
-        
+
     def update_bufs(self):
         self.fate_buf = fract4dc.image_fate_buffer(self._img,0,0)
         self.image_buf = fract4dc.image_buffer(self._img,0,0)
 
-    def resize_full(self,x,y):
-        fract4dc.image_resize(self._img, x, y,x,y)
-        self.update_bufs()
-
-    def resize_tile(self,x,y):
-        dims = fract4dc.image_dims(self._img)
-        fract4dc.image_resize(
-            self._img, x, y,
-            dims[fract4dc.IMAGE_TOTAL_WIDTH],
-            dims[fract4dc.IMAGE_TOTAL_HEIGHT])
-        
     def clear(self):
         fract4dc.image_clear(self._img)
         
