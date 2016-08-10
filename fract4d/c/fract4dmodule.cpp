@@ -563,200 +563,6 @@ pf_init(PyObject *self, PyObject *args)
     return Py_None;
 }
 
-
-#ifdef THREADS
-#define GET_LOCK PyGILState_STATE gstate; gstate = PyGILState_Ensure()
-#define RELEASE_LOCK PyGILState_Release(gstate)
-#else
-#define GET_LOCK
-#define RELEASE_LOCK
-#endif
-
-class PySite :public IFractalSite
-{
-public:
-    PySite(PyObject *site_)
-        {
-            site = site_;
-
-            has_pixel_changed_method = 
-                PyObject_HasAttrString(site,"pixel_changed");
-
-#ifdef DEBUG_CREATION
-            fprintf(stderr,"%p : SITE : CTOR\n",this);
-#endif
-
-            // Don't incref, that causes a loop with parent fractal
-            //Py_INCREF(site);
-        }
-
-    virtual void iters_changed(int numiters)
-        {
-            GET_LOCK;
-            PyObject *ret = PyObject_CallMethod(
-                site,
-                const_cast<char *>("iters_changed"),
-                const_cast<char *>("i"),
-                numiters);
-            Py_XDECREF(ret);
-            RELEASE_LOCK;
-        }
-    
-    virtual void tolerance_changed(double tolerance)
-        {
-            GET_LOCK;
-            PyObject *ret = PyObject_CallMethod(
-                site,
-                const_cast<char *>("tolerance_changed"),
-                const_cast<char *>("d"),
-                tolerance);
-            Py_XDECREF(ret);
-            RELEASE_LOCK;
-        }
-    // we've drawn a rectangle of image
-    virtual void image_changed(int x1, int y1, int x2, int y2)
-        {
-            GET_LOCK;
-            PyObject *ret = PyObject_CallMethod(
-                site,
-                const_cast<char *>("image_changed"),
-                const_cast<char *>("iiii"),
-                x1,y1,x2,y2);
-            Py_XDECREF(ret);
-            RELEASE_LOCK;
-        }
-    // estimate of how far through current pass we are
-    virtual void progress_changed(float progress)
-        {
-            double d = (double)progress;
-
-            GET_LOCK;
-            PyObject *ret = PyObject_CallMethod(
-                site,
-                const_cast<char *>("progress_changed"),
-                const_cast<char *>("d"),
-                d);
-            Py_XDECREF(ret);
-            RELEASE_LOCK;
-        }
-
-    virtual void stats_changed(pixel_stat_t& stats)
-        {
-            GET_LOCK;
-            PyObject *ret = PyObject_CallMethod(
-                site,
-                const_cast<char *>("stats_changed"),
-                const_cast<char *>("[kkkkkkkkkk]"),
-                stats.s[0], stats.s[1], stats.s[2],stats.s[3],stats.s[4],
-                stats.s[5], stats.s[6], stats.s[7],stats.s[8],stats.s[9]);
-            Py_XDECREF(ret);
-            RELEASE_LOCK;                       
-        }
-
-    // one of the status values above
-    virtual void status_changed(int status_val)
-        {
-            assert(this != NULL && site != NULL);
-            //fprintf(stderr,"sc: %p %p\n",this,this->status_changed_cb);
-
-            GET_LOCK;
-            PyObject *ret = PyObject_CallMethod(
-                site,
-                const_cast<char *>("status_changed"),
-                const_cast<char *>("i"), 
-                status_val);
-
-            if(PyErr_Occurred())
-            {
-                fprintf(stderr,"bad status 2\n");
-                PyErr_Print();
-            }
-            Py_XDECREF(ret);
-            RELEASE_LOCK;
-        }
-
-    // return true if we've been interrupted and are supposed to stop
-    virtual bool is_interrupted()
-        {
-            GET_LOCK;
-            PyObject *pyret = PyObject_CallMethod(
-                site,
-                const_cast<char *>("is_interrupted"),NULL);
-
-            bool ret = false;
-            if(pyret != NULL && PyInt_Check(pyret))
-            {
-                long i = PyInt_AsLong(pyret);
-                //fprintf(stderr,"ret: %ld\n",i);
-                ret = (i != 0);
-            }
-
-            Py_XDECREF(pyret);
-            RELEASE_LOCK;
-            return ret;
-        }
-
-    // pixel changed
-    virtual void pixel_changed(
-        const double *params, int maxIters, int nNoPeriodIters,
-        int x, int y, int aa,
-        double dist, int fate, int nIters,
-        int r, int g, int b, int a) 
-        {
-            if(has_pixel_changed_method)
-            {
-                GET_LOCK;
-                PyObject *pyret = PyObject_CallMethod(
-                    site,
-                    const_cast<char *>("pixel_changed"),
-                    const_cast<char *>("(dddd)iiiiidiiiiii"),
-                    params[0],params[1],params[2],params[3],
-                    x,y,aa,
-                    maxIters,nNoPeriodIters,
-                    dist,fate,nIters,
-                    r,g,b,a);
-
-                Py_XDECREF(pyret);
-                RELEASE_LOCK;
-            }
-        };
-    
-    virtual void start(calc_args *tid_)
-        {
-            tid = (pthread_t)tid_;
-        }
-
-    virtual void wait()
-        {
-            pthread_join(tid,NULL);
-        }
-
-    ~PySite()
-        {
-#ifdef DEBUG_CREATION
-            fprintf(stderr,"%p : SITE : DTOR\n",this);
-#endif
-            //Py_DECREF(site);
-        }
-
-    //PyThreadState *state;
-private:
-    PyObject *site;
-    bool has_pixel_changed_method;
-    pthread_t tid;
-};
-
-typedef enum
-{
-    ITERS,
-    IMAGE,
-    PROGRESS,
-    STATUS,
-    PIXEL,
-    TOLERANCE,
-    STATS,
-} msg_type_t;
-    
 struct calc_args
 {
     double params[N_PARAMS];
@@ -772,7 +578,7 @@ struct calc_args
     //IFractalSite *site;
     int xoff,yoff,xres,yres;
 
-    PyObject *pycmap, *pypfo, *pyim, *pysite;
+    PyObject *pycmap, *pypfo, *pyim;
     calc_args()
     {
 #ifdef DEBUG_CREATION
@@ -781,7 +587,6 @@ struct calc_args
         pycmap = NULL;
         pypfo = NULL;
         pyim = NULL;
-        pysite = NULL;
         dirty = 1;
         periodicity = true;
         yflip = false;
@@ -826,110 +631,14 @@ struct calc_args
         Py_XDECREF(pycmap);
         Py_XDECREF(pypfo);
         Py_XDECREF(pyim);
-        Py_XDECREF(pysite);
     }
 };
-
-// write the callbacks to a file descriptor
-class FDSite :public IFractalSite
-{
-public:
-    FDSite(int fd_) : fd(fd_), interrupted(false)
-    {
-#ifdef DEBUG_CREATION
-        fprintf(stderr, "%p : FD : CTOR\n", this);
-#endif
-        pthread_mutex_init(&write_lock, NULL);
-    }
-
-    inline void send(msg_type_t type, int size, void *buf)
-    {
-        pthread_mutex_lock(&write_lock);
-        if (write(fd, &type, sizeof(type)))
-        {};
-        if (write(fd, &size, sizeof(size)))
-        {};
-        if (write(fd, buf, size))
-        {};
-        pthread_mutex_unlock(&write_lock);
-    }
-
-    // we've drawn a rectangle of image
-    virtual void image_changed(int x1, int y1, int x2, int y2)
-    {
-        if (!interrupted)
-        {
-            int buf[4] = { x1, y1, x2, y2 };
-            send(IMAGE, sizeof(buf), &buf[0]);
-        }
-    }
-    // estimate of how far through current pass we are
-    virtual void progress_changed(float progress)
-    {
-        if (!interrupted)
-        {
-            int percentdone = (int)(100.0 * progress);
-            send(PROGRESS, sizeof(percentdone), &percentdone);
-        }
-    }
-
-    virtual void stats_changed(pixel_stat_t& stats)
-    {
-        if (!interrupted)
-        {
-            send(STATS, sizeof(stats), &stats);
-        }
-
-    }
-
-    // one of the status values above
-    virtual void status_changed(int status_val)
-    {
-        send(STATUS, sizeof(status_val), &status_val);
-    }
-
-    ~FDSite()
-    {
-#ifdef DEBUG_CREATION
-        fprintf(stderr, "%p : FD : DTOR\n", this);
-#endif
-        close(fd);
-    }
-private:
-    int fd;
-    volatile bool interrupted;
-    pthread_mutex_t write_lock;
-};
-
-static void
-site_delete(IFractalSite *site)
-{
-    delete site;
-}
 
 struct ffHandle
 {
     PyObject *pyhandle;
     fractFunc *ff;
 } ;
-
-
-static PyObject *
-pyfdsite_create(PyObject *self, PyObject *args)
-{
-    int fd;
-    if(!PyArg_ParseTuple(args,"i", &fd))
-    {
-        return NULL;
-    }
-
-    IFractalSite *site = new FDSite(fd);
-
-    PyObject *pyret = PyCObject_FromVoidPtr(site,(void (*)(void *))site_delete);
-
-    return pyret;
-}
-
 
 static calc_args *
 parse_calc_args(PyObject *args, PyObject *kwds)
@@ -940,22 +649,10 @@ parse_calc_args(PyObject *args, PyObject *kwds)
 
     static const char *kwlist[] = {
         "image",
-        //"site",
         "pfo",
         "cmap",
         "params",
-        //"antialias",
         "maxiter",
-        //"yflip",
-            //"nthreads",
-        //"auto_deepen",
-        //"periodicity",
-        //"render_type",
-        //"dirty", 
-        //"async",
-        //"warp_param",
-        //"tolerance",
-        //"auto_tolerance",
         "xoff", "yoff", "xres", "yres",
         NULL};
 
@@ -964,22 +661,10 @@ parse_calc_args(PyObject *args, PyObject *kwds)
            kwds,
            "OOOO|iiiii",
            const_cast<char **>(kwlist),
-
-           &pyim, // &pysite,
+           &pyim,
            &pypfo,&pycmap,
            &pyparams,
-           //&cargs->eaa,
            &cargs->maxiter,
-           //&cargs->yflip,
-            // &cargs->nThreads,
-           //&cargs->auto_deepen,
-           //&cargs->periodicity,
-           //&cargs->render_type,
-           //&cargs->dirty,
-           //&cargs->async,
-           //&cargs->warp_param,
-           //&cargs->tolerance,
-           //&cargs->auto_tolerance
            &cargs->xoff, &cargs->yoff, &cargs->xres, &cargs->yres
            ))
     {
@@ -1216,7 +901,7 @@ static PyMethodDef PfMethods[] = {
 
     { "image_save_all", image_save_all, METH_VARARGS, "image_sav_all" },
 
-    { "fdsite_create", pyfdsite_create, METH_VARARGS, "Create a new file-descriptor site"},
+    //{ "fdsite_create", pyfdsite_create, METH_VARARGS, "Create a new file-descriptor site"},
 
     { "calc", (PyCFunction) pycalc, METH_VARARGS | METH_KEYWORDS, "Calculate a fractal image"},
 
@@ -1275,12 +960,4 @@ initfract4dc(void)
     PyModule_AddIntConstant(pymod, "FILE_TYPE_PNG", FILE_TYPE_PNG);
     PyModule_AddIntConstant(pymod, "FILE_TYPE_JPG", FILE_TYPE_JPG);
 
-    /* message type consts */
-    PyModule_AddIntConstant(pymod, "MESSAGE_TYPE_ITERS", ITERS);
-    PyModule_AddIntConstant(pymod, "MESSAGE_TYPE_IMAGE", IMAGE);
-    PyModule_AddIntConstant(pymod, "MESSAGE_TYPE_PROGRESS", PROGRESS);
-    PyModule_AddIntConstant(pymod, "MESSAGE_TYPE_STATUS", STATUS);
-    PyModule_AddIntConstant(pymod, "MESSAGE_TYPE_PIXEL", PIXEL);
-    PyModule_AddIntConstant(pymod, "MESSAGE_TYPE_TOLERANCE", TOLERANCE);
-    PyModule_AddIntConstant(pymod, "MESSAGE_TYPE_STATS", STATS);
 }

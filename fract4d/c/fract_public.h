@@ -74,21 +74,6 @@ typedef struct s_pixel_stat pixel_stat_t;
 // don't want to do anything with them
 struct calc_args;
 
-class IFractalSite
-{
- public:
-    virtual ~IFractalSite() {};
-
-    // we've drawn a rectangle of image
-    virtual void image_changed(int x1, int y1, int x2, int y2) {};
-    // estimate of how far through current pass we are
-    virtual void progress_changed(float progress) {};
-    // one of the status values above
-    virtual void status_changed(int status_val) {};
-    // statistics about image
-    virtual void stats_changed(pixel_stat_t& stats) {};
-
-};
 
 
 #endif /* _FRACT_PUBLIC_H_ */

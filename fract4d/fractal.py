@@ -696,7 +696,7 @@ class T(fctutils.T):
         return warp
 
 
-    def calc5(self, image, colormap, site, xoff, yoff, xres, yres):
+    def calc5(self, image, colormap, xoff, yoff, xres, yres):
         #assert async == False
         #assert self.clear_image == False
         warp = self.get_warp()
@@ -729,13 +729,9 @@ class T(fctutils.T):
         # get_colormap:
         colormap = fract4dc.cmap_create_gradient(self.get_gradient().segments)
 
-        (self_readfd, self_writefd) = os.pipe()
-
-        site = fract4dc.fdsite_create(self_writefd)
-
         for (xoff,yoff,xres,yres) in image.get_tile_list():
 
-            self.calc5(image, colormap, site, xoff, yoff, xres, yres)
+            self.calc5(image, colormap, xoff, yoff, xres, yres)
 
     def set_param(self,n,val):
         val = float(val)

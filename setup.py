@@ -76,7 +76,6 @@ fract4d_sources = [
     'fract4d/c/pointFunc.cpp',
     'fract4d/c/fractFunc.cpp',
     'fract4d/c/STFractWorker.cpp',
-    'fract4d/c/MTFractWorker.cpp',
     'fract4d/c/image.cpp',
     'fract4d/c/imageIO.cpp',
     'fract4d/c/fract_stdlib.cpp'
