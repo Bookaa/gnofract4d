@@ -108,6 +108,9 @@ struct pfHandle
 {
     PyObject *pyhandle;
     pf_obj *pfo;
+
+
+    double params[N_PARAMS];
 } ;
 static void
 pf_delete(void *p)
@@ -505,37 +508,34 @@ static PyObject *
 pf_init(PyObject *self, PyObject *args)
 {
     PyObject *pyobj, *pyarray, *py_posparams;
-    struct s_param *params;
-    struct pfHandle *pfh;
-    double pos_params[N_PARAMS];
 
-    if(!PyArg_ParseTuple(
-           args,"OOO",&pyobj,&py_posparams, &pyarray))
+    if (!PyArg_ParseTuple(args,"OOO",&pyobj,&py_posparams, &pyarray))
     {
         return NULL;
     }
-    if(!PyCObject_Check(pyobj))
+    if (!PyCObject_Check(pyobj))
     {
         PyErr_SetString(PyExc_ValueError,"Not a valid handle");
         return NULL;
     }
 
-    pfh = (struct pfHandle *)PyCObject_AsVoidPtr(pyobj);
+    struct pfHandle *pfh = (struct pfHandle *)PyCObject_AsVoidPtr(pyobj);
 
-    if(!parse_posparams(py_posparams, pos_params))
+    // double pos_params[N_PARAMS];
+    if (!parse_posparams(py_posparams, pfh->params))    // will write pfh->params
     {
         return NULL;
     }
 
     int len=0;
-    params = parse_params(pyarray,&len);
-    if(!params)
+    struct s_param *params = parse_params(pyarray,&len);
+    if (!params)
     {
         return NULL;
     }
 
     /*finally all args are assembled */
-    pfh->pfo->vtbl->init(pfh->pfo,pos_params,params,len);
+    pfh->pfo->vtbl->init(pfh->pfo, pfh->params, params, len);
     free(params);
 
     Py_INCREF(Py_None);
@@ -544,13 +544,8 @@ pf_init(PyObject *self, PyObject *args)
 
 struct calc_args
 {
-    double params[N_PARAMS];
-    int eaa, maxiter; //, nThreads;
-    int auto_deepen, yflip, periodicity, dirty;
-    int auto_tolerance;
-    double tolerance;
-    int async, warp_param;
-    render_type_t render_type;
+    double* params; // [N_PARAMS];
+    int maxiter; //, nThreads;
     pf_obj *pfo;
     ColorMap *cmap;
     IImage *im;
@@ -566,18 +561,8 @@ struct calc_args
         pycmap = NULL;
         pypfo = NULL;
         pyim = NULL;
-        dirty = 1;
-        periodicity = true;
-        yflip = false;
-        auto_deepen = false;
-        auto_tolerance = false;
-        tolerance = 1.0E-9;
-        eaa = AA_NONE;
         maxiter = 1024;
         // nThreads = 1;
-        render_type = RENDER_TWO_D;
-        async = false;
-        warp_param = -1;
     }
 
     void set_cmap(PyObject *pycmap_)
@@ -591,7 +576,10 @@ struct calc_args
     {
         pypfo = pypfo_;
 
-        pfo = ((pfHandle *)PyCObject_AsVoidPtr(pypfo))->pfo;
+        pfHandle* pfh = (pfHandle *)PyCObject_AsVoidPtr(pypfo);
+        this->params = pfh->params;
+
+        pfo = pfh->pfo;
         Py_XINCREF(pypfo);
     }
 
@@ -622,46 +610,26 @@ struct ffHandle
 static calc_args *
 parse_calc_args(PyObject *args, PyObject *kwds)
 {
-    PyObject *pyparams, *pypfo, *pycmap, *pyim;
     calc_args *cargs = new calc_args();
-    double *p = NULL;
 
     static const char *kwlist[] = {
-        "image",
-        "pfo",
-        "cmap",
-        "params",
+        "image", "pfo", "cmap", //"params", 
         "maxiter",
-        "xoff", "yoff", "xres", "yres",
-        NULL};
+        "xoff", "yoff", "xres", "yres", NULL};
 
-    if(!PyArg_ParseTupleAndKeywords(
-           args,
-           kwds,
-           "OOOO|iiiii",
-           const_cast<char **>(kwlist),
-           &pyim,
-           &pypfo,&pycmap,
-           &pyparams,
-           &cargs->maxiter,
-           &cargs->xoff, &cargs->yoff, &cargs->xres, &cargs->yres
-           ))
+    PyObject *pypfo, *pycmap, *pyim;
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "OOO|iiiii", const_cast<char **>(kwlist),
+           &pyim, &pypfo, &pycmap, //&pyparams, 
+                                    &cargs->maxiter,
+           &cargs->xoff, &cargs->yoff, &cargs->xres, &cargs->yres))
     {
-        goto error;
+error:
+        delete cargs;
+        return NULL;
     }
-    cargs->dirty = 0;
-    cargs->async = 0;
-    cargs->warp_param = -1;
-    cargs->render_type = RENDER_TWO_D;
-    cargs->tolerance = 0.0;
-    cargs->auto_tolerance = 1;
-    cargs->auto_deepen = 1;
-    cargs->periodicity = 1;
-    cargs->yflip = 0;
-    cargs->eaa = 1;
 
-
-    p = cargs->params;
+    /*
+    double *p = cargs->params;
     if(!PyList_Check(pyparams) || PyList_Size(pyparams) != N_PARAMS)
     {
         PyErr_SetString(PyExc_ValueError, "bad parameter list");
@@ -678,12 +646,11 @@ parse_calc_args(PyObject *args, PyObject *kwds)
         }
 
         p[i] = PyFloat_AsDouble(elt);
-    }
+    }*/
 
     cargs->set_cmap(pycmap);
     cargs->set_pfo(pypfo);
     cargs->set_im(pyim);
-    // cargs->set_site(pysite);
     if(!cargs->cmap || !cargs->pfo || !cargs->im)
     {
         PyErr_SetString(PyExc_ValueError, "bad argument passed to calc");
@@ -697,10 +664,6 @@ parse_calc_args(PyObject *args, PyObject *kwds)
     }
 
     return cargs;
-
-error:
-    delete cargs;
-    return NULL;
 }
 
 static PyObject *
@@ -713,29 +676,16 @@ pycalc(PyObject *self, PyObject *args, PyObject *kwds)
     }
     if (true)
     {
-        /*
-        dims = fract4dc.image_dims(self._img)
-        fract4dc.image_resize(
-            self._img, xres, yres,
-            dims[fract4dc.IMAGE_TOTAL_WIDTH],
-            dims[fract4dc.IMAGE_TOTAL_HEIGHT])
-        
-        */
-
         int xtotalsize = cargs->im->totalXres();
         int ytotalsize = cargs->im->totalYres();
 
-
         cargs->im->set_resolution(cargs->xres, cargs->yres, xtotalsize, ytotalsize);
-
-        // fract4dc.image_set_offset(self._img,xoff,yoff)
 
         cargs->im->set_offset(cargs->xoff, cargs->yoff);
     }
     {
         Py_BEGIN_ALLOW_THREADS
         // synchronous
-        printf("call calc 1728 \n");
         calc_4(cargs->params,
              cargs->maxiter,
              cargs->pfo,

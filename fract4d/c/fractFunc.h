@@ -67,16 +67,11 @@ class fractFunc {
     // double period_tolerance;
     int debug_flags;
     render_type_t render_type;
-    //int warp_param;
-    d *params;
 
     IImage *im;    
     IFractWorker *worker;
     // for callbacks
     //IFractalSite *site;
-
-    // last time we redrew the image to this line
-    int last_update_y; 
 
     float min_progress;
     float delta_progress;
@@ -89,10 +84,6 @@ class fractFunc {
 
     // private drawing methods
     void send_quit();
-
-    // redraw the image to this line
-    // also checks for interruptions & returns true if we should stop
-    bool update_image(int i);
 
     // prepare for deepening by clearing 'in'-fated pixels
     void clear_in_fates();

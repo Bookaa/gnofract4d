@@ -72,7 +72,7 @@ fractFunc::fractFunc(
     render_type = RENDER_TWO_D;
     //printf("render type %d\n", render_type);
     worker = fw;
-    params = params_;
+    d *params = params_;
 
     maxiter = maxiter_;
     // period_tolerance = 0.0;
@@ -116,21 +116,8 @@ fractFunc::fractFunc(
     aa_topleft = topleft - (delta_aa_y + delta_aa_x) / 2.0;
     
     worker->set_fractFunc(this);
-
-    last_update_y = 0;
 };
 
-
-bool
-fractFunc::update_image(int i)
-{
-    bool done = false;
-    if(!done)
-    {
-    }
-    last_update_y = i;
-    return done; 
-}
 
 // see if the image needs more (or less) iterations & tolerance to display properly
 
@@ -170,23 +157,15 @@ void fractFunc::clear_in_fates()
 
 void fractFunc::draw_all()
 {
-#if !defined(NO_CALC)
-    // NO_CALC is used to stub out the actual fractal stuff so we can
-    // profile & optimize the rest of the code without it confusing matters
-
     float minp = 0.0, maxp= 0.3; 
     draw(16,16,minp,maxp);    
 
     minp = 0.5; maxp = 0.9; // (eaa == AA_NONE ? 0.9 : 0.5);
-    {
-        set_progress_range(0.0,1.0);
-    }
-#endif
+    
+    set_progress_range(0.0, 1.0);
 }
 
-void 
-fractFunc::draw(
-    int rsize, int drawsize, float min_progress, float max_progress)
+void fractFunc::draw(int rsize, int drawsize, float min_progress, float max_progress)
 {
     if(debug_flags & DEBUG_QUICK_TRACE)
     {
@@ -204,7 +183,6 @@ fractFunc::draw(
     int h = im->Yres();
 
     /* reset progress indicator & clear screen */
-    last_update_y = 0;
     reset_progress(min_progress);
 
     float mid_progress = (max_progress + min_progress)/2.0;
@@ -214,23 +192,14 @@ fractFunc::draw(
     for (y = 0 ; y < h - rsize ; y += rsize) 
     {
         worker->qbox_row (w, y, rsize, drawsize);
-        if(update_image(y)) 
-        {
-            goto done;
-        }
     }
  
     // remaining lines
     for ( ; y < h ; y++)
     {
         worker->row(0,y,w);
-        if(update_image(y)) 
-        {
-            goto done;
-        }
     }
 
-    last_update_y = 0;
     reset_progress(0.0);
     set_progress_range(mid_progress, max_progress);
 
@@ -238,13 +207,8 @@ fractFunc::draw(
     for ( y = 0; y < h - rsize; y += rsize) 
     {
         worker->box_row(w,y,rsize);
-        if(update_image(y))
-        {
-            goto done;
-        }
     }
 
- done:
     /* refresh entire image & reset progress bar */
     reset_progress(1.0);
 }
@@ -255,19 +219,16 @@ void calc_4(d *params,
     ColorMap *cmap, 
     IImage *im)
 {
-    assert(NULL != im && NULL != site && 
-           NULL != cmap && NULL != pfo && NULL != params);
+    assert(NULL != im && NULL != site && NULL != cmap && NULL != pfo && NULL != params);
+
     IFractWorker *worker = IFractWorker::create(pfo,cmap,im);
 
-    if(worker && worker->ok())
+    if (worker && worker->ok())
     {
-        fractFunc ff(
-            params, 
-            maxiter,
-            worker,
-            im);
+        fractFunc ff(params, maxiter, worker, im);
 
         ff.draw_all();
     }
+
     delete worker;
 }

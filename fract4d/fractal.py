@@ -70,9 +70,18 @@ class T(fctutils.T):
         self.default_gradient.segments[0].left_color = [1.0,1.0,1.0,1.0]
         self.default_gradient.segments[0].right_color = [1.0,1.0,1.0,1.0]
 
-        self.reset()
+        # set global default values, then override from formula
+        # set up defaults
+        self.params = [ 0.0, 0.0, 0.0, 0.0, # center
+                        4.0, # size
+                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0 # angles
+                      ]
 
-        # colorfunc lookup
+        self.bailout = 0.0
+        self.maxiter = 256
+        self.rot_by = math.pi/2
+        self.title = self.forms[0].funcName
+
         self.colorfunc_names = [
             "default",
             "continuous_potential",
@@ -174,20 +183,6 @@ class T(fctutils.T):
         self.set_transform_with_text(params.dict['formula'], which_transform)
         self.transforms[which_transform].load_param_bag(params)
 
-    def reset(self):
-        # set global default values, then override from formula
-        # set up defaults
-        self.params = [
-            0.0, 0.0, 0.0, 0.0, # center
-            4.0, # size
-            0.0, 0.0, 0.0, 0.0, 0.0, 0.0 # angles
-            ]
-
-        self.bailout = 0.0
-        self.maxiter = 256
-        self.rot_by = math.pi/2
-        self.title = self.forms[0].funcName
-
     def set_formula(self,formulafile,func,index=0):
         self.forms[index].set_formula(formulafile,func,self.get_gradient())
 
@@ -250,13 +245,12 @@ class T(fctutils.T):
         initparams = self.all_params()
         fract4dc.pf_init(pfunc,self.params,initparams)
 
-        # get_colormap:
         segs = self.get_gradient().segments
         colormap = fract4dc.cmap_create_gradient(segs)
 
         for (xoff,yoff,xres,yres) in image.get_tile_list():
             fract4dc.calc(
-                params=self.params,
+                # params=self.params,
                 maxiter=self.maxiter,
                 pfo=pfunc,
                 cmap=colormap,
