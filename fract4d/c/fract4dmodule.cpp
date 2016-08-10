@@ -1311,88 +1311,6 @@ image_save_all(PyObject *self,PyObject *args)
 }
 
 
-static PyObject *
-image_buffer(PyObject *self, PyObject *args)
-{
-    PyObject *pyim;
-    PyObject *pybuf;
-
-    int x=0,y=0;
-    if(!PyArg_ParseTuple(args,"O|ii",&pyim,&x,&y))
-    {
-        return NULL;
-    }
-
-    image *i = (image *)PyCObject_AsVoidPtr(pyim);
-
-#ifdef DEBUG_CREATION
-    fprintf(stderr,"%p : IM : BUF\n",i);
-#endif
-
-    if(!i || ! i->ok())
-    {
-        PyErr_SetString(PyExc_MemoryError, "image not allocated");
-        return NULL;
-    }
-
-    if(x < 0 || x >= i->Xres() || y < 0 || y >= i->Yres())
-    {
-        PyErr_SetString(PyExc_ValueError,"request for buffer outside image bounds");
-        return NULL;
-    }
-    int offset = 3 * (y * i->Xres() + x);
-    assert(offset > -1 && offset < i->bytes());
-    pybuf = PyBuffer_FromReadWriteMemory(i->getBuffer()+offset,i->bytes()-offset);
-    Py_XINCREF(pybuf);
-    //Py_XINCREF(pyim);
-
-    return pybuf;
-}
-
-static PyObject *
-image_fate_buffer(PyObject *self, PyObject *args)
-{
-    PyObject *pyim;
-    PyObject *pybuf;
-
-    int x=0,y=0;
-    if(!PyArg_ParseTuple(args,"O|ii",&pyim,&x,&y))
-    {
-        return NULL;
-    }
-
-    image *i = (image *)PyCObject_AsVoidPtr(pyim);
-
-#ifdef DEBUG_CREATION
-    fprintf(stderr,"%p : IM : BUF\n",i);
-#endif
-
-    if(NULL == i)
-    {
-        PyErr_SetString(PyExc_ValueError,
-                        "Bad image object");
-        return NULL;
-    }
-
-    if(x < 0 || x >= i->Xres() || y < 0 || y >= i->Yres())
-    {
-        PyErr_SetString(PyExc_ValueError,"request for buffer outside image bounds");
-        return NULL;
-    }
-    int index = i->index_of_subpixel(x,y,0);
-    int last_index = i->index_of_sentinel_subpixel();
-    assert(index > -1 && index < last_index);
-
-    pybuf = PyBuffer_FromReadWriteMemory(
-        i->getFateBuffer()+index,
-        (last_index - index)  * sizeof(fate_t));
-
-    Py_XINCREF(pybuf);
-
-    return pybuf;
-}
-
-
 static PyMethodDef PfMethods[] = {
     {"pf_load",  pf_load, METH_VARARGS, "Load a new point function shared library"},
     {"pf_create", pf_create, METH_VARARGS, "Create a new point function"},
@@ -1426,8 +1344,8 @@ static PyMethodDef PfMethods[] = {
 
     //{ "image_read", image_read, METH_VARARGS, "read an image in from disk"},
 
-    { "image_buffer", image_buffer, METH_VARARGS, "get the rgb data from the image"},
-    { "image_fate_buffer", image_fate_buffer, METH_VARARGS, "get the fate data from the image"},
+    //{ "image_buffer", image_buffer, METH_VARARGS, "get the rgb data from the image"},
+    //{ "image_fate_buffer", image_fate_buffer, METH_VARARGS, "get the fate data from the image"},
 
     //{ "image_get_color_index", image_get_color_index, METH_VARARGS, "Get the color index data from a point on the image"},
     //{ "image_get_fate", image_get_fate, METH_VARARGS, "Get the (solid, fate) info for a point on the image"},

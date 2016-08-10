@@ -7,8 +7,6 @@ class T:
     def __init__(self,xsize,ysize,txsize=-1,tysize=-1):
         print 'image', xsize,ysize,txsize, tysize
         self._img = fract4dc.image_create(xsize,ysize,txsize, tysize)
-        self.fate_buf = fract4dc.image_fate_buffer(self._img,0,0)
-        self.image_buf = fract4dc.image_buffer(self._img,0,0)
 
     def save(self,name):
         try:
