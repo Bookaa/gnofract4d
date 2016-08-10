@@ -109,7 +109,8 @@ struct pfHandle
     PyObject *pyhandle;
     pf_obj *pfo;
 
-
+    // below init later :
+    ColorMap *cmap;
     double params[N_PARAMS];
 } ;
 static void
@@ -121,6 +122,12 @@ pf_delete(void *p)
 #endif
     pfh->pfo->vtbl->kill(pfh->pfo);
     Py_DECREF(pfh->pyhandle);
+
+    if (pfh->cmap)
+    {
+        cmap_delete(pfh->cmap);
+        pfh->cmap = 0;
+    }
     free(pfh);
 }
 
@@ -168,6 +175,7 @@ pf_load_and_create(PyObject *self, PyObject *args)
     struct pfHandle *pfh = (pfHandle *)malloc(sizeof(struct pfHandle));
     pfh->pfo = p;
     pfh->pyhandle = pyobj;
+    pfh->cmap = 0;
 #ifdef DEBUG_CREATION
     fprintf(stderr,"%p : PF : CTOR (%p)\n",pfh,pfh->pfo);
 #endif
@@ -311,39 +319,6 @@ cmap_from_pyobject(PyObject *pyarray)
         Py_DECREF(pyitem);
     }
     return cmap;
-}
-
-static PyObject *
-cmap_create_gradient(PyObject *self, PyObject *args)
-{
-    /* args = a gradient object:
-       an array of objects with:
-       float: left,right,mid 
-       int: bmode, cmode
-       [f,f,f,f] : left_color, right_color
-    */
-    PyObject *pyarray, *pyret;
-
-    if(!PyArg_ParseTuple(args,"O",&pyarray))
-    {
-        return NULL;
-    }
-
-    if(!PySequence_Check(pyarray))
-    {
-        return NULL;
-    }
-    
-    ColorMap *cmap = cmap_from_pyobject(pyarray);
-
-    if(NULL == cmap)
-    {
-        return NULL;
-    }
-
-    pyret = PyCObject_FromVoidPtr(cmap,(void (*)(void *))cmap_delete);
-
-    return pyret;
 }
 
 static bool
@@ -542,6 +517,46 @@ pf_init(PyObject *self, PyObject *args)
     return Py_None;
 }
 
+static PyObject *
+pf_init2(PyObject *self, PyObject *args)
+{
+    PyObject *pyobj, *pyarray;
+
+    if (!PyArg_ParseTuple(args,"OO",&pyobj,&pyarray))
+    {
+        return NULL;
+    }
+    if (!PyCObject_Check(pyobj))
+    {
+        PyErr_SetString(PyExc_ValueError,"Not a valid handle");
+        return NULL;
+    }
+
+    struct pfHandle *pfh = (struct pfHandle *)PyCObject_AsVoidPtr(pyobj);
+
+    /* a gradient object:
+       an array of objects with:
+       float: left,right,mid 
+       int: bmode, cmode
+       [f,f,f,f] : left_color, right_color
+    */
+    if(!PySequence_Check(pyarray))
+    {
+        return NULL;
+    }
+
+    ColorMap *cmap = cmap_from_pyobject(pyarray);
+
+    if(NULL == cmap)
+    {
+        return NULL;
+    }
+    pfh->cmap = cmap;
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
 struct calc_args
 {
     double* params; // [N_PARAMS];
@@ -578,6 +593,7 @@ struct calc_args
 
         pfHandle* pfh = (pfHandle *)PyCObject_AsVoidPtr(pypfo);
         this->params = pfh->params;
+        this->cmap = pfh->cmap;
 
         pfo = pfh->pfo;
         Py_XINCREF(pypfo);
@@ -613,13 +629,13 @@ parse_calc_args(PyObject *args, PyObject *kwds)
     calc_args *cargs = new calc_args();
 
     static const char *kwlist[] = {
-        "image", "pfo", "cmap", //"params", 
+        "image", "pfo", //"cmap", //"params", 
         "maxiter",
         "xoff", "yoff", "xres", "yres", NULL};
 
-    PyObject *pypfo, *pycmap, *pyim;
-    if(!PyArg_ParseTupleAndKeywords(args, kwds, "OOO|iiiii", const_cast<char **>(kwlist),
-           &pyim, &pypfo, &pycmap, //&pyparams, 
+    PyObject *pypfo, *pyim;
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "OO|iiiii", const_cast<char **>(kwlist),
+           &pyim, &pypfo, //&pycmap, //&pyparams, 
                                     &cargs->maxiter,
            &cargs->xoff, &cargs->yoff, &cargs->xres, &cargs->yres))
     {
@@ -648,7 +664,7 @@ error:
         p[i] = PyFloat_AsDouble(elt);
     }*/
 
-    cargs->set_cmap(pycmap);
+    //cargs->set_cmap(pycmap);
     cargs->set_pfo(pypfo);
     cargs->set_im(pyim);
     if(!cargs->cmap || !cargs->pfo || !cargs->im)
@@ -821,8 +837,9 @@ static PyMethodDef PfMethods[] = {
     {"pf_load_and_create",  pf_load_and_create, METH_VARARGS, "Load a new point function shared library, and Create a new point function"},
     // {"pf_create", pf_create, METH_VARARGS, "Create a new point function"},
     {"pf_init", pf_init, METH_VARARGS, "Init a point function"},
+    {"pf_init2", pf_init2, METH_VARARGS, "Init a point function"},
 
-    { "cmap_create_gradient", cmap_create_gradient, METH_VARARGS, "Create a new gradient-based colormap"},
+    //{ "cmap_create_gradient", cmap_create_gradient, METH_VARARGS, "Create a new gradient-based colormap"},
     //{ "cmap_set_solid", pycmap_set_solid, METH_VARARGS, "Set the inner or outer solid color"},
     
     { "image_create", image_create, METH_VARARGS, "Create a new image buffer"},
