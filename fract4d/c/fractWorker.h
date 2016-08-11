@@ -24,8 +24,6 @@ typedef struct {
 /* per-worker-thread fractal info */
 class STFractWorker : public IFractWorker {
  public:
-    void set_fractFunc(fractFunc *ff); 
-
     /* pointers to data also held in fractFunc */
     IImage *im;    
 
@@ -37,12 +35,10 @@ class STFractWorker : public IFractWorker {
     }
 
     STFractWorker() {
-        reset_counts();
-        lastIter = 0;
+        this->reset_counts();
     }
 
-    // update whether last pixel bailed
-    inline void periodSet(int *ppos);
+    void set_fractFunc(fractFunc *ff) { this->ff = ff; }
 
     // calculate a row of pixels
     void row(int x, int y, int n);
@@ -112,9 +108,6 @@ class STFractWorker : public IFractWorker {
     pointFunc *pf; 
 
     pixel_stat_t stats;
-
-    // period guessing
-    int lastIter; // how many iterations did last pixel take?
 
     bool m_ok;
 };

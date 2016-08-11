@@ -4,14 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-IFractWorker *
-IFractWorker::create(pf_obj *pfo, ColorMap *cmap, IImage *im_)
-{
-    STFractWorker *w = new STFractWorker();
-    if(!w) return w;
-    w->init(pfo,cmap,im_);
-    return w;
-} 
 
 bool
 STFractWorker::init(pf_obj *pfo, ColorMap *cmap, IImage *im_)
@@ -20,23 +12,12 @@ STFractWorker::init(pf_obj *pfo, ColorMap *cmap, IImage *im_)
     im = im_;
     m_ok = true;
 
-    pf = pointFunc::create(pfo,cmap);
+    this->pf = pointFunc::create(pfo,cmap);
     if(NULL == pf)
     {
         m_ok = false;
     }
     return m_ok;
-}
-
-void
-STFractWorker::set_fractFunc(fractFunc *ff_)
-{
-    ff = ff_;
-}
-
-inline void 
-STFractWorker::periodSet(int *ppos) {
-    lastIter = *ppos;
 }
 
 void
@@ -158,8 +139,6 @@ STFractWorker::pixel(int x, int y,int w, int h)
             assert(0 && "not supported");
             break;
         }
-
-        periodSet(&iter);
 
         if(ff->debug_flags & DEBUG_DRAWING_STATS)
         {

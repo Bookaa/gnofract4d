@@ -703,16 +703,9 @@ pycalc(PyObject *self, PyObject *args, PyObject *kwds)
         cargs->im->set_offset(cargs->xoff, cargs->yoff);
     }
     {
-        Py_BEGIN_ALLOW_THREADS
-        // synchronous
-        calc_4(cargs->params,
-             cargs->maxiter,
-             cargs->pfo,
-             cargs->cmap,
-             cargs->im);
+        calc_4(cargs->params, cargs->maxiter, cargs->pfo, cargs->cmap, cargs->im);
 
         delete cargs;
-        Py_END_ALLOW_THREADS
     }
 
     Py_INCREF(Py_None);
@@ -838,19 +831,13 @@ image_save_all(PyObject *self,PyObject *args)
 
 static PyMethodDef PfMethods[] = {
     {"pf_load_and_create",  pf_load_and_create, METH_VARARGS, "Load a new point function shared library, and Create a new point function"},
-    // {"pf_create", pf_create, METH_VARARGS, "Create a new point function"},
     {"pf_init", pf_init, METH_VARARGS, "Init a point function"},
     {"pf_init2", pf_init2, METH_VARARGS, "Init a point function"},
 
-    //{ "cmap_create_gradient", cmap_create_gradient, METH_VARARGS, "Create a new gradient-based colormap"},
-    //{ "cmap_set_solid", pycmap_set_solid, METH_VARARGS, "Set the inner or outer solid color"},
-    
     { "image_create", image_create, METH_VARARGS, "Create a new image buffer"},
     { "image_dims", image_dims, METH_VARARGS, "get a tuple containing image's dimensions"},
 
     { "image_save_all", image_save_all, METH_VARARGS, "image_sav_all" },
-
-    //{ "fdsite_create", pyfdsite_create, METH_VARARGS, "Create a new file-descriptor site"},
 
     { "calc", (PyCFunction) pycalc, METH_VARARGS | METH_KEYWORDS, "Calculate a fractal image"},
 

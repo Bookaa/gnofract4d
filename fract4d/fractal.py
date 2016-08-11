@@ -246,18 +246,10 @@ class T(fctutils.T):
         fract4dc.pf_init(pfunc,self.params,initparams)
 
         segs = self.get_gradient().segments
-        # colormap = fract4dc.cmap_create_gradient(segs)
         fract4dc.pf_init2(pfunc, segs, self.maxiter, image._img)
 
         for (xoff,yoff,xres,yres) in image.get_tile_list():
-            fract4dc.calc(
-                # params=self.params,
-                # maxiter=self.maxiter,
-                pfo=pfunc,
-                # cmap=colormap,
-                # image=image._img,
-                xoff=xoff, yoff=yoff, xres=xres, yres=yres
-                )
+            fract4dc.calc(pfo=pfunc, xoff=xoff, yoff=yoff, xres=xres, yres=yres)
 
     def set_param(self,n,val):
         val = float(val)

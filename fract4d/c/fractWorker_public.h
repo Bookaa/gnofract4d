@@ -15,8 +15,6 @@ class IFractalSite;
 class IFractWorker {
 public:
 
-    static IFractWorker *create(pf_obj *pfo, ColorMap *cmap, IImage *im_);
-
     virtual void set_fractFunc(fractFunc *ff_) =0;
 
     // calculate a row of pixels

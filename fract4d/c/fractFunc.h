@@ -85,12 +85,9 @@ class fractFunc {
     // private drawing methods
     void send_quit();
 
-    // prepare for deepening by clearing 'in'-fated pixels
-    void clear_in_fates();
-
-    // clear auto-deepen and last_update
-    void reset_counts();
-    void reset_progress(float progress);
+    void reset_progress(float progress) {
+        worker->flush();
+    }
 };
 
 // geometry utilities
@@ -103,19 +100,12 @@ enum {
     DEBUG_TIMING = 4
 };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern void calc_4(
+void calc_4(
     d *params,
     int maxiter,
     pf_obj *pfo, 
     ColorMap *cmap, 
     IImage *im);
 
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* _FRACTFUNC_H_ */

@@ -1,4 +1,5 @@
 #include "fractFunc.h"
+#include "fractWorker.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -59,24 +60,16 @@ gettimediff(struct timeval& startTime, struct timeval& endTime)
     return (double)(endTime.tv_sec - startTime.tv_sec) + (double)diff_usec/1000000.0;
 }
  
-fractFunc::fractFunc(
-        d *params_,
-        int maxiter_,
-        IFractWorker *fw,
-        IImage *im_)
+fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
 {
-    //site = site_;
-    im = im_;
-    ok = true;
-    debug_flags = 0;
-    render_type = RENDER_TWO_D;
+    this->im = im_;
+    this->ok = true;
+    this->debug_flags = 0;
+    this->render_type = RENDER_TWO_D;
     //printf("render type %d\n", render_type);
-    worker = fw;
-    d *params = params_;
+    this->worker = fw;
 
-    maxiter = maxiter_;
-    // period_tolerance = 0.0;
-    // warp_param = -1;
+    this->maxiter = maxiter_;
 
     set_progress_range(0.0,1.0);
     /*
@@ -86,19 +79,19 @@ fractFunc::fractFunc(
     */
     dvec4 center = dvec4(params[XCENTER],params[YCENTER], params[ZCENTER],params[WCENTER]);
 
-    rot = rotated_matrix(params);
+    this->rot = rotated_matrix(params);
 
-    eye_point = center + rot[VZ] * -10.0; // FIXME add eye distance parameter
+    this->eye_point = center + rot[VZ] * -10.0; // FIXME add eye distance parameter
 
-    rot = rot/im->totalXres();
+    this->rot = rot/im->totalXres();
     // distance to jump for one pixel down or across
-    deltax = rot[VX];
+    this->deltax = rot[VX];
     // if yflip, draw Y axis down, otherwise up
-    deltay = -rot[VY]; 
+    this->deltay = -rot[VY]; 
 
     // half that distance
-    delta_aa_x = deltax / 2.0;    
-    delta_aa_y = deltay / 2.0;
+    this->delta_aa_x = deltax / 2.0;    
+    this->delta_aa_y = deltay / 2.0;
 
     // topleft is now top left corner of top left pixel...
     topleft = center -
@@ -114,45 +107,13 @@ fractFunc::fractFunc(
 
     // antialias: offset to middle of top left quadrant of pixel
     aa_topleft = topleft - (delta_aa_y + delta_aa_x) / 2.0;
-    
-    worker->set_fractFunc(this);
 };
 
 
 // see if the image needs more (or less) iterations & tolerance to display properly
 
-void fractFunc::reset_counts()
-{
-    worker->reset_counts();    
-}
 
-void fractFunc::reset_progress(float progress)
-{
-    worker->flush();
-}
 
-// change everything with a fate of IN to UNKNOWN, because 
-// image got deeper
-void fractFunc::clear_in_fates()
-{
-    int w = im->Xres();
-    int h = im->Yres();
-    // FIXME can end up with some subpixels known and some unknown
-    for(int y = 0; y < h; ++y)
-    {
-        for(int x = 0; x < w; ++x)
-        {
-            for(int n = 0; n < im->getNSubPixels(); ++n)
-            {
-                fate_t f = im->getFate(x,y,n);
-                if(f & FATE_INSIDE)
-                {
-                    im->setFate(x,y,n, FATE_UNKNOWN);
-                }
-            }
-        }
-    }
-}
 
 
 void fractFunc::draw_all()
@@ -171,7 +132,7 @@ void fractFunc::draw(int rsize, int drawsize, float min_progress, float max_prog
     {
         printf("drawing: %d\n", render_type);
     }
-    reset_counts();
+    this->worker->reset_counts();
 
     // init RNG based on time before generating image
     time_t now;
@@ -213,22 +174,21 @@ void fractFunc::draw(int rsize, int drawsize, float min_progress, float max_prog
     reset_progress(1.0);
 }
 
-void calc_4(d *params,
-    int maxiter,
-    pf_obj *pfo, 
-    ColorMap *cmap, 
-    IImage *im)
+void calc_4(d *params, int maxiter, pf_obj *pfo, ColorMap *cmap, IImage *im)
 {
     assert(NULL != im && NULL != site && NULL != cmap && NULL != pfo && NULL != params);
 
-    IFractWorker *worker = IFractWorker::create(pfo,cmap,im);
+    STFractWorker w = STFractWorker();
+    bool ok = w.init(pfo,cmap,im);
 
-    if (worker && worker->ok())
+    IFractWorker *worker = &w; // IFractWorker::create(pfo,cmap,im);
+
+    if (ok)
     {
         fractFunc ff(params, maxiter, worker, im);
 
+        worker->set_fractFunc(&ff);
+
         ff.draw_all();
     }
-
-    delete worker;
 }

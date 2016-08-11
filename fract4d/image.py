@@ -5,7 +5,6 @@ import fract4dc
 
 class T:
     def __init__(self,xsize,ysize,txsize=-1,tysize=-1):
-        print 'image', xsize,ysize,txsize, tysize
         self._img = fract4dc.image_create(xsize,ysize,txsize, tysize)
 
     def save(self,name):
@@ -20,7 +19,6 @@ class T:
 
     def get_tile_list(self):
         dims = fract4dc.image_dims(self._img)
-        print 'dims', dims
         xsize = dims[fract4dc.IMAGE_WIDTH]
         ysize = dims[fract4dc.IMAGE_HEIGHT]
         total_xsize = dims[fract4dc.IMAGE_TOTAL_WIDTH]
