@@ -33,46 +33,16 @@ class fractFunc {
     dvec4 deltax, deltay; // step from 1 pixel to the next in x,y directions
     dvec4 delta_aa_x, delta_aa_y; // offset between subpixels
     dvec4 topleft; // top left corner of screen
-    dvec4 aa_topleft; // topleft - offset to 1st subpixel to draw
-    dvec4 eye_point; // where user's eye is (for 3d mode)
+    //dvec4 aa_topleft; // topleft - offset to 1st subpixel to draw
+    //dvec4 eye_point; // where user's eye is (for 3d mode)
 
  private:
-    // MEMBER VARS
 
-    // do every nth pixel twice as deep as the others to
-    // see if we need to auto-deepen
-    enum { 
-        AUTO_DEEPEN_FREQUENCY = 30,
-        AUTO_TOLERANCE_FREQUENCY = 30
-    };
-
-    // flags for controlling auto-improvement
-    enum {
-        SHOULD_DEEPEN = 1,
-        SHOULD_SHALLOWEN = 2, // yes, I know this isn't a word
-        SHOULD_LOOSEN = 4,
-        SHOULD_TIGHTEN = 8,
-        SHOULD_IMPROVE = (SHOULD_DEEPEN | SHOULD_TIGHTEN),
-        SHOULD_RELAX = (SHOULD_SHALLOWEN | SHOULD_LOOSEN)
-    };
-
-    // params from ctor    
-    // int eaa;
     int maxiter;
-    // double period_tolerance;
-    int debug_flags;
     render_type_t render_type;
 
     IImage *im;    
     IFractWorker *worker;
-    // for callbacks
-    //IFractalSite *site;
-};
-
-enum {
-    DEBUG_QUICK_TRACE = 1,
-    DEBUG_DRAWING_STATS = 2,
-    DEBUG_TIMING = 4
 };
 
 void calc_4(

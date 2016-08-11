@@ -22,7 +22,6 @@ static dmat4 rotated_matrix(double *params)
 fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
 {
     this->im = im_;
-    this->debug_flags = 0;
     this->render_type = RENDER_TWO_D;
     this->worker = fw;
 
@@ -37,7 +36,7 @@ fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
 
     this->rot = rotated_matrix(params);
 
-    this->eye_point = center + rot[VZ] * -10.0; // FIXME add eye distance parameter
+    //this->eye_point = center + rot[VZ] * -10.0; // FIXME add eye distance parameter
 
     this->rot = rot/im->totalXres();
     // distance to jump for one pixel down or across
@@ -62,7 +61,7 @@ fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
     topleft += delta_aa_x + delta_aa_y;
 
     // antialias: offset to middle of top left quadrant of pixel
-    aa_topleft = topleft - (delta_aa_y + delta_aa_x) / 2.0;
+    //aa_topleft = topleft - (delta_aa_y + delta_aa_x) / 2.0;
 };
 
 
@@ -70,13 +69,6 @@ void fractFunc::draw()
 {
     int rsize = 16;
     int drawsize = 16;
-    //float min_progress = 0.0;
-    //float max_progress = 0.3;
-
-    if(debug_flags & DEBUG_QUICK_TRACE)
-    {
-        printf("drawing: %d\n", render_type);
-    }
 
     // init RNG based on time before generating image
     int y;

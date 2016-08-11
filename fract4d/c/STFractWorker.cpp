@@ -128,11 +128,6 @@ STFractWorker::pixel(int x, int y,int w, int h)
             break;
         }
 
-        if(ff->debug_flags & DEBUG_DRAWING_STATS)
-        {
-            printf("pixel %d %d %d %d\n", x, y, fate, iter);
-        }
-
         assert(fate != FATE_UNKNOWN);
         im->setIter(x,y,iter);
         im->setFate(x,y,0,fate);
@@ -427,12 +422,6 @@ STFractWorker::rectangle_with_iter(
     {
         for(int j = x; j < x+w; j++) 
         {
-            if(ff->debug_flags & DEBUG_DRAWING_STATS)
-            {
-                printf("guess %d %d %d %d\n",j,i,fate,iter);
-            }
-            
-            //check_guess(j,i,pixel,fate,iter,index);
             im->put(j,i,pixel);
             im->setIter(j,i,iter);
             im->setFate(j,i,0,fate);
