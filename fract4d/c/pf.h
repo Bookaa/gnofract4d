@@ -97,11 +97,11 @@ struct s_pf_vtable {
     void (*calc)(
         struct s_pf_data *p,
         // in params
-        const double *params, int nIters, int warp_param,
+        const double *params, int nIters, // int warp_param,
         // tolerance params
-        int min_period_iter, double period_tolerance,
+        // int min_period_iter, double period_tolerance,
         // only used for debugging
-        int x, int y, int aa,
+        int x, int y, // int aa,
         // out params
         int *pnIters, int *pFate, double *pDist, int *pSolid,
         int *pDirectColorFlag, double *pColors

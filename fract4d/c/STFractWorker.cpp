@@ -23,6 +23,12 @@ STFractWorker::col(int x, int y, int n)
     }
 }
 
+inline int Pixel2INT(rgba_t pixel)
+{
+    int ret = (pixel.r << 16) | (pixel.g << 8) | pixel.b;
+    return ret;
+}
+
 inline int 
 STFractWorker::RGB2INT(int x, int y)
 {
@@ -30,15 +36,8 @@ STFractWorker::RGB2INT(int x, int y)
     return Pixel2INT(pixel);
 }
 
-inline int
-STFractWorker::Pixel2INT(rgba_t pixel)
-{
-    int ret = (pixel.r << 16) | (pixel.g << 8) | pixel.b;
-    return ret;
-}
 
-inline bool STFractWorker::isTheSame(
-    bool bFlat, int targetIter, int targetCol, int x, int y)
+inline bool STFractWorker::isTheSame(bool bFlat, int targetIter, int targetCol, int x, int y)
 {
     if (!bFlat) return false;
     // does this point have the target # of iterations?
@@ -48,38 +47,18 @@ inline bool STFractWorker::isTheSame(
     return true;
 }
 
-void
-STFractWorker::compute_stats(const dvec4& pos, int iter, fate_t fate, int x, int y)
-{
-    /*stats.s[ITERATIONS] += iter;
-    stats.s[PIXELS]++;
-    stats.s[PIXELS_CALCULATED]++;
-    if (fate & FATE_INSIDE)
-    {
-        stats.s[PIXELS_INSIDE]++;
-        if (iter < ff->maxiter-1)
-        {
-            stats.s[PIXELS_PERIODIC]++;
-        }
-    }
-    else
-    {
-        stats.s[PIXELS_OUTSIDE]++;
-    }*/
-}
-
 void 
 STFractWorker::pixel(int x, int y, int w, int h)
 {
     pointFunc pf = pointFunc(m_pfo, m_cmap);
 
     rgba_t pixel;
-    float index = 0.0;
 
     fate_t fate = im->getFate(x,y,0);
 
     if (fate == FATE_UNKNOWN)
     {
+        float index = 0.0;
         int iter = 0;
         
         switch(ff->render_type)
@@ -90,8 +69,6 @@ STFractWorker::pixel(int x, int y, int w, int h)
             dvec4 pos = ff->topleft + x * ff->deltax + y * ff->deltay;
 
             pf.calc_pf(pos.n, ff->maxiter, x, y, &pixel, &iter, &index, &fate);
-
-            compute_stats(pos,iter,fate,x,y);
         }
         break;
         case RENDER_LANDSCAPE:
@@ -291,7 +268,6 @@ STFractWorker::predict_index(int indexes[2], double factor)
     return (indexes[0] * (1.0 - factor) + indexes[1] * factor);
 }
 
-
 // sum squared differences between components of 2 colors
 int
 STFractWorker::diff_colors(rgba_t a, rgba_t b)
@@ -374,8 +350,7 @@ STFractWorker::box(int x, int y, int rsize)
 }
 
 inline void
-STFractWorker::rectangle(
-    rgba_t pixel, int x, int y, int w, int h, bool force)
+STFractWorker::rectangle(rgba_t pixel, int x, int y, int w, int h)
 {
     for(int i = y ; i < y+h; i++)
     {
@@ -387,8 +362,7 @@ STFractWorker::rectangle(
 }
 
 inline void
-STFractWorker::rectangle_with_iter(
-    rgba_t pixel, fate_t fate, int iter, float index, 
+STFractWorker::rectangle_with_iter(rgba_t pixel, fate_t fate, int iter, float index, 
     int x, int y, int w, int h)
 {
     for(int i = y ; i < y+h; i++)

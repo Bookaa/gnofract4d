@@ -16,16 +16,9 @@ public:
 	}
  public:
     void calc_pf(
-        // in params. params points to [x,y,cx,cy]
-        const double *params, int nIters, 
-        // periodicity params
-        // int min_period_iters, // double period_tolerance,
-        // warping
-        // int warp_param,
-        // only used for debugging
-        int x, int y,
-        // out params
-        rgba_t *color, int *pnIters, float *pIndex, fate_t *pFate
+        const double *params, int nIters, // in params. params points to [x,y,cx,cy]
+        int x, int y, // only used for debugging
+        rgba_t *color, int *pnIters, float *pIndex, fate_t *pFate // out params
         ) const;
     rgba_t recolor(double dist, fate_t fate, rgba_t current) const;
 };

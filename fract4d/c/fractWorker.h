@@ -27,8 +27,6 @@ class STFractWorker : public IFractWorker {
     pf_obj *m_pfo;
     ColorMap *m_cmap;
 
-    // pixel_stat_t stats;
-
     IImage *im;
 
 public:
@@ -73,7 +71,6 @@ public:
 
     // make an int corresponding to an RGB triple
     inline int RGB2INT(int x, int y);
-    inline int Pixel2INT(rgba_t pixel);
 
     // calculate a row of boxes
     void box_row(int w, int y, int rsize);
@@ -85,9 +82,7 @@ public:
     void pixel(int x, int y, int h, int w);
 
     // draw a rectangle of this colour
-    void rectangle(rgba_t pixel, 
-		   int x, int y, int w, int h, 
-		   bool force=false);
+    void rectangle(rgba_t pixel, int x, int y, int w, int h);
 
     void rectangle_with_iter(rgba_t pixel, fate_t fate, 
 			     int iter, float index,
@@ -95,11 +90,6 @@ public:
 
     void interpolate_rectangle(int x, int y, int rsize);
     void interpolate_row(int x, int y, int rsize);
-
- private:
-
-    void compute_stats(const dvec4& pos, int iter, fate_t fate, int x, int y);
-
 };
 
 //#include "threadpool.h"

@@ -17,26 +17,22 @@
 
 
 class fractFunc {
- public:
+public:
     fractFunc(d *params,
         int maxiter,
         IFractWorker *fw,
         IImage *_im);
-    // ~fractFunc();
 
     void draw();
 
     friend class STFractWorker;
 
-    // used for calculating (x,y,z,w) pixel coords
     dmat4 rot; // scaled rotation matrix
     dvec4 deltax, deltay; // step from 1 pixel to the next in x,y directions
-    dvec4 delta_aa_x, delta_aa_y; // offset between subpixels
+    // dvec4 delta_aa_x, delta_aa_y; // offset between subpixels
     dvec4 topleft; // top left corner of screen
-    //dvec4 aa_topleft; // topleft - offset to 1st subpixel to draw
-    //dvec4 eye_point; // where user's eye is (for 3d mode)
 
- private:
+private:
 
     int maxiter;
     render_type_t render_type;

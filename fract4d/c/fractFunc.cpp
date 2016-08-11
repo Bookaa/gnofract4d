@@ -45,8 +45,8 @@ fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
     this->deltay = -rot[VY]; 
 
     // half that distance
-    this->delta_aa_x = deltax / 2.0;    
-    this->delta_aa_y = deltay / 2.0;
+    dvec4 delta_aa_x = deltax / 2.0;    
+    dvec4 delta_aa_y = deltay / 2.0;
 
     // topleft is now top left corner of top left pixel...
     topleft = center -
