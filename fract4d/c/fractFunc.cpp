@@ -66,14 +66,13 @@ fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
 };
 
 
-void fractFunc::draw_all()
+void fractFunc::draw()
 {
-    float minp = 0.0, maxp= 0.3; 
-    draw(16,16,minp,maxp);    
-}
+    int rsize = 16;
+    int drawsize = 16;
+    //float min_progress = 0.0;
+    //float max_progress = 0.3;
 
-void fractFunc::draw(int rsize, int drawsize, float min_progress, float max_progress)
-{
     if(debug_flags & DEBUG_QUICK_TRACE)
     {
         printf("drawing: %d\n", render_type);
@@ -118,6 +117,6 @@ void calc_4(d *params, int maxiter, pf_obj *pfo, ColorMap *cmap, IImage *im)
 
         w.set_fractFunc(&ff);
 
-        ff.draw_all();
+        ff.draw();
     }
 }

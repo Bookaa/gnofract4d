@@ -24,8 +24,7 @@ class fractFunc {
         IImage *_im);
     // ~fractFunc();
 
-    void draw_all();
-    void draw(int rsize, int drawsize, float min_progress, float max_progress);    
+    void draw();
 
     friend class STFractWorker;
 
