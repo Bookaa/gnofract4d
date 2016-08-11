@@ -98,17 +98,13 @@ void calc_4(d *params, int maxiter, pf_obj *pfo, ColorMap *cmap, IImage *im)
 {
     assert(NULL != im && NULL != site && NULL != cmap && NULL != pfo && NULL != params);
 
-    STFractWorker w = STFractWorker();
-    bool ok = w.init(pfo,cmap,im);
+    STFractWorker w = STFractWorker(pfo,cmap,im);
 
     IFractWorker *worker = &w; // IFractWorker::create(pfo,cmap,im);
 
-    if (ok)
-    {
-        fractFunc ff(params, maxiter, worker, im);
+    fractFunc ff(params, maxiter, worker, im);
 
-        w.set_fractFunc(&ff);
+    w.set_fractFunc(&ff);
 
-        ff.draw();
-    }
+    ff.draw();
 }

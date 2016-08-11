@@ -23,15 +23,25 @@ typedef struct {
 
 /* per-worker-thread fractal info */
 class STFractWorker : public IFractWorker {
- public:
-    /* pointers to data also held in fractFunc */
-    IImage *im;    
+    fractFunc *ff;
+    pf_obj *m_pfo;
+    ColorMap *m_cmap;
 
-    /* not a ctor because we always create a whole array then init them */
-    bool init(pf_obj *pfo, ColorMap *cmap, IImage *im);
+    pixel_stat_t stats;
 
-    STFractWorker() {
+    IImage *im;
+
+public:
+
+    STFractWorker(pf_obj *pfo, ColorMap *cmap, IImage *im_)
+    {
         stats.reset();
+
+        this->ff = NULL;
+        this->im = im_;
+
+        this->m_pfo = pfo;
+        this->m_cmap = cmap;
     }
 
     void set_fractFunc(fractFunc *ff) { this->ff = ff; }
@@ -86,24 +96,10 @@ class STFractWorker : public IFractWorker {
     void interpolate_rectangle(int x, int y, int rsize);
     void interpolate_row(int x, int y, int rsize);
 
-    bool ok() { return m_ok; }
- 
  private:
 
     void compute_stats(const dvec4& pos, int iter, fate_t fate, int x, int y);
 
-    fractFunc *ff;
-
-    // function object which calculates the colors of points 
-    // this is per-thread-func so it doesn't have to be re-entrant
-    // and can have member vars
-    //pointFunc *pf; 
-    pf_obj *m_pfo;
-    ColorMap *m_cmap;
-
-    pixel_stat_t stats;
-
-    bool m_ok;
 };
 
 //#include "threadpool.h"

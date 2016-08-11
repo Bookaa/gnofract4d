@@ -5,26 +5,6 @@
 #include <stdlib.h>
 
 
-bool
-STFractWorker::init(pf_obj *pfo, ColorMap *cmap, IImage *im_)
-{
-    ff = NULL;
-    im = im_;
-
-    if (pfo == NULL || cmap == NULL)
-    {
-        m_ok = false;
-        return false;
-    }
-
-    m_ok = true;
-    // this->pf = new pointFunc(pfo,cmap); //pointFunc::create(pfo,cmap);
-    m_pfo = pfo;
-    m_cmap = cmap;
-
-    return true;
-}
-
 void
 STFractWorker::row(int x, int y, int n)
 {
@@ -91,7 +71,6 @@ STFractWorker::compute_stats(const dvec4& pos, int iter, fate_t fate, int x, int
 void 
 STFractWorker::pixel(int x, int y,int w, int h)
 {
-    assert(m_ok == true);
     pointFunc pf = pointFunc(m_pfo, m_cmap);
 
     rgba_t pixel;
