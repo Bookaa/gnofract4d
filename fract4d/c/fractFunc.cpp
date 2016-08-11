@@ -3,23 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifndef WIN32
-#include <sys/time.h>
-#else
-struct timeval {
-        long    tv_sec;         /* seconds */
-        long    tv_usec;        /* and microseconds */
-};
-#include <sys/timeb.h>
-int gettimeofday (struct timeval *t, void *foo)
-{
-        struct _timeb temp;
-        _ftime(&temp);
-        t->tv_sec = (long)temp.time;
-        t->tv_usec = temp.millitm * 1000;
-        return (0);
-}
-#endif
 
 dmat4
 rotated_matrix(double *params)
@@ -37,29 +20,6 @@ rotated_matrix(double *params)
         rotZW<d>(params[ZWANGLE],one,zero);
 }
 
-// The eye vector is the line between the center of the screen and the
-// point where the user's eye is deemed to be. It's effectively the line
-// perpendicular to the screen in the -Z direction, scaled by the "eye distance"
-
-dvec4
-test_eye_vector(double *params, double dist)
-{
-    dmat4 mat = rotated_matrix(params);
-    return mat[VZ] * -dist;
-}
-
-double
-gettimediff(struct timeval& startTime, struct timeval& endTime)
-{
-    long int diff_usec = endTime.tv_usec - startTime.tv_usec;
-    if(diff_usec < 0)
-    {
-        endTime.tv_sec -= 1;
-        diff_usec = 1000000 + diff_usec; 
-    }
-    return (double)(endTime.tv_sec - startTime.tv_sec) + (double)diff_usec/1000000.0;
-}
- 
 fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
 {
     this->im = im_;
@@ -110,12 +70,6 @@ fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
 };
 
 
-// see if the image needs more (or less) iterations & tolerance to display properly
-
-
-
-
-
 void fractFunc::draw_all()
 {
     float minp = 0.0, maxp= 0.3; 
@@ -135,10 +89,6 @@ void fractFunc::draw(int rsize, int drawsize, float min_progress, float max_prog
     this->worker->reset_counts();
 
     // init RNG based on time before generating image
-    time_t now;
-    time(&now);
-    srand((unsigned int)now);
-
     int y;
     int w = im->Xres();
     int h = im->Yres();

@@ -73,14 +73,8 @@ class fractFunc {
     // for callbacks
     //IFractalSite *site;
 
-    float min_progress;
-    float delta_progress;
 
-    void set_progress_range(float min, float max) { 
-        min_progress = min;
-        delta_progress = max-min;
-        assert(delta_progress > 0.0);
-    }
+    void set_progress_range(float min, float max) { }
 
     // private drawing methods
     void send_quit();
@@ -89,10 +83,6 @@ class fractFunc {
         worker->flush();
     }
 };
-
-// geometry utilities
-dmat4 rotated_matrix(double *params);
-dvec4 test_eye_vector(double *params, double dist);
 
 enum {
     DEBUG_QUICK_TRACE = 1,

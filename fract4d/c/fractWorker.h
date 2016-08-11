@@ -112,7 +112,7 @@ class STFractWorker : public IFractWorker {
     bool m_ok;
 };
 
-#include "threadpool.h"
+//#include "threadpool.h"
 
 
 #endif /* FRACT_WORKER_H_ */
