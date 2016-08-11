@@ -9,12 +9,15 @@ class IFractalSite;
 
 /* interface for function object which computes and/or colors a single point */
 class pointFunc {
+private:
+    pf_obj *m_pfo;
+    ColorMap *m_cmap;
+public:
+    pointFunc(pf_obj *pfo, ColorMap *cmap) :	m_pfo(pfo), m_cmap(cmap)
+	{
+	}
  public:
-    /* factory method for making new pointFuncs */
-    static pointFunc *create(pf_obj *pfo, ColorMap *cmap);
-	
-    virtual ~pointFunc() {};
-    virtual void calc_pf(
+    void calc_pf(
         // in params. params points to [x,y,cx,cy]
         const double *params, int nIters, 
         // periodicity params
@@ -25,8 +28,8 @@ class pointFunc {
         int x, int y,
         // out params
         rgba_t *color, int *pnIters, float *pIndex, fate_t *pFate
-        ) const = 0;
-    virtual rgba_t recolor(double dist, fate_t fate, rgba_t current) const = 0;
+        ) const;
+    rgba_t recolor(double dist, fate_t fate, rgba_t current) const;
 };
 
 #endif

@@ -10,14 +10,16 @@ STFractWorker::init(pf_obj *pfo, ColorMap *cmap, IImage *im_)
 {
     ff = NULL;
     im = im_;
-    m_ok = true;
 
-    this->pf = pointFunc::create(pfo,cmap);
-    if(NULL == pf)
+    if (pfo == NULL || cmap == NULL)
     {
         m_ok = false;
+        return false;
     }
-    return m_ok;
+
+    m_ok = true;
+    this->pf = new pointFunc(pfo,cmap); //pointFunc::create(pfo,cmap);
+    return true;
 }
 
 void

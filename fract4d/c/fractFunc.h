@@ -45,12 +45,6 @@ class fractFunc {
     IFractWorker *worker;
 };
 
-void calc_4(
-    d *params,
-    int maxiter,
-    pf_obj *pfo, 
-    ColorMap *cmap, 
-    IImage *im);
 
 
 #endif /* _FRACTFUNC_H_ */

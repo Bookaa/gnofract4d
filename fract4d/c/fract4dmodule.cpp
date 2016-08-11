@@ -644,6 +644,8 @@ error:
     return cargs;
 }
 
+void calc_4(d *params, int maxiter, pf_obj *pfo, ColorMap *cmap, IImage *im);
+
 static PyObject *
 pycalc(PyObject *self, PyObject *args, PyObject *kwds)
 {
