@@ -38,18 +38,6 @@ STFractWorker::col(int x, int y, int n)
     }
 }
 
-void
-STFractWorker::reset_counts()
-{
-    stats.reset();
-}
-
-const pixel_stat_t&
-STFractWorker::get_stats() const
-{
-    return stats;
-}
-
 inline int 
 STFractWorker::RGB2INT(int x, int y)
 {

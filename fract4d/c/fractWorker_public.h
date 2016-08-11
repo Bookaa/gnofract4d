@@ -15,8 +15,6 @@ class IFractalSite;
 class IFractWorker {
 public:
 
-    virtual void set_fractFunc(fractFunc *ff_) =0;
-
     // calculate a row of pixels
     virtual void row(int x, int y, int n) =0;
 
@@ -31,16 +29,6 @@ public:
 
     // calculate a single pixel
     virtual void pixel(int x, int y, int w, int h) =0;
-
-    // auto-deepening record keeping
-    virtual void reset_counts() =0;
-    virtual const pixel_stat_t& get_stats() const =0;
-
-    virtual ~IFractWorker() {};
-
-    virtual void flush() = 0;
-    virtual bool ok() = 0;
-
 };
 
 #endif /* FRACT_WORKER_PUBLIC_H_ */

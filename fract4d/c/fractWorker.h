@@ -35,7 +35,7 @@ class STFractWorker : public IFractWorker {
     }
 
     STFractWorker() {
-        this->reset_counts();
+        stats.reset();
     }
 
     void set_fractFunc(fractFunc *ff) { this->ff = ff; }
@@ -90,10 +90,6 @@ class STFractWorker : public IFractWorker {
     void interpolate_rectangle(int x, int y, int rsize);
     void interpolate_row(int x, int y, int rsize);
 
-    void reset_counts();
-    const pixel_stat_t& get_stats() const;
-
-    void flush() {};
     bool ok() { return m_ok; }
  
  private:

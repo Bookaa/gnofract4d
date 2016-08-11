@@ -562,11 +562,10 @@ pf_init2(PyObject *self, PyObject *args)
 struct calc_args
 {
     double* params; // [N_PARAMS];
-    int maxiter; //, nThreads;
+    int maxiter;
     pf_obj *pfo;
     ColorMap *cmap;
     IImage *im;
-    //IFractalSite *site;
     int xoff,yoff,xres,yres;
 
     PyObject *pycmap, *pypfo, *pyim;
@@ -580,13 +579,6 @@ struct calc_args
         pyim = NULL;
         maxiter = 1024;
         // nThreads = 1;
-    }
-
-    void set_cmap(PyObject *pycmap_)
-    {
-        pycmap = pycmap_;
-        cmap = (ColorMap *)PyCObject_AsVoidPtr(pycmap);
-        Py_XINCREF(pycmap);
     }
 
     void set_pfo(PyObject *pypfo_)
@@ -603,13 +595,6 @@ struct calc_args
         Py_XINCREF(pypfo);
     }
 
-    void set_im(PyObject *pyim_)
-    {
-        pyim = pyim_;
-        im = (IImage *)PyCObject_AsVoidPtr(pyim);
-        Py_XINCREF(pyim);
-    }
-
     ~calc_args()
     {
 #ifdef DEBUG_CREATION
@@ -621,11 +606,6 @@ struct calc_args
     }
 };
 
-struct ffHandle
-{
-    PyObject *pyhandle;
-    fractFunc *ff;
-} ;
 
 static calc_args *
 parse_calc_args(PyObject *args, PyObject *kwds)
@@ -647,29 +627,8 @@ error:
         return NULL;
     }
 
-    /*
-    double *p = cargs->params;
-    if(!PyList_Check(pyparams) || PyList_Size(pyparams) != N_PARAMS)
-    {
-        PyErr_SetString(PyExc_ValueError, "bad parameter list");
-        goto error;
-    }
-
-    for(int i = 0; i < N_PARAMS; ++i)
-    {
-        PyObject *elt = PyList_GetItem(pyparams, i);
-        if(!PyFloat_Check(elt))
-        {
-            PyErr_SetString(PyExc_ValueError, "a param is not a float");
-            goto error;
-        }
-
-        p[i] = PyFloat_AsDouble(elt);
-    }*/
-
-    //cargs->set_cmap(pycmap);
     cargs->set_pfo(pypfo);
-    //cargs->set_im(pyim);
+
     if(!cargs->cmap || !cargs->pfo || !cargs->im)
     {
         PyErr_SetString(PyExc_ValueError, "bad argument passed to calc");

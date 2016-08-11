@@ -40,10 +40,6 @@ class fractFunc {
  private:
     // MEMBER VARS
 
-    bool ok; // did this instance get constructed ok?
-    // (* this should really be done with exns but they are unreliable 
-    //  * in the presence of pthreads - grrr *)
-
     // do every nth pixel twice as deep as the others to
     // see if we need to auto-deepen
     enum { 
@@ -72,16 +68,6 @@ class fractFunc {
     IFractWorker *worker;
     // for callbacks
     //IFractalSite *site;
-
-
-    void set_progress_range(float min, float max) { }
-
-    // private drawing methods
-    void send_quit();
-
-    void reset_progress(float progress) {
-        worker->flush();
-    }
 };
 
 enum {
