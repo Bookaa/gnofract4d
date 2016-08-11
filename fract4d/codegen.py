@@ -139,16 +139,20 @@ static void pf_calc(
     // "object" pointer
     struct s_pf_data *t__p_stub,
     // in params
-    const double *t__params, int maxiter, int t__warp_param,
+    const double *t__params, int maxiter, // int t__warp_param,
     // periodicity params
-    int min_period_iter, double period_tolerance,
+    // int min_period_iter, double period_tolerance,
     // only used for debugging
-    int t__p_x, int t__p_y, int t__p_aa,
+    int t__p_x, int t__p_y, // int t__p_aa,
     // out params
     int *t__p_pnIters, int *t__p_pFate, double *t__p_pDist, int *t__p_pSolid,
     int *t__p_pDirectColorFlag, double *t__p_pColors
     )
 {
+    int t__warp_param = -1;
+    int min_period_iter = maxiter;
+    double period_tolerance = 0.0;
+    int t__p_aa = 0;
     pf_real *t__pfo = (pf_real *)t__p_stub;
     s_param* p = t__pfo->p;
 
@@ -347,11 +351,11 @@ struct s_pf_vtable {
     void (*calc)(
 	    struct s_pf_data *p,
         // in params
-        const double *params, int nIters, int warp_param,
+        const double *params, int nIters, // int warp_param,
         // tolerance params
-        int min_period_iter, double period_tolerance,
+        // int min_period_iter, double period_tolerance,
         // only used for debugging
-        int x, int y, int aa,
+        int x, int y, // int aa,
         // out params
         int *pnIters, int *pFate, double *pDist, int *pSolid,
 	    int *pDirectColorFlag, double *pColors);
