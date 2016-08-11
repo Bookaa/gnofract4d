@@ -61,9 +61,7 @@ pf_unload(void *p)
 #ifdef DEBUG_CREATION
     fprintf(stderr,"%p : SO : DEREF\n",p);
 #endif
-    #ifndef STATIC_CALC    
     dlclose(p);
-    #endif
 }
 
 static int 
@@ -112,6 +110,7 @@ struct pfHandle
     // below init later :
     int maxiter;
     ColorMap *cmap;
+    PyObject *pyim;
     double params[N_PARAMS];
 } ;
 static void
@@ -129,16 +128,17 @@ pf_delete(void *p)
         cmap_delete(pfh->cmap);
         pfh->cmap = 0;
     }
+    if (pfh->pyim)
+    {
+        Py_DECREF(pfh->pyim);
+        pfh->pyim = 0;
+    }
     free(pfh);
 }
 
 static PyObject *
 pf_load_and_create(PyObject *self, PyObject *args)
 {
-    #ifdef STATIC_CALC
-    Py_INCREF(Py_None);
-    return Py_None;
-    #else
     if(!ensure_cmap_loaded())
     {
         return NULL;
@@ -184,8 +184,6 @@ pf_load_and_create(PyObject *self, PyObject *args)
     // refcount module so it can't be unloaded before all funcs are gone
     //Py_INCREF(pyobj); 
     return PyCObject_FromVoidPtr(pfh,pf_delete);
-
-    #endif
 }
 
 void *
@@ -521,10 +519,10 @@ pf_init(PyObject *self, PyObject *args)
 static PyObject *
 pf_init2(PyObject *self, PyObject *args)
 {
-    PyObject *pyobj, *pyarray;
+    PyObject *pyobj, *pyarray, *pyim;
     int maxiter;
 
-    if (!PyArg_ParseTuple(args,"OOi",&pyobj,&pyarray,&maxiter))
+    if (!PyArg_ParseTuple(args,"OOiO",&pyobj,&pyarray,&maxiter,&pyim))
     {
         return NULL;
     }
@@ -555,6 +553,7 @@ pf_init2(PyObject *self, PyObject *args)
     }
     pfh->cmap = cmap;
     pfh->maxiter = maxiter;
+    pfh->pyim = pyim; Py_INCREF(pyim);
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -598,6 +597,7 @@ struct calc_args
         this->params = pfh->params;
         this->cmap = pfh->cmap;
         this->maxiter = pfh->maxiter;
+        this->im = (IImage *)PyCObject_AsVoidPtr(pfh->pyim);
 
         pfo = pfh->pfo;
         Py_XINCREF(pypfo);
@@ -632,15 +632,15 @@ parse_calc_args(PyObject *args, PyObject *kwds)
 {
     calc_args *cargs = new calc_args();
 
-    static const char *kwlist[] = {
-        "image", "pfo", //"cmap", //"params", 
+    static const char *kwlist[] = { // "image", 
+        "pfo", //"cmap", //"params", 
         //"maxiter",
         "xoff", "yoff", "xres", "yres", NULL};
 
-    PyObject *pypfo, *pyim;
-    if(!PyArg_ParseTupleAndKeywords(args, kwds, "OO|iiii", const_cast<char **>(kwlist),
-           &pyim, &pypfo, //&pycmap, //&pyparams, //&cargs->maxiter,
-           &cargs->xoff, &cargs->yoff, &cargs->xres, &cargs->yres))
+    PyObject *pypfo;
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "O|iiii", const_cast<char **>(kwlist), // &pyim, 
+                                    &pypfo, //&pycmap, //&pyparams, //&cargs->maxiter,
+                                    &cargs->xoff, &cargs->yoff, &cargs->xres, &cargs->yres))
     {
 error:
         delete cargs;
@@ -669,7 +669,7 @@ error:
 
     //cargs->set_cmap(pycmap);
     cargs->set_pfo(pypfo);
-    cargs->set_im(pyim);
+    //cargs->set_im(pyim);
     if(!cargs->cmap || !cargs->pfo || !cargs->im)
     {
         PyErr_SetString(PyExc_ValueError, "bad argument passed to calc");
