@@ -8,9 +8,6 @@ class IImage;
 #include "pf.h"
 #include "cmap.h"
 
-class IFractalSite;
-
-#include "stats.h"
 
 class IFractWorker {
 public:

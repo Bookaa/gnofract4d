@@ -27,7 +27,7 @@ class STFractWorker : public IFractWorker {
     pf_obj *m_pfo;
     ColorMap *m_cmap;
 
-    pixel_stat_t stats;
+    // pixel_stat_t stats;
 
     IImage *im;
 
@@ -35,7 +35,7 @@ public:
 
     STFractWorker(pf_obj *pfo, ColorMap *cmap, IImage *im_)
     {
-        stats.reset();
+        // stats.reset();
 
         this->ff = NULL;
         this->im = im_;

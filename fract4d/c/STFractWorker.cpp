@@ -51,7 +51,7 @@ inline bool STFractWorker::isTheSame(
 void
 STFractWorker::compute_stats(const dvec4& pos, int iter, fate_t fate, int x, int y)
 {
-    stats.s[ITERATIONS] += iter;
+    /*stats.s[ITERATIONS] += iter;
     stats.s[PIXELS]++;
     stats.s[PIXELS_CALCULATED]++;
     if (fate & FATE_INSIDE)
@@ -65,11 +65,11 @@ STFractWorker::compute_stats(const dvec4& pos, int iter, fate_t fate, int x, int
     else
     {
         stats.s[PIXELS_OUTSIDE]++;
-    }
+    }*/
 }
 
 void 
-STFractWorker::pixel(int x, int y,int w, int h)
+STFractWorker::pixel(int x, int y, int w, int h)
 {
     pointFunc pf = pointFunc(m_pfo, m_cmap);
 
@@ -78,7 +78,7 @@ STFractWorker::pixel(int x, int y,int w, int h)
 
     fate_t fate = im->getFate(x,y,0);
 
-    if(fate == FATE_UNKNOWN)
+    if (fate == FATE_UNKNOWN)
     {
         int iter = 0;
         
@@ -89,17 +89,7 @@ STFractWorker::pixel(int x, int y,int w, int h)
             // calculate coords of this point
             dvec4 pos = ff->topleft + x * ff->deltax + y * ff->deltay;
 
-            //printf("(%d,%d -> %g,%g,%g,%g) [%x]\n",
-            //     x,y,pos[VX],pos[VY],pos[VZ],pos[VW], (unsigned int)pthread_self());
-            
-            // printf("calc_pf 490 pixel\n");
-            pf.calc_pf(
-                pos.n, ff->maxiter,
-                //ff->maxiter, 
-                // 0.0, // ff->period_tolerance,
-                // -1, // ff->warp_param,
-                x,y,
-                &pixel,&iter,&index,&fate);
+            pf.calc_pf(pos.n, ff->maxiter, x, y, &pixel, &iter, &index, &fate);
 
             compute_stats(pos,iter,fate,x,y);
         }
@@ -117,14 +107,12 @@ STFractWorker::pixel(int x, int y,int w, int h)
         im->setIter(x,y,iter);
         im->setFate(x,y,0,fate);
         im->setIndex(x,y,0,index);
-
-        rectangle(pixel,x,y,w,h);
     }
     else
     {
         pixel = pf.recolor(im->getIndex(x,y,0), fate, im->get(x,y));
-        rectangle(pixel,x,y,w,h);
     }
+    rectangle(pixel,x,y,w,h);
 }
 
 void 
@@ -274,8 +262,8 @@ STFractWorker::interpolate_row(int x, int y, int rsize)
         im->setIter(x2,y,predicted_iter);
         im->setFate(x2,y,0,fate);
         im->setIndex(x2,y,0,predicted_index);
-        stats.s[PIXELS]++;
-        stats.s[PIXELS_SKIPPED]++;
+        //stats.s[PIXELS]++;
+        //stats.s[PIXELS_SKIPPED]++;
     }
 }
 
@@ -411,8 +399,8 @@ STFractWorker::rectangle_with_iter(
             im->setIter(j,i,iter);
             im->setFate(j,i,0,fate);
             im->setIndex(j,i,0,index);
-            stats.s[PIXELS]++;
-            stats.s[PIXELS_SKIPPED]++;
+            //stats.s[PIXELS]++;
+            //stats.s[PIXELS_SKIPPED]++;
         }
     }
 }
