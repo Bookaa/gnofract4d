@@ -18,7 +18,10 @@ STFractWorker::init(pf_obj *pfo, ColorMap *cmap, IImage *im_)
     }
 
     m_ok = true;
-    this->pf = new pointFunc(pfo,cmap); //pointFunc::create(pfo,cmap);
+    // this->pf = new pointFunc(pfo,cmap); //pointFunc::create(pfo,cmap);
+    m_pfo = pfo;
+    m_cmap = cmap;
+
     return true;
 }
 
@@ -88,7 +91,8 @@ STFractWorker::compute_stats(const dvec4& pos, int iter, fate_t fate, int x, int
 void 
 STFractWorker::pixel(int x, int y,int w, int h)
 {
-    assert(pf != NULL && m_ok == true);
+    assert(m_ok == true);
+    pointFunc pf = pointFunc(m_pfo, m_cmap);
 
     rgba_t pixel;
     float index = 0.0;
@@ -110,9 +114,9 @@ STFractWorker::pixel(int x, int y,int w, int h)
             //     x,y,pos[VX],pos[VY],pos[VZ],pos[VW], (unsigned int)pthread_self());
             
             // printf("calc_pf 490 pixel\n");
-            pf->calc_pf(
+            pf.calc_pf(
                 pos.n, ff->maxiter,
-                ff->maxiter, 
+                //ff->maxiter, 
                 // 0.0, // ff->period_tolerance,
                 // -1, // ff->warp_param,
                 x,y,
@@ -139,7 +143,7 @@ STFractWorker::pixel(int x, int y,int w, int h)
     }
     else
     {
-        pixel = pf->recolor(im->getIndex(x,y,0), fate, im->get(x,y));
+        pixel = pf.recolor(im->getIndex(x,y,0), fate, im->get(x,y));
         rectangle(pixel,x,y,w,h);
     }
 }

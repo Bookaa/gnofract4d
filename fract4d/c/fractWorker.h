@@ -30,10 +30,6 @@ class STFractWorker : public IFractWorker {
     /* not a ctor because we always create a whole array then init them */
     bool init(pf_obj *pfo, ColorMap *cmap, IImage *im);
 
-    ~STFractWorker() {
-        delete pf;
-    }
-
     STFractWorker() {
         stats.reset();
     }
@@ -101,7 +97,9 @@ class STFractWorker : public IFractWorker {
     // function object which calculates the colors of points 
     // this is per-thread-func so it doesn't have to be re-entrant
     // and can have member vars
-    pointFunc *pf; 
+    //pointFunc *pf; 
+    pf_obj *m_pfo;
+    ColorMap *m_cmap;
 
     pixel_stat_t stats;
 

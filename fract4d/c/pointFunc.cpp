@@ -1,7 +1,3 @@
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 
 #include "fract_stdlib.h"
 #include "pf.h"
@@ -9,23 +5,12 @@
 #include "pointFunc_public.h"
 #include "fract_public.h"
 
-#ifndef WIN32
-#include <unistd.h>
-#endif
-#include <dlfcn.h>
-#include <stdio.h>
-
-/* only here so it's visible to debugger */
-typedef struct {
-    pf_obj parent;
-    struct s_param p[PF_MAXPARAMS];
-} pf_real;
 
 void pointFunc::calc_pf(
     // in params
     const double *params, int nIters, 
     // periodicity
-    int min_period_iters, // double period_tolerance,
+    // int min_period_iters, // double period_tolerance,
     // warping
     // int warp_param,
     // only used for debugging
@@ -33,6 +18,7 @@ void pointFunc::calc_pf(
     // out params
     rgba_t *color, int *pnIters, float *pIndex, fate_t *pFate) const
 {
+    int min_period_iters = nIters;
     double period_tolerance = 0.0;
     int warp_param = -1;
     int aa = 0;
@@ -75,12 +61,6 @@ void pointFunc::calc_pf(
 
     *pFate = (fate_t) fate;
     *pIndex = (float) dist;
-
-    //int color_iters = (fate & FATE_INSIDE) ? -1 : *pnIters;
-    //m_site->pixel_changed(params,nIters, min_period_iters,
-    //    x,y,aa,
-    //    dist,fate,color_iters,
-    //    color->r, color->g, color->b, color->a);
 }
 
 rgba_t pointFunc::recolor(double dist, fate_t fate, rgba_t current) const

@@ -5,8 +5,6 @@
 #include "cmap.h"
 #include "fate.h"
 
-class IFractalSite;
-
 /* interface for function object which computes and/or colors a single point */
 class pointFunc {
 private:
@@ -21,7 +19,7 @@ public:
         // in params. params points to [x,y,cx,cy]
         const double *params, int nIters, 
         // periodicity params
-        int min_period_iters, // double period_tolerance,
+        // int min_period_iters, // double period_tolerance,
         // warping
         // int warp_param,
         // only used for debugging
