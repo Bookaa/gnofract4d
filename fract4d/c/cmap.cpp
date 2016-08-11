@@ -89,15 +89,6 @@ cmap_delete(ColorMap *cmap)
     delete cmap;
 }
 
-ColorMap::~ColorMap()
-{
-#ifdef DEBUG_CREATION
-    fprintf(stderr,"%p : CM : DTOR\n", this);
-#endif 
-
-    canary = 0xbaadf00d;
-    // NO OP
-}
 
 /* finds the indices in t of the largest item which is <= key 
    and the next item above it.
@@ -440,97 +431,6 @@ GradientColorMap::lookup(double input_index) const
     return result;
 }
 
-
-ListColorMap::ListColorMap() : ColorMap()
-{
-    items = NULL;
-}
-
-ListColorMap::~ListColorMap()
-{
-    delete[] items;
-}
-
-bool
-ListColorMap::init(int ncolors_)
-{
-    if(ncolors_ == 0)
-    {
-        return false;
-    }
-
-    ncolors = ncolors_; 
-
-    items = new(std::nothrow) list_item_t[ncolors];
-    if(!items)
-    {
-        return false;
-    }
-
-    for(int i = 0; i < ncolors; ++i)
-    {
-        items[i].color = black;
-        items[i].index = 0;
-    }
-    return true;
-}
-
-void 
-ListColorMap::set(int i, double d, int r, int g, int b, int a)
-{
-    rgba_t color;
-    color.r = (unsigned char)r;
-    color.g = (unsigned char)g;
-    color.b = (unsigned char)b;
-    color.a = (unsigned char)a;
-
-    items[i].color = color;
-    items[i].index = d;
-} 
-
-rgba_t 
-ListColorMap::lookup(double index) const
-{
-    int i,j;
-    rgba_t mix, left, right;
-    double dist, r;
-
-    assert(canary == 0xfeeefeee);
-
-    index = index == 1.0 ? 1.0 : fmod(index,1.0);
-    i = find(index, items, ncolors); 
-    assert(i >= 0 && i < ncolors);
-
-    /* fprintf(stderr,"%g->%d\n",index,i); */
-    if(index <= items[i].index || i == ncolors-1) 
-    {
-        return items[i].color;
-    }
-
-    j = i+1;
-
-    /* mix colors i & j in proportion to the distance between them */
-    dist = items[j].index - items[i].index;
-
-    /* fprintf(stderr,"dist: %g\n",dist); */
-    if(dist == 0.0)
-    {
-        return items[i].color;
-    }
-    
-    r = (index - items[i].index)/dist;
-    /* fprintf(stderr,"r:%g\n",r); */
-
-    left = items[i].color;
-    right = items[j].color;
-
-    mix.r = (unsigned char)((left.r * (1.0-r) + right.r * r));
-    mix.g = (unsigned char)((left.g * (1.0-r) + right.g * r));
-    mix.b = (unsigned char)((left.b * (1.0-r) + right.b * r));
-    mix.a = (unsigned char)((left.a * (1.0-r) + right.a * r));
-
-    return mix;
-}
 
 /* Convert from rgb colorspace to hsv and hsl
    all components in [0,1] except hue in [0,6]

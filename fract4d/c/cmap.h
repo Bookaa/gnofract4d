@@ -32,7 +32,9 @@ class ColorMap
 {
 public:
     ColorMap();
-    virtual ~ColorMap();
+    virtual ~ColorMap() {
+        canary = 0xbaadf00d;
+    }
 
     virtual bool init(int n_colors) = 0;
     virtual void set_solid(int which, int r, int g, int b, int a);
@@ -41,10 +43,8 @@ public:
     virtual rgba_t get_solid(int which) const;
     virtual rgba_t lookup(double index) const = 0;
 
-    virtual rgba_t lookup_with_transfer(
-        double index, int solid, int inside) const;
-    virtual rgba_t lookup_with_dca(
-        int solid, int inside, double *colors) const;
+    virtual rgba_t lookup_with_transfer(double index, int solid, int inside) const;
+    virtual rgba_t lookup_with_dca(int solid, int inside, double *colors) const;
 
  public:
     unsigned int canary;
@@ -60,19 +60,6 @@ typedef struct
     double index;
     rgba_t color;
 } list_item_t;
-
-class ListColorMap: public ColorMap
-{
- public:
-    ListColorMap();
-    virtual ~ListColorMap();
-
-    bool init(int n_colors);
-    void set(int i, double d, int r, int g, int b, int a);
-    rgba_t lookup(double index) const; 
- private:
-    list_item_t *items;
-};
 
 typedef struct 
 {
