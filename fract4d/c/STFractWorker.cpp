@@ -218,7 +218,7 @@ STFractWorker::interpolate_rectangle(int x, int y, int rsize)
 void
 STFractWorker::interpolate_row(int x, int y, int rsize)
 {
-    fate_t fate = im->getFate(x,y,0);
+    //fate_t fate = im->getFate(x,y,0);
     rgba_t colors[2];
     colors[0] = im->get(x,y); // left
     colors[1] = im->get(x+rsize-1,y); //right
@@ -230,17 +230,19 @@ STFractWorker::interpolate_row(int x, int y, int rsize)
     indexes[0] = im->getIndex(x,y,0);
     indexes[1] = im->getIndex(x+rsize-1,y,0);
     
+    im_info ii = im_info(im); ii.init_fate(x,y);
     for (int x2 =x ; x2 < x+rsize-1; ++x2)
     {
         double factor = (double)(x2-x)/rsize;
-        rgba_t predicted_color = predict_color(colors, factor);
-        int predicted_iter = predict_iter(iters, factor);
-        float predicted_index = predict_index(indexes, factor);
+        ii.pixel = predict_color(colors, factor); 
+        ii.iter = predict_iter(iters, factor); 
+        ii.index = predict_index(indexes, factor);
 
-        im->put(x2,y,predicted_color);  
-        im->setIter(x2,y,predicted_iter);
-        im->setFate(x2,y,0,fate);
-        im->setIndex(x2,y,0,predicted_index);
+        ii.putsss(x2, y);
+        //im->put(x2,y,predicted_color);  
+        //im->setIter(x2,y,predicted_iter);
+        //im->setFate(x2,y,0,fate);
+        //im->setIndex(x2,y,0,predicted_index);
     }
 }
 
@@ -351,32 +353,4 @@ STFractWorker::box(int x, int y, int rsize)
     }           
 }
 
-/*
-inline void
-STFractWorker::rectangle(rgba_t pixel, int x, int y, int w, int h)
-{
-    for(int i = y ; i < y+h; i++)
-    {
-        for(int j = x; j < x+w; j++) 
-        {
-            im->put(j,i,pixel);
-        }
-    }
-}
-
-inline void
-STFractWorker::rectangle_with_iter(rgba_t pixel, fate_t fate, int iter, float index, 
-    int x, int y, int w, int h)
-{
-    for(int i = y ; i < y+h; i++)
-    {
-        for(int j = x; j < x+w; j++) 
-        {
-            im->put(j,i,pixel);
-            im->setIter(j,i,iter);
-            im->setFate(j,i,0,fate);
-            im->setIndex(j,i,0,index);
-        }
-    }
-}*/
 
