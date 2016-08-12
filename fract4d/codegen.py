@@ -222,6 +222,8 @@ loop_done:
     *t__p_pFate = (t__h_inside ? FATE_INSIDE : 0);
     *t__p_pDist = t__h_index;
     *t__p_pSolid = t__h_solid;
+    if (t__h_solid)
+        *t__p_pFate |= FATE_SOLID;
     %(save_colors)s
     %(return_inserts)s
     // arena_clear((arena_t)(t__p_stub->arena));
