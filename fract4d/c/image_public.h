@@ -169,7 +169,7 @@ struct im_info
     }
     void init(int x, int y)
     {
-        this->iter = 0;
+        this->iter = im->getIter(x,y);
         this->index = im->getIndex(x,y,0);
         this->pixel = im->get(x,y);
         this->fate = im->getFate(x,y,0);

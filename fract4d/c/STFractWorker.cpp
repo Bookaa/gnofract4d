@@ -70,7 +70,12 @@ STFractWorker::pixel(int x, int y, int w, int h)
             // calculate coords of this point
             dvec4 pos = ff->topleft + x * ff->deltax + y * ff->deltay;
 
-            pf.calc_pf(pos.n, ff->maxiter, x, y, &ii); // &ii.pixel, &ii.iter, &ii.index, &ii.fate);
+            im_info ii2 = im_info(im);
+            pf.calc_pf(pos.n, ff->maxiter, x, y, &ii2); // &ii.pixel, &ii.iter, &ii.index, &ii.fate);
+
+            assert(ii2.fate != FATE_UNKNOWN);
+            ii2.writeback(x,y);
+            ii2.rectangle(x,y,w,h);
         }
         break;
         case RENDER_LANDSCAPE:
@@ -81,13 +86,6 @@ STFractWorker::pixel(int x, int y, int w, int h)
             assert(0 && "not supported");
             break;
         }
-
-        assert(ii.fate != FATE_UNKNOWN);
-        ii.writeback(x,y);
-        //im->setIter(x,y,iter);
-        //im->setFate(x,y,0,fate);
-        //im->setIndex(x,y,0,index);
-        ii.rectangle(x,y,w,h);
     }
     else
     {
@@ -311,11 +309,13 @@ STFractWorker::box(int x, int y, int rsize)
     
     if(bFlat)
     {
+        im_info ii = im_info(im); ii.init(x,y);
         // just draw a solid rectangle
-        rgba_t pixel = im->get(x,y);
-        fate_t fate = im->getFate(x,y,0);
-        float index = im->getIndex(x,y,0);
-        rectangle_with_iter(pixel,fate,iter,index,x+1,y+1,rsize-2,rsize-2);
+        //rgba_t pixel = im->get(x,y);
+        //fate_t fate = im->getFate(x,y,0);
+        //float index = im->getIndex(x,y,0);
+        //rectangle_with_iter(pixel,fate,iter,index,x+1,y+1,rsize-2,rsize-2);
+        ii.rectangle_with_iter(x+1,y+1,rsize-2,rsize-2);
     }
     else
     {
@@ -351,6 +351,7 @@ STFractWorker::box(int x, int y, int rsize)
     }           
 }
 
+/*
 inline void
 STFractWorker::rectangle(rgba_t pixel, int x, int y, int w, int h)
 {
@@ -377,5 +378,5 @@ STFractWorker::rectangle_with_iter(rgba_t pixel, fate_t fate, int iter, float in
             im->setIndex(j,i,0,index);
         }
     }
-}
+}*/
 

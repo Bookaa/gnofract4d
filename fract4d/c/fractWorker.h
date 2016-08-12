@@ -64,11 +64,9 @@ private:
     inline int RGB2INT(int x, int y);
 
     // draw a rectangle of this colour
-    void rectangle(rgba_t pixel, int x, int y, int w, int h);
+    //void rectangle(rgba_t pixel, int x, int y, int w, int h);
 
-    void rectangle_with_iter(rgba_t pixel, fate_t fate, 
-			     int iter, float index,
-			     int x, int y, int w, int h);
+    //void rectangle_with_iter(rgba_t pixel, fate_t fate, int iter, float index,int x, int y, int w, int h);
     void interpolate_rectangle(int x, int y, int rsize);
     void interpolate_row(int x, int y, int rsize);
 };
