@@ -114,15 +114,6 @@ static void pf_init(
     }    
 }
 
-static void pf_get_defaults(
-      struct s_pf_data *t__p_stub,  // "object" pointer
-      double *pos_params,       // in params
-      struct s_param *params,   // out params
-      int nparams               // in param
-    )
-{
-}
-
 struct complex_t {
     double re;
     double im;
@@ -143,7 +134,7 @@ static void pf_calc(
     // periodicity params
     // int min_period_iter, double period_tolerance,
     // only used for debugging
-    int t__p_x, int t__p_y, // int t__p_aa,
+    // int t__p_x, int t__p_y, // int t__p_aa,
     // out params
     int *t__p_pnIters, int *t__p_pFate, double *t__p_pDist, int *t__p_pSolid,
     int *t__p_pDirectColorFlag, double *t__p_pColors
@@ -242,7 +233,6 @@ static void pf_kill(struct s_pf_data *p_stub)
 
 static struct s_pf_vtable vtbl = 
 {
-    pf_get_defaults,
     pf_init,
     pf_calc,
     pf_kill
@@ -332,13 +322,6 @@ struct s_param
 struct s_pf_data;
 
 struct s_pf_vtable {
-    /* fill in params with the default values for this formula */
-    void (*get_defaults)(
-        struct s_pf_data *p,
-        double *pos_params,
-        struct s_param *params,
-        int nparams);
-
     /* fill in fields in pf_data with appropriate stuff */
     void (*init)(
         struct s_pf_data *p,
@@ -361,7 +344,7 @@ struct s_pf_vtable {
         // tolerance params
         // int min_period_iter, double period_tolerance,
         // only used for debugging
-        int x, int y, // int aa,
+        // int x, int y, // int aa,
         // out params
         int *pnIters, int *pFate, double *pDist, int *pSolid,
 	    int *pDirectColorFlag, double *pColors);
