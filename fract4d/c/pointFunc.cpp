@@ -55,11 +55,6 @@ void pointFunc::calc_pf(
         *color = m_cmap->lookup_with_transfer(dist,solid, inside);
     }
 
-    if (solid)
-    {
-        fate |= FATE_SOLID;
-    }
-
     *pFate = (fate_t) fate;
     *pIndex = (float) dist;
 }
