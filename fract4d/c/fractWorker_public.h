@@ -1,14 +1,6 @@
 #ifndef FRACT_WORKER_PUBLIC_H_
 #define FRACT_WORKER_PUBLIC_H_
 
-class fractFunc;
-class IImage;
-
-#include "vectors.h" 
-#include "pf.h"
-#include "cmap.h"
-
-
 class IFractWorker {
 public:
 
@@ -27,5 +19,6 @@ public:
     // calculate a single pixel
     virtual void pixel(int x, int y, int w, int h) =0;
 };
+
 
 #endif /* FRACT_WORKER_PUBLIC_H_ */

@@ -848,5 +848,4 @@ initfract4dc(void)
     PyModule_AddIntConstant(pymod, "FILE_TYPE_TGA", FILE_TYPE_TGA);
     PyModule_AddIntConstant(pymod, "FILE_TYPE_PNG", FILE_TYPE_PNG);
     PyModule_AddIntConstant(pymod, "FILE_TYPE_JPG", FILE_TYPE_JPG);
-
 }

@@ -149,5 +149,62 @@ public:
     };
 };
 
+struct im_info
+{
+    rgba_t pixel;
+    fate_t fate;
+    float index;
+    int iter;
+    IImage* im;
+
+    im_info(IImage* im) {
+        this->im = im;
+    }
+
+    void init_fate(int x, int y)
+    {
+        this->index = 0.0;
+        this->iter = 0;
+        this->fate = im->getFate(x,y,0);
+    }
+    void init(int x, int y)
+    {
+        this->iter = 0;
+        this->index = im->getIndex(x,y,0);
+        this->pixel = im->get(x,y);
+        this->fate = im->getFate(x,y,0);
+    }
+    void writeback(IImage* im, int x, int y)
+    {
+        im->setIter(x,y,iter);
+        im->setFate(x,y,0,fate);
+        im->setIndex(x,y,0,index);
+    }
+    void rectangle(int x, int y, int w, int h)
+    {
+        for(int i = y ; i < y+h; i++)
+        {
+            for(int j = x; j < x+w; j++) 
+            {
+                im->put(j,i, this->pixel);
+            }
+        }
+    }
+    void rectangle_with_iter(int x, int y, int w, int h)
+    {
+        for(int i = y ; i < y+h; i++)
+        {
+            for(int j = x; j < x+w; j++) 
+            {
+                im->put(j,i,pixel);
+                im->setIter(j,i,iter);
+                im->setFate(j,i,0,fate);
+                im->setIndex(j,i,0,index);
+            }
+        }
+    }
+
+};
+
 #endif /* IMAGE_PUBLIC_H_ */
 

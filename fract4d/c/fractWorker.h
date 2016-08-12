@@ -5,7 +5,6 @@
 #include "fractWorker_public.h"
 #include "pointFunc_public.h"
 
-
 class STFractWorker : public IFractWorker {
     fractFunc *ff;
     pf_obj *m_pfo;
@@ -73,8 +72,5 @@ private:
     void interpolate_rectangle(int x, int y, int rsize);
     void interpolate_row(int x, int y, int rsize);
 };
-
-//#include "threadpool.h"
-
 
 #endif /* FRACT_WORKER_H_ */

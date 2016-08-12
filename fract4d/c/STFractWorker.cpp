@@ -84,12 +84,14 @@ STFractWorker::pixel(int x, int y, int w, int h)
         im->setIter(x,y,iter);
         im->setFate(x,y,0,fate);
         im->setIndex(x,y,0,index);
+        rectangle(pixel,x,y,w,h);
     }
     else
     {
-        pixel = pf.recolor(im->getIndex(x,y,0), fate, im->get(x,y));
+        im_info ii = im_info(im); ii.init(x,y);
+        pf.recolor(ii);
+        ii.rectangle(x,y,w,h);
     }
-    rectangle(pixel,x,y,w,h);
 }
 
 void 
@@ -234,13 +236,10 @@ STFractWorker::interpolate_row(int x, int y, int rsize)
         int predicted_iter = predict_iter(iters, factor);
         float predicted_index = predict_index(indexes, factor);
 
-        //check_guess(x2,y,predicted_color,fate,predicted_iter,predicted_index);
         im->put(x2,y,predicted_color);  
         im->setIter(x2,y,predicted_iter);
         im->setFate(x2,y,0,fate);
         im->setIndex(x2,y,0,predicted_index);
-        //stats.s[PIXELS]++;
-        //stats.s[PIXELS_SKIPPED]++;
     }
 }
 
@@ -373,8 +372,6 @@ STFractWorker::rectangle_with_iter(rgba_t pixel, fate_t fate, int iter, float in
             im->setIter(j,i,iter);
             im->setFate(j,i,0,fate);
             im->setIndex(j,i,0,index);
-            //stats.s[PIXELS]++;
-            //stats.s[PIXELS_SKIPPED]++;
         }
     }
 }

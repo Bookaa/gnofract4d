@@ -4,7 +4,7 @@
 #include "cmap.h"
 #include "pointFunc_public.h"
 #include "fract_public.h"
-
+#include "image_public.h"
 
 void pointFunc::calc_pf(
     // in params
@@ -59,13 +59,17 @@ void pointFunc::calc_pf(
     *pIndex = (float) dist;
 }
 
-rgba_t pointFunc::recolor(double dist, fate_t fate, rgba_t current) const
-{	    
+void pointFunc::recolor(struct im_info& ii) const
+{
+    double dist = ii.index;
+    fate_t fate = ii.fate;
+    //rgba_t current = ii.pixel;
+
     int solid = 0;
     int inside = 0;
     if (fate & FATE_DIRECT)
     {
-        return current;
+        return; // current;
     }
     if (fate & FATE_SOLID)
     {
@@ -75,7 +79,7 @@ rgba_t pointFunc::recolor(double dist, fate_t fate, rgba_t current) const
     {
         inside = 1;
     }
-    return m_cmap->lookup_with_transfer(dist,solid, inside);
+    ii.pixel = m_cmap->lookup_with_transfer(dist,solid, inside);
 }
 
 

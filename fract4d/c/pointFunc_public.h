@@ -20,7 +20,7 @@ public:
         int x, int y, // only used for debugging
         rgba_t *color, int *pnIters, float *pIndex, fate_t *pFate // out params
         ) const;
-    rgba_t recolor(double dist, fate_t fate, rgba_t current) const;
+    void recolor(struct im_info& ii) const;
 };
 
 #endif

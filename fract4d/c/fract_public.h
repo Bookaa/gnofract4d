@@ -1,8 +1,6 @@
 #ifndef _FRACT_PUBLIC_H_
 #define _FRACT_PUBLIC_H_
 
-#include <pthread.h>
-
 // current state of calculation
 typedef enum {
     GF4D_FRACTAL_DONE,
@@ -58,7 +56,6 @@ typedef enum {
 
 //class colorizer;
 class IImage;
-typedef struct s_pixel_stat pixel_stat_t;
 
 #include "pointFunc_public.h"
 
