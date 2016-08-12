@@ -67,63 +67,11 @@ ColorMap::set_solid(int which, int r, int g, int b, int a)
     }
 }
 
-rgba_t 
-ColorMap::get_solid(int which) const
-{
-    rgba_t color = {0,0,0,1};
-    if(which >= 0 && which < 2)
-    {
-        color = solids[which];
-    }
-    else
-    {
-        assert("get bad color" && 0);
-    }
-    return color;
-} 
-
 void
 cmap_delete(ColorMap *cmap)
 {
     assert(cmap->canary == 0xfeeefeee);
     delete cmap;
-}
-
-
-/* finds the indices in t of the largest item which is <= key 
-   and the next item above it.
-   If there are multiple identical items, returns one at random
- */
-
-/* binary search algorithm from Programming Pearls.
-   sadly C stdlib's bsearch is no good because it won't tell us the position
-   of nearest match if there's no exact one */
-
-int 
-find(double key, list_item_t *array, int n)
-{
-    int left=0,right=n-1;
-    do
-    {
-        int middle;
-        if(left > right)
-        {
-            return left-1 < 0 ? 0 : left-1 ;
-        }
-        middle = (left + right) / 2;
-        if(array[middle].index < key)
-        { 
-            left = middle+1;
-        }
-        else if(array[middle].index == key)
-        {
-            return middle;
-        }
-        else
-        {
-            right = middle-1;
-        }
-    }while(1);
 }
 
 rgba_t
@@ -135,7 +83,6 @@ ColorMap::lookup_with_dca(int solid, int inside, double *colors) const
     {
         return solids[inside];
     }
-    
 
     e_transferType t = transfers[inside];
     switch(t)
@@ -175,15 +122,6 @@ ColorMap::lookup_with_transfer(double index, int solid, int inside) const
     }
 }
  
-GradientColorMap::GradientColorMap() : ColorMap()
-{
-    items = NULL;
-}
-
-GradientColorMap::~GradientColorMap()
-{
-    delete[] items;
-}
 
 bool
 GradientColorMap::init(int ncolors_)
@@ -211,9 +149,7 @@ GradientColorMap::init(int ncolors_)
     return true;
 }
 
-void 
-GradientColorMap::set(
-    int i,
+void GradientColorMap::set(int i,
     double left, double right, double mid,
     double *left_col,
     double *right_col,
@@ -229,24 +165,6 @@ GradientColorMap::set(
     }
     items[i].bmode = bmode;
     items[i].cmode = cmode;
-        
-/*
-    fprintf(stderr,"left: %g [%g,%g,%g,%g]\nright: %g [%g,%g,%g,%g]\n%d %d\n",
-           left, left_col[0], left_col[1], left_col[2], left_col[3],
-           right, right_col[0], right_col[1], right_col[2], right_col[3], 
-           (int)bmode, (int)cmode);
-*/
-
-}
-
-static void
-grad_dump(gradient_item_t *items, int ncolors)
-{
-    fprintf(stderr,"gradient dump: %d\n", ncolors);
-    for(int i = 0; i < ncolors; ++i)
-    {
-        fprintf(stderr,"%d: %g\n", i, items[i].right);
-    }
 }
 
 int 
@@ -259,8 +177,6 @@ grad_find(double index, gradient_item_t *items, int ncolors)
             return i;
         } 
     }
-    fprintf(stderr,"No gradient for %g\n", index);
-    grad_dump(items, ncolors);
     assert(0 && "Didn't find an entry");
     return -1;
 }
@@ -317,6 +233,105 @@ calc_sphere_decreasing_factor (double middle,
 {
     pos = calc_linear_factor (middle, pos);
     return 1.0 - sqrt(1.0 - pos * pos);
+}
+
+#define MAX3(a,b,c) ((a) > (b) ? \
+                       ((a) > (c) ? (a) : (c)) : \
+                       ((b) > (c) ? (b) : (c)))
+
+#define MIN3(a,b,c) ((a) < (b) ? \
+                       ((a) < (c) ? (a) : (c)) : \
+                       ((b) < (c) ? (b) : (c)))
+  
+void rgb_to_hsv(double r, double g, double b, double *h, double *s, double *v)
+{
+    double min = MIN3( r, g, b );
+    double max = MAX3( r, g, b );
+    *v = max;                   
+
+    double delta = max - min;
+
+    *s = (max == 0.0) ? 0.0 : (delta/max);
+
+    if(*s == 0.0)
+    {
+        // achromatic
+        *h = 0; // strictly, undefined. we choose 0
+        return;
+    }
+
+    
+    if( r == max )
+    {
+        *h = ( g - b ) / delta;                // between yellow & magenta
+    }
+    else if( g == max )
+    {
+        *h = 2 + ( b - r ) / delta;        // between cyan & yellow
+    }    
+    else
+    {
+        *h = 4 + ( r - g ) / delta;        // between magenta & cyan
+    }
+
+    if( *h < 0 )
+    {
+        *h += 6.0;
+    }
+}
+
+static void gimp_rgb_to_hsv(double r, double g, double b, double *h, double *s, double *v) 
+{
+    rgb_to_hsv(r,g,b,h,s,v);
+    *h /= 6.0;
+}
+static void hsv_to_rgb(double h, double s, double v, double *r, double *g, double *b)
+{
+    /* 0 <= h < 6 */
+    if(s == 0)
+    {
+        *r = *g = *b = v;
+        return;
+    }
+
+    h = fmod(h,6.0);
+    if(h < 0)
+    {
+        h += 6.0;
+    }
+
+    int i = int(h);
+    double f = h - i; //Decimal bit of hue
+    double p = v * (1 - s);
+    double q = v * (1 - s * f);
+    double t = v * (1 - s * (1 - f));
+    
+    switch(i)
+    {
+    case 0:
+        *r = v; *g = t; *b = p;
+        break;
+    case 1:
+        *r = q; *g = v; *b = p;
+        break;
+    case 2:
+        *r = p; *g = v; *b = t;
+        break;
+    case 3:
+        *r = p; *g = q; *b = v;
+        break;
+    case 4:
+        *r = t; *g = p; *b = v;
+        break;
+    case 5:
+        *r = v; *g = p; *b = q;
+    }
+}
+
+static void gimp_hsv_to_rgb(double h, double s, double v, double *r, double *g, double *b)
+{
+    h *= 6.0; // h*360/60
+    hsv_to_rgb(h,s,v,r,g,b);
 }
 
 rgba_t 
@@ -431,71 +446,7 @@ GradientColorMap::lookup(double input_index) const
     return result;
 }
 
-
-/* Convert from rgb colorspace to hsv and hsl
-   all components in [0,1] except hue in [0,6]
-
-   Taken from Foley, van Dam, Feiner & Hughes
-*/
-
-#define MAX3(a,b,c) ((a) > (b) ? \
-                       ((a) > (c) ? (a) : (c)) : \
-                       ((b) > (c) ? (b) : (c)))
-
-#define MIN3(a,b,c) ((a) < (b) ? \
-                       ((a) < (c) ? (a) : (c)) : \
-                       ((b) < (c) ? (b) : (c)))
-  
-void
-rgb_to_hsv(
-    double r, double g, double b,
-    double *h, double *s, double *v)
-{
-    double min = MIN3( r, g, b );
-    double max = MAX3( r, g, b );
-    *v = max;                   
-
-    double delta = max - min;
-
-    *s = (max == 0.0) ? 0.0 : (delta/max);
-
-    if(*s == 0.0)
-    {
-        // achromatic
-        *h = 0; // strictly, undefined. we choose 0
-        return;
-    }
-
-    
-    if( r == max )
-    {
-        *h = ( g - b ) / delta;                // between yellow & magenta
-    }
-    else if( g == max )
-    {
-        *h = 2 + ( b - r ) / delta;        // between cyan & yellow
-    }    
-    else
-    {
-        *h = 4 + ( r - g ) / delta;        // between magenta & cyan
-    }
-
-    if( *h < 0 )
-    {
-        *h += 6.0;
-    }
-}
-
-void gimp_rgb_to_hsv(double r, double g, double b, double *h, double *s, double *v) 
-{
-    rgb_to_hsv(r,g,b,h,s,v);
-    *h /= 6.0;
-}
-
-void
-rgb_to_hsl(
-    double r, double g, double b,
-    double *h, double *s, double *l)
+static void rgb_to_hsl(double r, double g, double b, double *h, double *s, double *l)
 {
     double min = MIN3( r, g, b );
     double max = MAX3( r, g, b );
@@ -553,10 +504,7 @@ double rgb_component(double n1, double n2, double hue)
     return n1;
 }
 
-void 
-hsl_to_rgb(
-    double h, double s, double l,
-    double *r, double *g, double *b)
+void nouse_hsl_to_rgb(double h, double s, double l, double *r, double *g, double *b)
 {
     if(s == 0.0)
     {
@@ -582,83 +530,17 @@ hsl_to_rgb(
         *g = rgb_component(n1, n2, h);
         *b = rgb_component(n1, n2, h - 2.0);
     }
-
-    //fprintf(stderr,"hsl(%g,%g,%g) -> rgb(%g,%g,%g)\n", h,s,l,*r,*g,*b);
-}
-
-void 
-hsv_to_rgb(
-    double h, double s, double v,
-    double *r, double *g, double *b)
-{
-    /* 0 <= h < 6 */
-    if(s == 0)
-    {
-        *r = *g = *b = v;
-        return;
-    }
-
-    h = fmod(h,6.0);
-    if(h < 0)
-    {
-        h += 6.0;
-    }
-
-    int i = int(h);
-    double f = h - i; //Decimal bit of hue
-    double p = v * (1 - s);
-    double q = v * (1 - s * f);
-    double t = v * (1 - s * (1 - f));
-    
-    switch(i)
-    {
-    case 0:
-        *r = v;
-        *g = t;
-        *b = p;
-        break;
-    case 1:
-        *r = q;
-        *g = v;
-        *b = p;
-        break;
-    case 2:
-        *r = p;
-        *g = v;
-        *b = t;
-        break;
-    case 3:
-        *r = p;
-        *g = q;
-        *b = v;
-        break;
-    case 4:
-        *r = t;
-        *g = p;
-        *b = v;
-        break;
-    case 5:
-        *r = v;
-        *g = p;
-        *b = q;
-    }
-}
-
-void gimp_hsv_to_rgb(double h, double s, double v, double *r, double *g, double *b)
-{
-    h *= 6.0; // h*360/60
-    hsv_to_rgb(h,s,v,r,g,b);
 }
 
 // accessors for hsl components
-double hue(double r, double g, double b)
+double nouse_hue(double r, double g, double b)
 {
     double h,s,l;
     rgb_to_hsl(r,g,b,&h,&s,&l);
     return h;
 }
 
-double sat(double r, double g, double b)
+double nouse_sat(double r, double g, double b)
 {
     double h,s,l;
     rgb_to_hsl(r,g,b,&h,&s,&l);
@@ -666,14 +548,14 @@ double sat(double r, double g, double b)
 
 }
 
-double lum(double r, double g, double b)
+double nouse_lum(double r, double g, double b)
 {
     double h,s,l;
     rgb_to_hsl(r,g,b,&h,&s,&l);
     return l;
 }
 
-void gradient(void *grad_object, double index, double *r, double *g, double *b)
+void nouse_gradient(void *grad_object, double index, double *r, double *g, double *b)
 {
     ColorMap *pmap = (ColorMap *)grad_object;
 

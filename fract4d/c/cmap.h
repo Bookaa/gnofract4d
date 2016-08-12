@@ -40,11 +40,10 @@ public:
     virtual void set_solid(int which, int r, int g, int b, int a);
     virtual void set_transfer(int which, e_transferType type);
  
-    virtual rgba_t get_solid(int which) const;
     virtual rgba_t lookup(double index) const = 0;
 
-    virtual rgba_t lookup_with_transfer(double index, int solid, int inside) const;
-    virtual rgba_t lookup_with_dca(int solid, int inside, double *colors) const;
+    rgba_t lookup_with_transfer(double index, int solid, int inside) const;
+    rgba_t lookup_with_dca(int solid, int inside, double *colors) const;
 
  public:
     unsigned int canary;
@@ -54,12 +53,6 @@ public:
     rgba_t solids[2];
     e_transferType transfers[2];
 };
-
-typedef struct 
-{
-    double index;
-    rgba_t color;
-} list_item_t;
 
 typedef struct 
 {
@@ -76,8 +69,14 @@ typedef struct
 class GradientColorMap: public ColorMap
 {
  public:
-    GradientColorMap();
-    virtual ~GradientColorMap();
+    GradientColorMap() : ColorMap()
+    {
+        items = 0;
+    }
+    virtual ~GradientColorMap()
+    {
+        delete[] items;
+    }
 
     bool init(int n_colors);
     void set(int i,
@@ -94,42 +93,5 @@ class GradientColorMap: public ColorMap
 
 extern void cmap_delete(ColorMap *cmap);
 
-/* functions called by compiled formulas */
-
-extern "C" {
-
-    void rgb_to_hsv(
-        double r, double g, double b,
-        double *h, double *s, double *v);
-
-    void gimp_rgb_to_hsv(
-        double r, double g, double b,
-        double *h, double *s, double *v);
-
-    void rgb_to_hsl(
-        double r, double g, double b,
-        double *h, double *s, double *l);
-
-    void hsl_to_rgb(
-        double h, double s, double l,
-        double *r, double *g, double *);
-
-    void hsv_to_rgb(
-        double h, double s, double v,
-        double *r, double *g, double *b);
-
-    void gimp_hsv_to_rgb(
-        double h, double s, double v,
-        double *r, double *g, double *b);
-
-    double hue(double r, double g, double b);
-    double sat(double r, double g, double b);
-    double lum(double r, double g, double b);
-
-    void gradient(
-        void *grad_object, double index, 
-        double *r, double *g, double *b);
-
-}
 
 #endif /* CMAP_H_ */
