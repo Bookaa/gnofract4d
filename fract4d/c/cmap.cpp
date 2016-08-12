@@ -13,21 +13,6 @@ rgba_t black = {0,0,0,255};
 
 #define EPSILON 1.0e-10
 
-//#define DEBUG_CREATION
-
-ColorMap::ColorMap()
-{
-    canary = 0xfeeefeee;
-    ncolors = 0;
-    solids[0] = solids[1] = black;
-    transfers[0] = TRANSFER_LINEAR; // outer
-    transfers[1] = TRANSFER_LINEAR; // inner
-
-#ifdef DEBUG_CREATION
-    fprintf(stderr,"%p : CM : CTOR\n", this);
-#endif
-}
-
 void
 cmap_delete(ColorMap *cmap)
 {
@@ -42,14 +27,14 @@ ColorMap::lookup_with_dca(int solid, int inside, double *colors) const
 
     if(solid)
     {
-        return solids[inside];
+        return black; //solids[inside];
     }
 
-    e_transferType t = transfers[inside];
+    e_transferType t = TRANSFER_LINEAR; // transfers[inside];
     switch(t)
     {
     case TRANSFER_NONE:
-        return solids[inside];
+        return black; // solids[inside];
     case TRANSFER_LINEAR:
         new_color.r = (unsigned char)(255.0 * colors[0]);
         new_color.g = (unsigned char)(255.0 * colors[1]);
@@ -67,14 +52,14 @@ ColorMap::lookup_with_transfer(double index, int solid, int inside) const
 {
     if(solid)
     {
-        return solids[inside];
+        return black; // solids[inside];
     }
     
-    e_transferType t = transfers[inside];
+    e_transferType t = TRANSFER_LINEAR; // transfers[inside];
     switch(t)
     {
     case TRANSFER_NONE:
-        return solids[inside];
+        return black; // solids[inside];
     case TRANSFER_LINEAR:
         return lookup(index);
     default:
@@ -218,7 +203,6 @@ static void rgb_to_hsv(double r, double g, double b, double *h, double *s, doubl
         *h = 0; // strictly, undefined. we choose 0
         return;
     }
-
     
     if( r == max )
     {

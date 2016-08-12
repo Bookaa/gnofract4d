@@ -31,7 +31,14 @@ typedef enum
 class ColorMap
 {
 public:
-    ColorMap();
+    ColorMap()
+    {
+        canary = 0xfeeefeee;
+        ncolors = 0;
+        //solids[0] = solids[1] = black;
+        //transfers[0] = TRANSFER_LINEAR; // outer
+        //transfers[1] = TRANSFER_LINEAR; // inner
+    }
     virtual ~ColorMap() {
         canary = 0xbaadf00d;
     }
@@ -48,8 +55,8 @@ public:
 
  protected:
     int ncolors;
-    rgba_t solids[2];
-    e_transferType transfers[2];
+    // rgba_t solids[2];
+    // e_transferType transfers[2];
 };
 
 typedef struct 
