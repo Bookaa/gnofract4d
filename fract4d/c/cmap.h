@@ -41,8 +41,8 @@ public:
  
     virtual rgba_t lookup(double index) const = 0;
 
-    rgba_t lookup_with_transfer(double index, int solid, int inside) const;
-    rgba_t lookup_with_dca(int solid, int inside, double *colors) const;
+    rgba_t lookup_with_transfer(double index, int solid) const;
+    rgba_t lookup_with_dca(int solid, double *colors) const;
 
  protected:
     int ncolors;

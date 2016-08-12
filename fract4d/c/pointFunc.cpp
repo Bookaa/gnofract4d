@@ -38,21 +38,13 @@ void pointFunc::calc_pf(
         pnIters, &fate, &dist, &solid,
         &fUseColors, &colors[0]);
 
-    int inside = 0;
-    if (fate & FATE_INSIDE)
-    {
-        *pnIters = -1;
-        inside = 1;
-    }
-
     if (fUseColors)
     {
-        *color = m_cmap->lookup_with_dca(solid, inside, colors);
-        fate |= FATE_DIRECT;
+        *color = m_cmap->lookup_with_dca(solid, colors);
     }
     else
     {
-        *color = m_cmap->lookup_with_transfer(dist,solid, inside);
+        *color = m_cmap->lookup_with_transfer(dist, solid);
     }
 
     *pFate = (fate_t) fate;
@@ -79,7 +71,7 @@ void pointFunc::recolor(struct im_info& ii) const
     {
         inside = 1;
     }
-    ii.pixel = m_cmap->lookup_with_transfer(dist,solid, inside);
+    ii.pixel = m_cmap->lookup_with_transfer(dist, solid);
 }
 
 

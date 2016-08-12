@@ -21,7 +21,7 @@ cmap_delete(ColorMap *cmap)
 }
 
 rgba_t
-ColorMap::lookup_with_dca(int solid, int inside, double *colors) const
+ColorMap::lookup_with_dca(int solid, double *colors) const
 {
     rgba_t new_color;
 
@@ -48,7 +48,7 @@ ColorMap::lookup_with_dca(int solid, int inside, double *colors) const
 }
  
 rgba_t
-ColorMap::lookup_with_transfer(double index, int solid, int inside) const
+ColorMap::lookup_with_transfer(double index, int solid) const
 {
     if(solid)
     {
