@@ -362,7 +362,6 @@ GradientColorMap::lookup(double input_index) const
             lh += 1.0;
         }
                 
-                
         double h,s,v;
         h = lh + (rh - lh) * factor;
         s = ls + (rs - ls) * factor;
@@ -388,5 +387,4 @@ GradientColorMap::lookup(double input_index) const
     result.a = (unsigned char)(255.0 * (lc[3] + (rc[3] - lc[3]) * factor));
     return result;
 }
-
 

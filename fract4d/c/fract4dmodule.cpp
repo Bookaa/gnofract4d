@@ -368,7 +368,6 @@ parse_params(PyObject *pyarray, int *plen)
         return NULL;
     }
 
-
     int len = PySequence_Size(pyarray);
     if(len == 0)
     {
@@ -597,9 +596,6 @@ struct calc_args
 
     ~calc_args()
     {
-#ifdef DEBUG_CREATION
-        fprintf(stderr, "%p : CA : DTOR\n", this);
-#endif
         Py_XDECREF(pycmap);
         Py_XDECREF(pypfo);
         Py_XDECREF(pyim);
@@ -612,14 +608,10 @@ parse_calc_args(PyObject *args, PyObject *kwds)
 {
     calc_args *cargs = new calc_args();
 
-    static const char *kwlist[] = { // "image", 
-        "pfo", //"cmap", //"params", 
-        //"maxiter",
-        "xoff", "yoff", "xres", "yres", NULL};
+    static const char *kwlist[] = { "pfo", "xoff", "yoff", "xres", "yres", NULL};
 
     PyObject *pypfo;
-    if(!PyArg_ParseTupleAndKeywords(args, kwds, "O|iiii", const_cast<char **>(kwlist), // &pyim, 
-                                    &pypfo, //&pycmap, //&pyparams, //&cargs->maxiter,
+    if(!PyArg_ParseTupleAndKeywords(args, kwds, "O|iiii", const_cast<char **>(kwlist), &pypfo, 
                                     &cargs->xoff, &cargs->yoff, &cargs->xres, &cargs->yres))
     {
 error:

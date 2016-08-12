@@ -15,7 +15,7 @@ STFractWorker::row(int x, int y, int n)
 }
 
 void
-STFractWorker::col(int x, int y, int n)
+STFractWorker::nouse_col(int x, int y, int n)
 {
     for(int i = 0; i < n; ++i)
     {

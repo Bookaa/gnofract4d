@@ -33,15 +33,9 @@ class ColorMap
 public:
     ColorMap()
     {
-        canary = 0xfeeefeee;
         ncolors = 0;
-        //solids[0] = solids[1] = black;
-        //transfers[0] = TRANSFER_LINEAR; // outer
-        //transfers[1] = TRANSFER_LINEAR; // inner
     }
-    virtual ~ColorMap() {
-        canary = 0xbaadf00d;
-    }
+    virtual ~ColorMap() {}
 
     virtual bool init(int n_colors) = 0;
  
@@ -50,13 +44,8 @@ public:
     rgba_t lookup_with_transfer(double index, int solid, int inside) const;
     rgba_t lookup_with_dca(int solid, int inside, double *colors) const;
 
- public:
-    unsigned int canary;
-
  protected:
     int ncolors;
-    // rgba_t solids[2];
-    // e_transferType transfers[2];
 };
 
 typedef struct 
@@ -93,7 +82,6 @@ class GradientColorMap: public ColorMap
 
  private:
     gradient_item_t *items;
-
 };
 
 extern void cmap_delete(ColorMap *cmap);
