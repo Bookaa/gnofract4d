@@ -71,7 +71,7 @@ STFractWorker::pixel(int x, int y, int w, int h)
             dvec4 pos = ff->topleft + x * ff->deltax + y * ff->deltay;
 
             im_info ii2 = im_info(im);
-            pf.calc_pf(pos.n, ff->maxiter, x, y, &ii2); // &ii.pixel, &ii.iter, &ii.index, &ii.fate);
+            pf.calc_pf(pos.n, ff->maxiter, &ii2);
 
             assert(ii2.fate != FATE_UNKNOWN);
             ii2.writeback(x,y);

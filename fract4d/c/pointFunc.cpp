@@ -6,35 +6,20 @@
 #include "fract_public.h"
 #include "image_public.h"
 
-void pointFunc::calc_pf(
-    // in params
-    const double *params, int nIters, 
-    // only used for debugging
-    int x, int y,
-    // out params
-    struct im_info * ii) const
-    // rgba_t *color, int *pnIters, float *pIndex, fate_t *pFate) const
+void pointFunc::calc_pf(const double *params, int nIters, struct im_info * ii) const
 {
     rgba_t *color = &ii->pixel;
     int *pnIters = &ii->iter;
     float *pIndex = &ii->index;
     fate_t *pFate = &ii->fate;
-    //int min_period_iters = nIters;
-    //double period_tolerance = 0.0;
-    //int warp_param = -1;
-    //int aa = 0;
+
     double dist = 0.0; 
     int fate = 0;
     int solid = 0;
     int fUseColors = 0;
     double colors[4] = {0.0};
 
-    // frequently here printf("call calc in pointFunc.cpp\n");
-    m_pfo->vtbl->calc(
-        m_pfo, params,
-        nIters, //warp_param,
-        //min_period_iters, period_tolerance,
-        x, y, //aa,
+    m_pfo->vtbl->calc(m_pfo, params, nIters, 
         pnIters, &fate, &dist, &solid,
         &fUseColors, &colors[0]);
 

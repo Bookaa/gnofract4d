@@ -15,11 +15,7 @@ public:
 	{
 	}
  public:
-    void calc_pf(
-        const double *params, int nIters, // in params. params points to [x,y,cx,cy]
-        int x, int y, // only used for debugging
-        struct im_info* ii //rgba_t *color, int *pnIters, float *pIndex, fate_t *pFate // out params
-        ) const;
+    void calc_pf(const double *params, int nIters, struct im_info* ii) const;
     void recolor(struct im_info& ii) const;
 };
 
