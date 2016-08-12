@@ -12,8 +12,13 @@ void pointFunc::calc_pf(
     // only used for debugging
     int x, int y,
     // out params
-    rgba_t *color, int *pnIters, float *pIndex, fate_t *pFate) const
+    struct im_info * ii) const
+    // rgba_t *color, int *pnIters, float *pIndex, fate_t *pFate) const
 {
+    rgba_t *color = &ii->pixel;
+    int *pnIters = &ii->iter;
+    float *pIndex = &ii->index;
+    fate_t *pFate = &ii->fate;
     //int min_period_iters = nIters;
     //double period_tolerance = 0.0;
     //int warp_param = -1;

@@ -52,14 +52,16 @@ STFractWorker::pixel(int x, int y, int w, int h)
 {
     pointFunc pf = pointFunc(m_pfo, m_cmap);
 
-    rgba_t pixel;
+    //rgba_t pixel;
 
-    fate_t fate = im->getFate(x,y,0);
+    //fate_t fate = im->getFate(x,y,0);
 
-    if (fate == FATE_UNKNOWN)
+    im_info ii = im_info(im); ii.init_fate(x,y);
+
+    if (ii.fate == FATE_UNKNOWN)
     {
-        float index = 0.0;
-        int iter = 0;
+        //float index = 0.0;
+        //int iter = 0;
         
         switch(ff->render_type)
         {
@@ -68,7 +70,7 @@ STFractWorker::pixel(int x, int y, int w, int h)
             // calculate coords of this point
             dvec4 pos = ff->topleft + x * ff->deltax + y * ff->deltay;
 
-            pf.calc_pf(pos.n, ff->maxiter, x, y, &pixel, &iter, &index, &fate);
+            pf.calc_pf(pos.n, ff->maxiter, x, y, &ii); // &ii.pixel, &ii.iter, &ii.index, &ii.fate);
         }
         break;
         case RENDER_LANDSCAPE:
@@ -80,15 +82,16 @@ STFractWorker::pixel(int x, int y, int w, int h)
             break;
         }
 
-        assert(fate != FATE_UNKNOWN);
-        im->setIter(x,y,iter);
-        im->setFate(x,y,0,fate);
-        im->setIndex(x,y,0,index);
-        rectangle(pixel,x,y,w,h);
+        assert(ii.fate != FATE_UNKNOWN);
+        ii.writeback(x,y);
+        //im->setIter(x,y,iter);
+        //im->setFate(x,y,0,fate);
+        //im->setIndex(x,y,0,index);
+        ii.rectangle(x,y,w,h);
     }
     else
     {
-        im_info ii = im_info(im); ii.init(x,y);
+        ii.init(x,y);
         pf.recolor(ii);
         ii.rectangle(x,y,w,h);
     }

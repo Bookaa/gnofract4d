@@ -174,7 +174,7 @@ struct im_info
         this->pixel = im->get(x,y);
         this->fate = im->getFate(x,y,0);
     }
-    void writeback(IImage* im, int x, int y)
+    void writeback(int x, int y)
     {
         im->setIter(x,y,iter);
         im->setFate(x,y,0,fate);
