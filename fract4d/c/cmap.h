@@ -37,8 +37,6 @@ public:
     }
 
     virtual bool init(int n_colors) = 0;
-    virtual void set_solid(int which, int r, int g, int b, int a);
-    virtual void set_transfer(int which, e_transferType type);
  
     virtual rgba_t lookup(double index) const = 0;
 
@@ -78,14 +76,14 @@ class GradientColorMap: public ColorMap
         delete[] items;
     }
 
-    bool init(int n_colors);
+    virtual bool init(int n_colors);
+    virtual rgba_t lookup(double index) const; 
     void set(int i,
              double left, double right, double mid,
              double *left_col,
              double *right_col,
              e_blendType bmode, e_colorType cmode);
 
-    rgba_t lookup(double index) const; 
  private:
     gradient_item_t *items;
 

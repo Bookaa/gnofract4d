@@ -28,45 +28,6 @@ ColorMap::ColorMap()
 #endif
 }
 
-void 
-ColorMap::set_transfer(int which, e_transferType type)
-{
-    if(which >= 0 && which < 2)
-    {
-        if(type < TRANSFER_SIZE && type >= 0)
-        {
-            transfers[which] = type;
-        }
-        else
-        {
-            assert("bad transfer type" && 0);
-        }
-    }
-    else
-    {
-        assert("bad transfer index" && 0);
-    }
-}
-
-void
-ColorMap::set_solid(int which, int r, int g, int b, int a)
-{
-    rgba_t color;
-    color.r = (unsigned char)r;
-    color.g = (unsigned char)g;
-    color.b = (unsigned char)b;
-    color.a = (unsigned char)a;
-
-    if(which >= 0 && which < 2)
-    {
-        solids[which] = color;
-    }
-    else
-    {
-        assert("set bad color" && 0);
-    }
-}
-
 void
 cmap_delete(ColorMap *cmap)
 {
@@ -121,7 +82,6 @@ ColorMap::lookup_with_transfer(double index, int solid, int inside) const
         return black;
     }
 }
- 
 
 bool
 GradientColorMap::init(int ncolors_)
@@ -167,8 +127,7 @@ void GradientColorMap::set(int i,
     items[i].cmode = cmode;
 }
 
-int 
-grad_find(double index, gradient_item_t *items, int ncolors)
+static int grad_find(double index, gradient_item_t *items, int ncolors)
 {
     for(int i = 0; i < ncolors; ++i)
     {
@@ -243,7 +202,7 @@ calc_sphere_decreasing_factor (double middle,
                        ((a) < (c) ? (a) : (c)) : \
                        ((b) < (c) ? (b) : (c)))
   
-void rgb_to_hsv(double r, double g, double b, double *h, double *s, double *v)
+static void rgb_to_hsv(double r, double g, double b, double *h, double *s, double *v)
 {
     double min = MIN3( r, g, b );
     double max = MAX3( r, g, b );
@@ -446,123 +405,4 @@ GradientColorMap::lookup(double input_index) const
     return result;
 }
 
-static void rgb_to_hsl(double r, double g, double b, double *h, double *s, double *l)
-{
-    double min = MIN3( r, g, b );
-    double max = MAX3( r, g, b );
-
-    *l = (max+min)/2.0;                        
-
-    if(max == min)
-    {
-        // achromatic
-        *s = 0;
-        *h = 0;
-    }
-    else
-    {
-        double delta = max - min;
-
-        *s = (*l <= 0.5) ? (delta / (max + min)) : (delta / (2.0 - (max+min)));
-
-        if( r == max )
-        {
-            *h = ( g - b ) / delta;                // between yellow & magenta
-        }
-        else if( g == max )
-        {
-            *h = 2 + ( b - r ) / delta;        // between cyan & yellow
-        }    
-        else
-        {
-            *h = 4 + ( r - g ) / delta;        // between magenta & cyan
-        }
-        
-        if( *h < 0 )
-        {
-            *h += 6.0;
-        }
-    }
-}
-
-// hue is assumed to be in degrees
-double rgb_component(double n1, double n2, double hue)
-{
-    hue = (hue > 6.0) ? (hue - 6.0) : (hue < 0.0) ? hue + 6.0 : hue;
-    if (hue < 1.0)
-    {
-        return n1 + (n2 - n1)*hue;
-    }
-    if (hue < 3.0)
-    {
-        return n2;
-    }
-    if (hue < 4.0)
-    {
-        return n1 + (n2 - n1)*(4.0 - hue);
-    }
-    return n1;
-}
-
-void nouse_hsl_to_rgb(double h, double s, double l, double *r, double *g, double *b)
-{
-    if(s == 0.0)
-    {
-        // achromatic
-        *r = *g = *b = l;
-    }
-    else
-    {
-        // chromatic
-        double n2;
-        if(l <= 0.5)
-        {
-            n2 = l * (1.0 + s);
-        }
-        else
-        {
-            n2 = l + s - l*s;
-        }
-
-        double n1 = 2.0 * l - n2;
-
-        *r = rgb_component(n1, n2, h + 2.0);
-        *g = rgb_component(n1, n2, h);
-        *b = rgb_component(n1, n2, h - 2.0);
-    }
-}
-
-// accessors for hsl components
-double nouse_hue(double r, double g, double b)
-{
-    double h,s,l;
-    rgb_to_hsl(r,g,b,&h,&s,&l);
-    return h;
-}
-
-double nouse_sat(double r, double g, double b)
-{
-    double h,s,l;
-    rgb_to_hsl(r,g,b,&h,&s,&l);
-    return s;
-
-}
-
-double nouse_lum(double r, double g, double b)
-{
-    double h,s,l;
-    rgb_to_hsl(r,g,b,&h,&s,&l);
-    return l;
-}
-
-void nouse_gradient(void *grad_object, double index, double *r, double *g, double *b)
-{
-    ColorMap *pmap = (ColorMap *)grad_object;
-
-    //fprintf(stderr,"gradient %p\n", grad_object);
-    rgba_t col = pmap->lookup(index);
-    *r = ((double)col.r)/255.0;
-    *g = ((double)col.g)/255.0;
-    *b = ((double)col.b)/255.0;
-}
 
