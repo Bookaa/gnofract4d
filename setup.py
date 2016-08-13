@@ -135,7 +135,7 @@ module_cmap = Extension(
     define_macros = [ ('_REENTRANT', 1)]
     )
 
-modules = [module_fract4dc, module_cmap]
+modules = [module_fract4dc]
     
 def get_files(dir,ext):
     return [ os.path.join(dir,x) for x in os.listdir(dir) if x.endswith(ext)] 

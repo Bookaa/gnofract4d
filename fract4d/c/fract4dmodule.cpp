@@ -46,7 +46,6 @@
  */
 
 PyObject *pymod=NULL;
-void *cmap_module_handle=NULL;
 
 typedef enum {
     DELTA_X,
@@ -64,44 +63,6 @@ pf_unload(void *p)
     dlclose(p);
 }
 
-static int 
-ensure_cmap_loaded()
-{
-    char cwd[PATH_MAX+1];
-    // load the cmap module so fract funcs we compile later
-    // can call its methods
-    if(NULL != cmap_module_handle)
-    {
-        return 1; // already loaded
-    }
-
-    char *filename = PyModule_GetFilename(pymod);
-    //fprintf(stderr,"base name: %s\n",filename);
-    char *path_end = strrchr(filename,'/');
-    if(path_end == NULL)
-    {
-        filename = getcwd(cwd,sizeof(cwd));
-        path_end = filename + strlen(filename);
-    }
-
-    int path_len = strlen(filename) - strlen(path_end);
-    int len = path_len + strlen(CMAP_NAME);
-
-    char *new_filename = (char *)malloc(len+1);
-    strncpy(new_filename, filename, path_len);
-    new_filename[path_len] = '\0';
-    strcat(new_filename, CMAP_NAME);
-    //fprintf(stderr,"Filename: %s\n", new_filename);
-
-    cmap_module_handle = dlopen(new_filename, RTLD_GLOBAL | RTLD_NOW);
-    if(NULL == cmap_module_handle)
-    {
-        /* an error */
-        PyErr_SetString(PyExc_ValueError, dlerror());
-        return 0;
-    }
-    return 1;
-}
 struct pfHandle
 {
     PyObject *pyhandle;
@@ -139,10 +100,10 @@ pf_delete(void *p)
 static PyObject *
 pf_load_and_create(PyObject *self, PyObject *args)
 {
-    if(!ensure_cmap_loaded())
+    /*if(!ensure_cmap_loaded())
     {
         return NULL;
-    }
+    }*/
 
     char *so_filename;
     if(!PyArg_ParseTuple(args,"s",&so_filename))
