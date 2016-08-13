@@ -227,7 +227,7 @@ loop_done:
 
 static void pf_kill(struct s_pf_data *p_stub)
 {
-    arena_delete((arena_t)(p_stub->arena));
+    // arena_delete((arena_t)(p_stub->arena));
     free(p_stub);
 }
 
@@ -243,7 +243,7 @@ pf_obj *pf_new()
     pf_real *p = (pf_real *)malloc(sizeof(pf_real));
     if (!p) return NULL;
     p->parent.vtbl = &vtbl;
-    p->parent.arena = arena_create(100000,1);
+    // p->parent.arena = arena_create(100000,1);
     return (pf_obj*)p;
 }
 
@@ -354,7 +354,7 @@ struct s_pf_vtable {
 
 struct s_pf_data {
     struct s_pf_vtable *vtbl;
-    void *arena;
+    // void *arena;
 } ;
 
 typedef struct s_pf_vtable pf_vtable;
@@ -386,17 +386,17 @@ extern "C" {
 
     void fract_rand(double *re, double *im);
 
-    typedef struct s_arena *arena_t;
-    arena_t arena_create(int page_size, int max_pages);
+    // typedef struct s_arena *arena_t;
+    // arena_t arena_create(int page_size, int max_pages);
 
     // void arena_clear(arena_t arena);
-    void arena_delete(arena_t arena);
+    // void arena_delete(arena_t arena);
 
-    void *arena_alloc(
-        arena_t arena,
-        int element_size,
-        int n_dimensions,
-        int *n_elements);
+    // void *arena_alloc(
+    //    arena_t arena,
+    //    int element_size,
+    //    int n_dimensions,
+    //    int *n_elements);
 
     void array_get_int(
         void *allocation, int n_dimensions, int *indexes,
@@ -410,10 +410,10 @@ extern "C" {
 
     int array_set_double(void *allocation, int n_dimensions, int *indexes, double val);
     
-    void *alloc_array1D(arena_t arena, int element_size, int size);
-    void *alloc_array2D(arena_t arena, int element_size, int xsize, int ysize);
-    void *alloc_array3D(arena_t arena, int element_size, int xsize, int ysize, int zsize);
-    void *alloc_array4D(arena_t arena, int element_size, int xsize, int ysize, int zsize, int wsize);
+    //void *alloc_array1D(arena_t arena, int element_size, int size);
+    //void *alloc_array2D(arena_t arena, int element_size, int xsize, int ysize);
+    //void *alloc_array3D(arena_t arena, int element_size, int xsize, int ysize, int zsize);
+    //void *alloc_array4D(arena_t arena, int element_size, int xsize, int ysize, int zsize, int wsize);
 
     int read_int_array_1D(void *array, int x);
     int write_int_array_1D(void *array, int x, int val);
