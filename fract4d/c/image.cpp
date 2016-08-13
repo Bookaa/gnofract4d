@@ -179,7 +179,7 @@ image::set_offset(int x, int y)
     }
 
     m_xoffset = x; m_yoffset = y;
-    clear();
+    // clear();
     return true;
 }
 

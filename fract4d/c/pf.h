@@ -91,7 +91,7 @@ struct s_pf_vtable {
 
 struct s_pf_data {
     struct s_pf_vtable *vtbl;
-    void *arena;
+    // void *arena;
 } ;
 
 // typedef struct s_pf_vtable pf_vtable;

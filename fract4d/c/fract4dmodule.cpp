@@ -177,6 +177,7 @@ pf_load_and_create(PyObject *self, PyObject *args)
     pfh->pfo = p;
     pfh->pyhandle = pyobj;
     pfh->cmap = 0;
+    pfh->pyim = 0;
 #ifdef DEBUG_CREATION
     fprintf(stderr,"%p : PF : CTOR (%p)\n",pfh,pfh->pfo);
 #endif

@@ -1,11 +1,13 @@
 # A type representing an image - this wraps the underlying C++ image type
 # exposed via fract4dmodule and provides some higher-level options around it
 
-import fract4dc
+import myfract4dc
+fract4dc = myfract4dc.fract4dc
+
 
 class T:
     def __init__(self,xsize,ysize,txsize=-1,tysize=-1):
-        self._img = fract4dc.image_create(xsize,ysize,txsize, tysize)
+        self._img = fract4dc.image_create(xsize, ysize, txsize, tysize)
 
     def save(self,name):
         try:
