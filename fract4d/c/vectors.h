@@ -25,16 +25,6 @@ public:
 	vec4(const T& x, const T& y, const T& z, const T& w) {
 		n[VX] = x; n[VY] = y; n[VZ] = z; n[VW] = w;
 	};
-	explicit vec4(const T& d) {  
-		n[VX] = n[VY] = n[VZ] = n[VW] = d; 
-	};
-
-	// copy constructor
-	vec4(const vec4& v) {
-		n[VX] = v.n[VX]; n[VY] = v.n[VY]; 
-		n[VZ] = v.n[VZ]; n[VW] = v.n[VW];
-	};
-
         // Assignment operators
 
 	// assignment of a vec4
@@ -77,18 +67,6 @@ public:
 	T& operator [] ( int i) {
 		return n[i];
 	};
-
-	T mag() {
-	  return n[VX]*n[VX] + n[VY]*n[VY] + n[VZ]*n[VZ] + n[VW]*n[VW];
-	}
-	
-	void norm() {
-	  T norm = sqrt(mag());
-	  n[VX] /= norm;
-	  n[VY] /= norm;
-	  n[VZ] /= norm;
-	  n[VW] /= norm;
-	}
 };
 
 // vec4 friends
@@ -156,11 +134,6 @@ bool operator != (const vec4<T>& a, const vec4<T>& b) {
 }
 
 template<class T>
-void swap(vec4<T>& a, vec4<T>& b) { 
-	vec4<T> tmp(a); a = b; b = tmp; 
-}
-
-template<class T>
 vec4<T> prod(const vec4<T>& a, const vec4<T>& b) { 
 	return vec4<T>(a.n[VX] * b.n[VX], a.n[VY] * b.n[VY], 
 		       a.n[VZ] * b.n[VZ], a.n[VW] * b.n[VW]); 
@@ -171,10 +144,6 @@ vec4<T> prod(const vec4<T>& a, const vec4<T>& b) {
 template<class T>
 class mat4
 {
-protected:
-
-
-
 public:
 	vec4<T> v[4];
 
@@ -186,15 +155,6 @@ public:
 		v[0] = v0; v[1] = v1; v[2] = v2; v[3] = v3;
 	};
 
-	explicit mat4(const T& d) {
-		v[0] = v[1] = v[2] = v[3] = vec4<T>(d);
-	};
-
-	// copy constructor
-	mat4(const mat4& m) {
-		v[0] = m.v[0]; v[1] = m.v[1]; v[2] = m.v[2]; v[3] = m.v[3];
-	};
-	
         // Assignment operators
 	
 	mat4& operator	= ( const mat4& m ) { 
@@ -240,44 +200,6 @@ public:
 			    vec4<T>(v[0][3], v[1][3], v[2][3], v[3][3]));
 
 	};
-#if 0
-	mat4 inverse() {
-		// As a evolves from original mat into identity, 
-		// b evolves from identity into inverse(a) 
-		mat4 a(*this), b(identity3D());   
-		int i, j, i1;
-
-		// Loop over cols of a from left to right, 
-                // eliminating above and below diag
-		for (j=0; j<4; j++) {
-			// Find largest pivot in column j among rows j..3
-			i1 = j;		    // Row with largest pivot candidate
-			for (i=j+1; i<4; i++) {
-				if (fabs(a.v[i].n[j]) > fabs(a.v[i1].n[j]))
-					i1 = i;
-			}
-
-			// Swap rows i1 and j in a and b to put pivot on diagonal
-			swap(a.v[i1], a.v[j]);
-			swap(b.v[i1], b.v[j]);
-
-			// Scale row j to have a unit diagonal
-			if (a.v[j].n[j]==0.)
-				VECTOR_ERROR("mat4::inverse: singular matrix; can't invert\n");
-			b.v[j] /= a.v[j].n[j];
-			a.v[j] /= a.v[j].n[j];
-
-			// Eliminate off-diagonal elems in col j of a, doing identical ops to b
-			for (i=0; i<4; i++)
-				if (i!=j) {
-					b.v[i] -= a.v[i].n[j]*b.v[j];
-					a.v[i] -= a.v[i].n[j]*a.v[j];
-				}
-		}
-		return b;
-		
-	};				
-#endif
 
 };
 
@@ -341,10 +263,6 @@ bool operator != (const mat4<T>& a, const mat4<T>& b) {
 	return !(a == b); 
 }
 
-template<class T>
-void swap(mat4<T>& a, mat4<T>& b) { 
-	mat4<T> tmp(a); a = b; b = tmp; 
-}
 
 /****************************************************************
 *								*

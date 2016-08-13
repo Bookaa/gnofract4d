@@ -27,18 +27,11 @@ fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
 
     this->maxiter = maxiter_;
 
-    /*
-    printf("(%d,%d,%d,%d,%d,%d)\n", 
-           im->Xres(), im->Yres(), im->totalXres(), im->totalYres(),
-           im->Xoffset(), im->Yoffset());
-    */
     dvec4 center = dvec4(params[XCENTER],params[YCENTER], params[ZCENTER],params[WCENTER]);
 
-    this->rot = rotated_matrix(params);
+    dmat4 rot = rotated_matrix(params);
 
-    //this->eye_point = center + rot[VZ] * -10.0; // FIXME add eye distance parameter
-
-    this->rot = rot/im->totalXres();
+    rot = rot/im->totalXres();
     // distance to jump for one pixel down or across
     this->deltax = rot[VX];
     // if yflip, draw Y axis down, otherwise up
@@ -59,9 +52,6 @@ fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
 
     // .. then offset to center of pixel
     topleft += delta_aa_x + delta_aa_y;
-
-    // antialias: offset to middle of top left quadrant of pixel
-    //aa_topleft = topleft - (delta_aa_y + delta_aa_x) / 2.0;
 };
 
 

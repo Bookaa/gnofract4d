@@ -130,7 +130,8 @@ class MyFract4dc:
         the.params = params
         the.initparams = initparams
 
-        mycalc.init(the, 0)
+        s_params = mycalc.parse_params(initparams)
+        mycalc.init(the, params, s_params)
 
     def pf_init2(self, pfunc, segs, maxiter, _img):
         the = pfunc
@@ -161,15 +162,42 @@ class MyFract4dc:
 
         #params = [0.0] * N_PARAMS # double
         #parse_posparams(the.params, params)
+        # import mycalc
+        # mycalc.calc(pfo=the.pfo, xoff=xoff, yoff=yoff, xres=xres, yres=yres)
+        calc_4(the.params, the.maxiter, the.pfo, the.cmap, the._img)
 
-        assert False
+        #assert False
         # fract4dc.calc(pfo=pfunc, xoff=xoff, yoff=yoff, xres=xres, yres=yres)
     def image_save_all(self, _img, fp):
         FILE_TYPE_PNG = 1
         iw = ImageWriter(FILE_TYPE_PNG, fp, _img)
         iw.save_header()
-        iw.save_title()
+        iw.save_tile()
         iw.save_footer()
+
+class STFractWorker:
+    pass
+    def __init__(self, pfo, cmap, im):
+        self.pfo = pfo
+        self.cmap = cmap
+        self.im = im
+        self.ff = None
+
+class fractFunc:
+    def __init__(self, params, maxiter, worker, im):
+        self.params = params
+        self.maxiter = maxiter
+        self.worker = worker
+        self.im = im
+    def draw(self):
+        pass
+
+def calc_4(params, maxiter, pfo, cmap, im):
+    w = STFractWorker(pfo, cmap, im)
+    ff = fractFunc(params, maxiter, w, im)
+    w.ff = ff
+    ff.draw()
+
 if True:
     try:
         import fract4dcgmp as fract4dc

@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 void
 STFractWorker::row(int x, int y, int n)
 {
@@ -36,7 +35,6 @@ STFractWorker::RGB2INT(int x, int y)
     return Pixel2INT(pixel);
 }
 
-
 inline bool STFractWorker::isTheSame(bool bFlat, int targetIter, int targetCol, int x, int y)
 {
     if (!bFlat) return false;
@@ -52,17 +50,10 @@ STFractWorker::pixel(int x, int y, int w, int h)
 {
     pointFunc pf = pointFunc(m_pfo, m_cmap);
 
-    //rgba_t pixel;
-
-    //fate_t fate = im->getFate(x,y,0);
-
     im_info ii = im_info(im); ii.init_fate(x,y);
 
     if (ii.fate == FATE_UNKNOWN)
     {
-        //float index = 0.0;
-        //int iter = 0;
-        
         switch(ff->render_type)
         {
         case RENDER_TWO_D: 
@@ -239,10 +230,6 @@ STFractWorker::interpolate_row(int x, int y, int rsize)
         ii.index = predict_index(indexes, factor);
 
         ii.putsss(x2, y);
-        //im->put(x2,y,predicted_color);  
-        //im->setIter(x2,y,predicted_iter);
-        //im->setFate(x2,y,0,fate);
-        //im->setIndex(x2,y,0,predicted_index);
     }
 }
 

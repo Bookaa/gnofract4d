@@ -27,7 +27,6 @@ public:
 
     friend class STFractWorker;
 
-    dmat4 rot; // scaled rotation matrix
     dvec4 deltax, deltay; // step from 1 pixel to the next in x,y directions
     // dvec4 delta_aa_x, delta_aa_y; // offset between subpixels
     dvec4 topleft; // top left corner of screen
