@@ -203,13 +203,6 @@ struct im_info
             }
         }
     }
-    void putsss(int x, int y)
-    {
-        im->put(x,y,pixel);
-        im->setIter(x,y,iter);
-        im->setFate(x,y,0,fate);
-        im->setIndex(x,y,0,index);
-    }
 
 };
 

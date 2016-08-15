@@ -118,33 +118,6 @@ STFractWorker::qbox_row(int w, int y, int rsize, int drawsize)
     }
 }
 
-void
-STFractWorker::interpolate_row(int x, int y, int rsize)
-{
-    //fate_t fate = im->getFate(x,y,0);
-    rgba_t colors[2];
-    colors[0] = im->get(x,y); // left
-    colors[1] = im->get(x+rsize-1,y); //right
-    int iters[2];
-    iters[0] = im->getIter(x,y);
-    iters[1] = im->getIter(x+rsize-1,y);
-
-    int indexes[2];
-    indexes[0] = im->getIndex(x,y,0);
-    indexes[1] = im->getIndex(x+rsize-1,y,0);
-    
-    im_info ii = im_info(im); ii.init_fate(x,y);
-    for (int x2 =x ; x2 < x+rsize-1; ++x2)
-    {
-        double factor = (double)(x2-x)/rsize;
-        ii.pixel = predict_color(colors, factor); 
-        ii.iter = predict_iter(iters, factor); 
-        ii.index = predict_index(indexes, factor);
-
-        ii.putsss(x2, y);
-    }
-}
-
 // linearly interpolate between colors to guess correct color
 rgba_t
 STFractWorker::predict_color(rgba_t colors[2], double factor)

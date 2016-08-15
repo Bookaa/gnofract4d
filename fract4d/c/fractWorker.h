@@ -58,8 +58,6 @@ private:
 
     // make an int corresponding to an RGB triple
     inline int RGB2INT(int x, int y);
-
-    void interpolate_row(int x, int y, int rsize);
 };
 
 #endif /* FRACT_WORKER_H_ */

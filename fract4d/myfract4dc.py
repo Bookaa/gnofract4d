@@ -3,6 +3,8 @@ import numpy as np
 (VX, VY, VZ, VW) = (0,1,2,3)
 (IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_TOTAL_WIDTH, IMAGE_TOTAL_HEIGHT, IMAGE_XOFFSET, IMAGE_YOFFSET) = (0,1,2,3,4,5)
 (XCENTER, YCENTER, ZCENTER, WCENTER, MAGNITUDE, XYANGLE, XZANGLE, XWANGLE, YZANGLE, YWANGLE, ZWANGLE) = (0,1,2,3,4,5,6,7,8,9,10)
+(RED, GREEN, BLUE) = (0, 1, 2)
+(FATE_UNKNOWN, FATE_SOLID, FATE_DIRECT, FATE_INSIDE) = (255, 0x80, 0x40, 0x20)
 
 class ImageWriter:
     def __init__(self, type_is_png, fp, _img):
@@ -55,7 +57,6 @@ class Image:
         self.clear()
 
     def clear(self):
-        FATE_UNKNOWN = 255
         fate_pos = 0
         for y in range(self.m_Yres):
             for x in range(self.m_Xres):
@@ -113,7 +114,17 @@ class Image:
     def setIndex(self,x,y,subpixel,index):
         i = self.index_of_subpixel(x,y,subpixel)
         self.index_buf[i] = index
-
+    def getIter(self, x, y):
+        return self.iter_buf[x + y * self.m_Xres]
+    def get(self, x, y):
+        pos = x * 3 + y * self.m_Xres * 3
+        r = self.buffer[pos + RED]
+        g = self.buffer[pos + GREEN]
+        b = self.buffer[pos + BLUE]
+        return (r,g,b,0)
+    def getIndex(self,x,y,subpixel):
+        n = self.index_of_subpixel(x,y,subpixel)
+        return self.index_buf[n]
 
 def cmap_from_pyobject(segs):
     n = len(segs)
@@ -222,7 +233,6 @@ class STFractWorker:
         pf = pointFunc(self.pfo, self.cmap)
         ii = im_info(self.im)
         ii.init_fate(x,y)
-        FATE_UNKNOWN = 255
         if ii.fate == FATE_UNKNOWN:
             pos = self.ff.topleft + self.ff.deltax * x + self.ff.deltay * y
             ii2 = im_info(self.im)
@@ -264,9 +274,16 @@ class STFractWorker:
             ii = im_info(self.im); ii.init(x,y)
             ii.rectangle_with_iter(x+1,y+1,rsize-2,rsize-2)
         else:
+            if rsize > 4:
+                half_size = rsize / 2
+                self.box(x,y,half_size)
+                self.box(x+half_size,y,half_size)
+                self.box(x,y+half_size, half_size)
+                self.box(x+half_size,y+half_size,half_size)
+            else:
+                for y2 in range(y+1,y+rsize-1):
+                    self.row(x+1,y2,rsize-2)
 
-            pass
-        assert False
     def isTheSame(self, bFlat, targetIter, targetCol, x, y):
         if not bFlat:
             return False
@@ -277,7 +294,10 @@ class STFractWorker:
         return True
 def Pixel2INT(pixel):
     r,g,b,a=pixel
-    rturn (r << 16) | (g << 8) | b
+    r = int(r) % 255
+    g = int(g) % 255
+    b = int(b) % 255
+    return (r << 16) | (g << 8) | b
 
 class pointFunc:
     def __init__(self, pfo, cmap):
@@ -293,6 +313,19 @@ class pointFunc:
         ii.fate = fate
         ii.index = dist
         ii.iter = iter_
+    def recolor(self, ii):
+        dist = ii.index
+        fate = ii.fate
+        solid = 0
+        inside = 0
+        if fate & FATE_DIRECT:
+            return
+        if fate & FATE_SOLID:
+            solid = 1
+        if fate & FATE_INSIDE:
+            inside = 1
+        ii.pixel = self.cmap.lookup_with_transfer(dist, solid)
+
 class im_info:
     def __init__(self, im):
         self.im = im
@@ -300,6 +333,11 @@ class im_info:
         self.index = 0.0
         self.iter = 0
         self.fate = self.im.getFate(x,y,0)
+    def init(self, x, y):
+        self.index = self.im.getIndex(x,y,0)
+        self.iter = self.im.getIter(x,y)
+        self.fate = self.im.getFate(x,y,0)
+        self.pixel = self.im.get(x,y)
     def writeback(self, x, y):
         self.im.setIter(x,y,self.iter)
         self.im.setFate(x,y,0,self.fate)
@@ -308,6 +346,13 @@ class im_info:
         for i in range(y, y+h):
             for j in range(x, x+w):
                 self.im.put(j,i,self.pixel)
+    def rectangle_with_iter(self,x,y,w,h):
+        for i in range(y, y+h):
+            for j in range(x, x+w):
+                self.im.put(j,i,self.pixel)
+                self.im.setIter(j,i,self.iter)
+                self.im.setFate(j,i,0,self.fate)
+                self.im.setIndex(j,i,0,self.index)
 
 class fractFunc:
     def __init__(self, params, maxiter, worker, im):
