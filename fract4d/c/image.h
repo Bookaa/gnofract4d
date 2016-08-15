@@ -39,20 +39,6 @@ public:
 
     bool ok() { return buffer != NULL; };
 
-    int getNSubPixels() const { return N_SUBPIXELS; };
-    inline bool hasUnknownSubpixels(int x, int y) const
-    {
-        if (!hasFate()) return true;
-
-        for (int i = 0; i < N_SUBPIXELS; ++i)
-        {
-            if (getFate(x, y, i) == FATE_UNKNOWN)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
     inline int Xres() const { return m_Xres; };
     inline int Yres() const { return m_Yres; };
 
@@ -66,11 +52,6 @@ public:
     {
         assert(buffer != NULL);
         return buffer;
-    };
-    inline fate_t* getFateBuffer()
-    {
-        assert(fate_buf != NULL);
-        return fate_buf;
     };
 
     // utilities
@@ -109,12 +90,6 @@ public:
         assert(y >= 0 && y < m_Yres);
 
         return (y * m_Xres + x) * N_SUBPIXELS + subpixel;
-    };
-
-    // one beyond last pixel
-    int index_of_sentinel_subpixel() const
-    {
-        return m_Xres * m_Yres * N_SUBPIXELS;
     };
 
     bool set_resolution(int x, int y, int totalx, int totaly);

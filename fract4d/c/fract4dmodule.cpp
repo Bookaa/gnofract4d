@@ -668,6 +668,28 @@ image_create(PyObject *self, PyObject *args)
 }
 
 static PyObject *
+bookaa_set_offset_resolution(PyObject *self, PyObject *args)
+{
+    int xoff, yoff, xres, yres;
+    PyObject *pyim;
+    if(!PyArg_ParseTuple(args,"Oiiii",&pyim,&xoff,&yoff,&xres, &yres))
+    { 
+        return NULL;
+    }
+
+    IImage *i = (IImage *)PyCObject_AsVoidPtr(pyim);
+
+    int xtotalsize = i->totalXres();
+    int ytotalsize = i->totalYres();
+
+    i->set_resolution(xres, yres, xtotalsize, ytotalsize);
+    i->set_offset(xoff, yoff);
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static PyObject *
 image_dims(PyObject *self, PyObject *args)
 {
     PyObject *pyim;
@@ -751,6 +773,7 @@ static PyMethodDef PfMethods[] = {
 
     { "image_create", image_create, METH_VARARGS, "Create a new image buffer"},
     { "image_dims", image_dims, METH_VARARGS, "get a tuple containing image's dimensions"},
+    { "bookaa_set_offset_resolution", bookaa_set_offset_resolution, METH_VARARGS, "bookaa_set_offset_resolution"},
 
     { "image_save_all", image_save_all, METH_VARARGS, "image_sav_all" },
 

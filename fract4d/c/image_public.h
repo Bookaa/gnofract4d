@@ -83,41 +83,18 @@ public:
     virtual float getIndex(int x, int y, int sub) const = 0;
     virtual void setIndex(int x, int y, int sub, float index) = 0;
     
-    virtual int getNSubPixels() const = 0;
-    virtual bool hasUnknownSubpixels(int x, int y) const = 0;
-
-
 };
 
 class ImageWriter
 {
 public:
     virtual ~ImageWriter() {};
-    static ImageWriter *create(
-	image_file_t type, FILE *fp, IImage *image);
+    static ImageWriter *create(image_file_t type, FILE *fp, IImage *image);
 
     virtual bool save_header() = 0;
     virtual bool save_tile() = 0;
     virtual bool save_footer() = 0;
 
-    bool save() 
-    {
-	if(!save_header())
-	{
-	    return false;
-	}
-	if(!save_tile())
-	{
-	    return false;
-	}
-	
-	if(!save_footer())
-	{
-	    return false;
-	}
-	
-	return true;       	
-    };
 };
 
 class ImageReader

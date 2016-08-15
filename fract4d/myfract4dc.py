@@ -1,4 +1,5 @@
 import numpy as np
+import png  # pypng (0.0.18)
 
 (VX, VY, VZ, VW) = (0,1,2,3)
 (IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_TOTAL_WIDTH, IMAGE_TOTAL_HEIGHT, IMAGE_XOFFSET, IMAGE_YOFFSET) = (0,1,2,3,4,5)
@@ -148,6 +149,8 @@ class MyFract4dc:
     (IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_TOTAL_WIDTH, IMAGE_TOTAL_HEIGHT, IMAGE_XOFFSET, IMAGE_YOFFSET) = (0,1,2,3,4,5)
 
     def image_create(self, xsize, ysize, txsize, tysize):
+        import fract4dc
+        return fract4dc.image_create(xsize, ysize, txsize, tysize)
         img = Image()
         img.set_resolution(xsize, ysize, txsize, tysize)
         return img
@@ -178,6 +181,9 @@ class MyFract4dc:
         the.maxiter = maxiter
         the._img = _img
     def image_dims(self, _img):
+        import fract4dc
+        return fract4dc.image_dims(_img)
+
         xsize = _img.Xres()
         ysize = _img.Yres()
         xoffset = _img.Xoffset()
@@ -194,10 +200,16 @@ class MyFract4dc:
         yres = ww['yres']
         im = the._img
 
-        xtotalsize = im.totalXres()
-        ytotalsize = im.totalYres()
-        im.set_resolution(xres, yres, xtotalsize, ytotalsize)
-        im.set_offset(xoff, yoff)
+        if True:
+            # _,_,xtotalsize,ytotalsize,_,_ = self.image_dims(im)
+            import fract4dc
+            fract4dc.bookaa_set_offset_resolution(im, xoff, yoff, xres, yres)
+
+        else:
+            xtotalsize = im.totalXres()
+            ytotalsize = im.totalYres()
+            im.set_resolution(xres, yres, xtotalsize, ytotalsize)
+            im.set_offset(xoff, yoff)
 
         #params = [0.0] * N_PARAMS # double
         #parse_posparams(the.params, params)
@@ -361,11 +373,19 @@ class fractFunc:
         self.worker = worker
         self.im = im
 
+        if True:
+            fract4dc = MyFract4dc()
+            (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset) = fract4dc.image_dims(im)
+            # xtotalsize is im.totalXres()
+            # ytotalsize is im.totalYres()
+            # xoffset is im.Xoffset()
+            # yoffset is im.Yoffset()
+
         center = np.asarray([params[XCENTER], params[YCENTER], params[ZCENTER], params[WCENTER]])
 
         rot = rotated_matrix(params)
 
-        rot = rot / im.totalXres()
+        rot = rot / xtotalsize
 
         self.deltax = rot[VX].getA1()
         self.deltay = -rot[VY].getA1()
@@ -373,10 +393,10 @@ class fractFunc:
         delta_aa_x = self.deltax / 2.0
         delta_aa_y = self.deltay / 2.0
 
-        topleft = center - self.deltax * im.totalXres() / 2.0 - self.deltay * im.totalYres() / 2.0
+        topleft = center - self.deltax * xtotalsize / 2.0 - self.deltay * ytotalsize / 2.0
 
-        topleft += im.Xoffset() * self.deltax;
-        topleft += im.Yoffset() * self.deltay;
+        topleft += xoffset * self.deltax;
+        topleft += yoffset * self.deltay;
 
         topleft += delta_aa_x + delta_aa_y;
 
@@ -384,7 +404,16 @@ class fractFunc:
 
     def draw(self):
         rsize = 16; drawsize = 16
-        w = self.im.Xres(); h = self.im.Yres()
+        if True:
+            fract4dc = MyFract4dc()
+            (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset) = fract4dc.image_dims(self.im)
+            # xtotalsize is im.totalXres()
+            # ytotalsize is im.totalYres()
+            # xoffset is im.Xoffset()
+            # yoffset is im.Yoffset()
+            # xsize is im.Xres()
+            # ysize is im.Yres()
+        w = xsize; h = ysize
         y = 0
         while y < h - rsize:
             self.worker.qbox_row(w,y,rsize,drawsize)
