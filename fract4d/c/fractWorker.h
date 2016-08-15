@@ -48,10 +48,6 @@ private:
     // as the target?
     inline bool isTheSame(bool bFlat, int targetIter, int targetCol, int x, int y);
 
-    // is the square with its top-left corner at (x,y) close-enough to flat
-    // that we could interpolate & get a decent-looking image?
-    bool isNearlyFlat(int x, int y, int rsize);
-
     // linearly interpolate between colors to guess correct color
     rgba_t predict_color(rgba_t colors[2], double factor);
     int predict_iter(int iters[2], double factor);
@@ -63,11 +59,6 @@ private:
     // make an int corresponding to an RGB triple
     inline int RGB2INT(int x, int y);
 
-    // draw a rectangle of this colour
-    //void rectangle(rgba_t pixel, int x, int y, int w, int h);
-
-    //void rectangle_with_iter(rgba_t pixel, fate_t fate, int iter, float index,int x, int y, int w, int h);
-    void interpolate_rectangle(int x, int y, int rsize);
     void interpolate_row(int x, int y, int rsize);
 };
 

@@ -19,6 +19,26 @@ static dmat4 rotated_matrix(double *params)
         rotZW<d>(params[ZWANGLE],one,zero);
 }
 
+void print(dmat4 v)
+{
+    for (int i=0;i<4;i++)
+    {
+        for (int j=0;j<4;j++)
+        {
+            printf("%f ", v.v[i].n[j]);
+        }
+        printf("\n");
+    }
+}
+void print(dvec4 v)
+{
+    for (int j=0;j<4;j++)
+    {
+        printf("%f ", v.n[j]);
+    }
+    printf("\n");
+}
+
 fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
 {
     this->im = im_;
@@ -52,8 +72,7 @@ fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
 
     // .. then offset to center of pixel
     topleft += delta_aa_x + delta_aa_y;
-};
-
+}
 
 void fractFunc::draw()
 {

@@ -59,11 +59,11 @@ def init(the_pf_real, pos_params, params):
     the_pf_real.p = params # how to copy ?
     the_pf_real.pos_params = pos_params + []
 
-def calc(** ww):
-    the = ww['pfo'] # the is pf_real
-    xoff = ww['xoff']
-    yoff = ww['yoff']
-    xres = ww['xres']
-    yres = ww['yres']
-    pass
-
+def calc(pfo, params, nIters):
+    fUseColors = 0
+    colors = [0.0, 0.0, 0.0, 0.0]
+    solid = 0;
+    dist = 0.0;
+    iter_ = 0;
+    fate = 0
+    return fUseColors, colors, solid, dist, iter_, fate

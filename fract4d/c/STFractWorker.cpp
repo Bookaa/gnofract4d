@@ -118,94 +118,6 @@ STFractWorker::qbox_row(int w, int y, int rsize, int drawsize)
     }
 }
 
-bool 
-STFractWorker::isNearlyFlat(int x, int y, int rsize)
-{
-    rgba_t colors[2];
-    fate_t fate = im->getFate(x,y,0);
-
-    const int MAXERROR=3;
-
-    // can we predict the top edge close enough?
-    colors[0] = im->get(x,y); // topleft
-    colors[1] = im->get(x+rsize-1,y); //topright
-    int x2;
-
-    for (x2 = x+1; x2 < x+rsize-1; ++x2)
-    {
-        if (im->getFate(x2,y,0) != fate) return false;
-
-        rgba_t predicted = predict_color(colors,(double)(x2-x)/rsize);
-        int diff = diff_colors(predicted, im->get(x2,y));
-        if (diff > MAXERROR)
-        {
-            return false;
-        }
-    }
-
-    // how about the bottom edge?
-    int y2 = y + rsize -1;
-    colors[0] = im->get(x,y2); // botleft
-    colors[1] = im->get(x+rsize-1,y2); // botright
-
-    for (x2 = x+1; x2 < x+rsize-1; ++x2)
-    {
-        if (im->getFate(x2,y2,0) != fate) return false;
-
-        rgba_t predicted = predict_color(colors,(double)(x2-x)/rsize);
-        int diff = diff_colors(predicted, im->get(x2,y2));
-        if (diff > MAXERROR)
-        {
-            return false;
-        }
-    }
-
-    // how about the left side?
-    colors[0] = im->get(x,y); 
-    colors[1] = im->get(x,y+rsize-1); 
-
-    for (y2 = y+1; y2 < y+rsize-1; ++y2)
-    {
-        if (im->getFate(x,y2,0) != fate) return false;
-
-        rgba_t predicted = predict_color(colors,(double)(y2-y)/rsize);
-        int diff = diff_colors(predicted, im->get(x,y2));
-        if (diff > MAXERROR)
-        {
-            return false;
-        }
-    }
-
-    // and finally the right
-    x2 = x + rsize-1;
-    colors[0] = im->get(x2,y); 
-    colors[1] = im->get(x2,y+rsize-1); 
-
-    for (y2 = y+1; y2 < y+rsize-1; ++y2)
-    {
-        if (im->getFate(x2,y2,0) != fate) return false;
-
-        rgba_t predicted = predict_color(colors,(double)(y2-y)/rsize);
-        int diff = diff_colors(predicted, im->get(x2,y2));
-        if (diff > MAXERROR)
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-// linearly interpolate over a rectangle
-void
-STFractWorker::interpolate_rectangle(int x, int y, int rsize)
-{
-    for (int y2 = y ; y2 < y+rsize-1; ++y2)
-    {
-        interpolate_row(x,y2,rsize);
-    }
-}
-
 void
 STFractWorker::interpolate_row(int x, int y, int rsize)
 {
@@ -308,33 +220,24 @@ STFractWorker::box(int x, int y, int rsize)
     }
     else
     {
-        bool nearlyFlat = false && isNearlyFlat(x,y,rsize);
-        if (nearlyFlat)
-        {
-            //printf("nf: %d %d %d\n", x, y, rsize);
-            interpolate_rectangle(x,y,rsize);
+        //printf("bumpy: %d %d %d\n", x, y, rsize);
+
+        if(rsize > 4)
+        {       
+            // divide into 4 sub-boxes and check those for flatness
+            int half_size = rsize/2;
+            box(x,y,half_size);
+            box(x+half_size,y,half_size);
+            box(x,y+half_size, half_size);
+            box(x+half_size,y+half_size, half_size);
         }
         else
         {
-            //printf("bumpy: %d %d %d\n", x, y, rsize);
-
-            if(rsize > 4)
-            {       
-                // divide into 4 sub-boxes and check those for flatness
-                int half_size = rsize/2;
-                box(x,y,half_size);
-                box(x+half_size,y,half_size);
-                box(x,y+half_size, half_size);
-                box(x+half_size,y+half_size, half_size);
-            }
-            else
+            // we do need to calculate the interior 
+            // points individually
+            for(int y2 = y + 1 ; y2 < y + rsize -1; ++y2)
             {
-                // we do need to calculate the interior 
-                // points individually
-                for(int y2 = y + 1 ; y2 < y + rsize -1; ++y2)
-                {
-                    row(x+1,y2,rsize-2);
-                }
+                row(x+1,y2,rsize-2);
             }
         }
     }           
