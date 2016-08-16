@@ -48,10 +48,13 @@ fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
     this->maxiter = maxiter_;
 
     dvec4 center = dvec4(params[XCENTER],params[YCENTER], params[ZCENTER],params[WCENTER]);
+    //printf("center \n");  print(center); 
 
     dmat4 rot = rotated_matrix(params);
 
     rot = rot/im->totalXres();
+    //printf("rot \n"); print(rot);
+
     // distance to jump for one pixel down or across
     this->deltax = rot[VX];
     // if yflip, draw Y axis down, otherwise up
@@ -72,6 +75,7 @@ fractFunc::fractFunc(d *params, int maxiter_, IFractWorker *fw, IImage *im_)
 
     // .. then offset to center of pixel
     topleft += delta_aa_x + delta_aa_y;
+    //printf("topleft \n"); print(topleft);
 }
 
 void fractFunc::draw()

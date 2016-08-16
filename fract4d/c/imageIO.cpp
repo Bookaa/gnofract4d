@@ -103,6 +103,11 @@ png_writer::save_header()
 bool 
 png_writer::save_tile()
 {
+    int len = im->row_length() * im->Yres();
+    unsigned char* p = (unsigned char*)im->getBuffer();
+    //printf("lens %d\n", len);
+    //printf("%02x %02x %02x %02x\n", p[0], p[1], p[2], p[3]);
+    //printf("%02x %02x %02x %02x\n", p[len-4], p[len-3], p[len-2], p[len-1]);
     for (int y = 0; y < im->Yres(); y++)
     {
         png_bytep row = (png_bytep)(im->getBuffer() + im->row_length() * y); 

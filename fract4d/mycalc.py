@@ -60,62 +60,57 @@ def init(the_pf_real, pos_params, params):
     the_pf_real.pfo.p = params # how to copy ?
     the_pf_real.pfo.pos_params = pos_params + []
 
-def calc(pfo, params, maxiter):
+def Mandelbrot_calc(pfo, params, maxiter):
+    '''
+    Mandelbrot {
+    init:
+        z = #zwpixel
+    loop:
+        z = sqr(z) + #pixel
+    bailout:
+        @bailfunc(z) < @bailout
+    default:
+    float param bailout
+        default = 4.0
+    endparam
+    float func bailfunc
+        default = cmag
+    endfunc
+    }
+    '''
     fUseColors = 0
     colors = [0.0, 0.0, 0.0, 0.0]
-    solid = 0;
-    dist = 0.0;
-    iter_ = 0;
-    fate = 0
 
     pixel = complex(params[0], params[1])
     t__h_zwpixel = complex(params[2], params[3])
 
-    # print dir(pfo.p[5])
     t__a_cf1_offset = pfo.p[5].doubleval
     t__a_fbailout = pfo.p[1].doubleval
     t__a_cf0_density = pfo.p[3].doubleval
     t__a_cf0_offset = pfo.p[2].doubleval
     t__a_cf0bailout = pfo.p[4].doubleval
 
-    save_mask = 9
-    save_incr = 1
     t__h_numiter = 0
     z = t__h_zwpixel
-    old_z = z
+    t__h_inside = 0
     while True:
         z = z*z + pixel
-        if abs(z)*abs(z) >= t__a_fbailout:
-            t__h_inside = (t__h_numiter >= maxiter)
+        if abs2(z) >= t__a_fbailout:
             break
-        if t__h_numiter >= maxiter:
-            if t__h_numiter & sav_mask:
-                if abs(z.real - old_z.real) < period_tolerance and abs(z.imag - old_z.imag) < period_tolerance:
-                    t__h_inside = 1
-                    break
-            else:
-                old_z = z
-                save_incr -= 1
-                if save_incr == 0:
-                    save_mask = (save_mask << 1) + 1
-                    save_incr = next_save_incr
         t__h_numiter += 1
         if t__h_numiter >= maxiter:
             t__h_inside = 1
             break
     iter_ = t__h_numiter
     if t__h_inside == 0:
-        solid = 0
-        t__cf03 = abs(z) * abs(z) + 0.000000001
-        t__cf04 = t__a_cf0bailout / t__cf03
-        t__cf06 = t__h_numiter + t__cf04
-        t__cf08 = t__a_cf0_density * t__cf06 / 256.0
-        t__h_index = t__cf08 + t__a_cf0_offset
+        t__cf03 = abs2(z) + 0.000000001
+        t__cf06 = t__h_numiter + t__a_cf0bailout / t__cf03
+        t__h_index = t__a_cf0_density * t__cf06 / 256.0 + t__a_cf0_offset
     else:
-        solid = 1
         t__h_index = t__a_cf1_offset
     fate = FATE_INSIDE if t__h_inside != 0 else 0
     dist = t__h_index
+    solid = t__h_inside
     if solid:
         fate |= FATE_SOLID
     if fUseColors:
@@ -123,3 +118,63 @@ def calc(pfo, params, maxiter):
     if fate & FATE_INSIDE:
         iter_ = -1
     return fUseColors, colors, solid, dist, iter_, fate
+
+def calc(pfo, params, maxiter):
+    '''
+    CGNewton3 {
+      z=(1,1):
+       z2=z*z
+       z3=z*z2
+       z=z-p1*(z3-pixel)/(3.0*z2)
+        0.0001 < |z3-pixel|
+      }
+    '''
+    fUseColors = 0
+    colors = [0.0, 0.0, 0.0, 0.0]
+
+    pixel = complex(params[0], params[1])
+    # t__h_zwpixel = complex(params[2], params[3])
+
+    t__a_cf1_offset = pfo.p[5+1].doubleval
+    # t__a_fbailout = pfo.p[1].doubleval
+    t__a_cf0_density = pfo.p[3+1].doubleval
+    t__a_cf0_offset = pfo.p[2+1].doubleval
+    t__a_cf0bailout = pfo.p[4+1].doubleval
+
+    t__h_numiter = 0
+    z = complex(1.0, 1.0)
+
+    p1 = complex(pfo.p[1].doubleval, pfo.p[2].doubleval)
+
+    t__h_inside = 0
+    while True:
+        z2 = z * z
+        z3 = z * z2
+        z = z - p1 * (z3 - pixel) / (z2 * 3.0)
+        if abs2(z3 - pixel) <= 0.0001:
+            break
+        t__h_numiter += 1
+        if t__h_numiter >= maxiter:
+            t__h_inside = 1
+            break
+    iter_ = t__h_numiter
+    if t__h_inside == 0:
+        t__cf03 = abs2(z) + 0.000000001
+        t__cf06 = t__h_numiter + t__a_cf0bailout / t__cf03
+        t__h_index = t__a_cf0_density * t__cf06 / 256.0 + t__a_cf0_offset
+    else:
+        t__h_index = t__a_cf1_offset
+
+    fate = FATE_INSIDE if t__h_inside != 0 else 0
+    dist = t__h_index
+    solid = t__h_inside
+    if solid:
+        fate |= FATE_SOLID
+    if fUseColors:
+        fate |= FATE_DIRECT
+    if fate & FATE_INSIDE:
+        iter_ = -1
+    return fUseColors, colors, solid, dist, iter_, fate
+
+def abs2(c):
+    return c.imag * c.imag + c.real * c.real

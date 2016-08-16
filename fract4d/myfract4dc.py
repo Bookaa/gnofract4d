@@ -1,5 +1,8 @@
 import numpy as np
 import png  # pypng (0.0.18)
+import array
+
+UseHisImage = False
 
 (VX, VY, VZ, VW) = (0,1,2,3)
 (IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_TOTAL_WIDTH, IMAGE_TOTAL_HEIGHT, IMAGE_XOFFSET, IMAGE_YOFFSET) = (0,1,2,3,4,5)
@@ -10,13 +13,31 @@ import png  # pypng (0.0.18)
 class ImageWriter:
     def __init__(self, type_is_png, fp, _img):
         self.fp = fp; self.im = _img
+        buf = _img.buffer
+        lens = len(buf)
+        #print 'len', lens
+        #print '%02x %02x %02x %02x' % (buf[0], buf[1], buf[2], buf[3])
+        #print '%02x %02x %02x %02x' % (buf[lens-4], buf[lens-3], buf[lens-2], buf[lens-1])
+        # len 921600
+        # 3b 28 68 3b
+        # 57 50 17 57
+        # for chainsoflight.fct
+        # 4d 19 12 4d
+        # 12 5f 25 1b
 
     def save_header(self):
         pass
     def save_tile(self):
         pass
     def save_footer(self):
-        pass
+        p, n = self.im.buffer.buffer_info()
+        pbuffer = self.im.buffer # buffer(self.im.buffer)
+        #pbuffer = buffer(self.im.buffer)
+        #print '%x %x' % (p, n)
+        import fract4dc
+        #print '>>>'
+        fract4dc.Bookaa_write_image(self.fp, pbuffer, n, self.im.Xres(), self.im.Yres(), self.im.totalXres(), self.im.totalYres())
+        #print '<<<'
 
 N_SUBPIXELS = 4
 N_PARAMS = 11
@@ -47,14 +68,15 @@ class Image:
         self.index_buf = None #NULL;
 
     def alloc_buffers(self):
-        self.buffer = [0] * self.bytes() # char
-        self.iter_buf = [0] * (self.m_Xres * self.m_Yres)
+        # https://docs.python.org/2/library/array.html
+        self.buffer = array.array('B', [0] * self.bytes()) # char
+        self.iter_buf = array.array('i', [0] * (self.m_Xres * self.m_Yres))
 
         MAX_RECOLOR_SIZE  = 1024*768
 
         if self.m_Xres * self.m_Yres <= MAX_RECOLOR_SIZE:
-            self.index_buf = [0.0] * (self.m_Xres * self.m_Yres * N_SUBPIXELS) # float
-            self.fate_buf = [0] * (self.m_Xres * self.m_Yres * N_SUBPIXELS) # unsigned char
+            self.index_buf = array.array('f', [0.0] * (self.m_Xres * self.m_Yres * N_SUBPIXELS))
+            self.fate_buf = array.array('B', [0] * (self.m_Xres * self.m_Yres * N_SUBPIXELS))
         self.clear()
 
     def clear(self):
@@ -122,7 +144,7 @@ class Image:
         r = self.buffer[pos + RED]
         g = self.buffer[pos + GREEN]
         b = self.buffer[pos + BLUE]
-        return (r,g,b,0)
+        return array.array('B', [r,g,b,0])
     def getIndex(self,x,y,subpixel):
         n = self.index_of_subpixel(x,y,subpixel)
         return self.index_buf[n]
@@ -149,8 +171,9 @@ class MyFract4dc:
     (IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_TOTAL_WIDTH, IMAGE_TOTAL_HEIGHT, IMAGE_XOFFSET, IMAGE_YOFFSET) = (0,1,2,3,4,5)
 
     def image_create(self, xsize, ysize, txsize, tysize):
-        import fract4dc
-        return fract4dc.image_create(xsize, ysize, txsize, tysize)
+        if UseHisImage:
+            import fract4dc
+            return fract4dc.image_create(xsize, ysize, txsize, tysize)
         img = Image()
         img.set_resolution(xsize, ysize, txsize, tysize)
         return img
@@ -181,8 +204,9 @@ class MyFract4dc:
         the.maxiter = maxiter
         the._img = _img
     def image_dims(self, _img):
-        import fract4dc
-        return fract4dc.image_dims(_img)
+        if UseHisImage:
+            import fract4dc
+            return fract4dc.image_dims(_img)
 
         xsize = _img.Xres()
         ysize = _img.Yres()
@@ -200,7 +224,7 @@ class MyFract4dc:
         yres = ww['yres']
         im = the._img
 
-        if True:
+        if UseHisImage:
             # _,_,xtotalsize,ytotalsize,_,_ = self.image_dims(im)
             import fract4dc
             fract4dc.bookaa_set_offset_resolution(im, xoff, yoff, xres, yres)
@@ -350,6 +374,7 @@ class im_info:
         self.iter = self.im.getIter(x,y)
         self.fate = self.im.getFate(x,y,0)
         self.pixel = self.im.get(x,y)
+        pass
     def writeback(self, x, y):
         self.im.setIter(x,y,self.iter)
         self.im.setFate(x,y,0,self.fate)
@@ -382,10 +407,12 @@ class fractFunc:
             # yoffset is im.Yoffset()
 
         center = np.asarray([params[XCENTER], params[YCENTER], params[ZCENTER], params[WCENTER]])
+        #print 'mycenter', center
 
         rot = rotated_matrix(params)
 
         rot = rot / xtotalsize
+        #print 'myrot', rot
 
         self.deltax = rot[VX].getA1()
         self.deltay = -rot[VY].getA1()
@@ -401,6 +428,7 @@ class fractFunc:
         topleft += delta_aa_x + delta_aa_y;
 
         self.topleft = topleft
+        #print 'mytopleft', topleft
 
     def draw(self):
         rsize = 16; drawsize = 16
@@ -484,11 +512,15 @@ class ColorMap:
         lc = seg.left_color
         rc = seg.right_color
         if seg.cmode == RGB:
-            r = 255.0 * (lc[0] + (rc[0] - lc[0]) * factor) # how to convert to unsigned char
+            r = 255.0 * (lc[0] + (rc[0] - lc[0]) * factor)
             g = 255.0 * (lc[1] + (rc[1] - lc[1]) * factor)
             b = 255.0 * (lc[2] + (rc[2] - lc[2]) * factor)
             a = 255.0 * (lc[3] + (rc[3] - lc[3]) * factor)
-            return (r,g,b,a)
+            r = int(r) % 256
+            g = int(g) % 256
+            b = int(b) % 256
+            a = int(a) % 256
+            return array.array('B', [r,g,b,a])
         elif seg.cmode in (HSV_CCW, HSV_CW):
             pass
             (lh,ls,lv) = gimp_rgb_to_hsv(lc[0], lc[1], lc[2])
@@ -505,7 +537,11 @@ class ColorMap:
                 h -= 1.0
             (r,g,b) = gimp_hsv_to_rgb(h,s,v)
             a = 255.0 * (lc[3] + (rc[3] - lc[3]) * factor)
-            return (r*255.0, g*255.0, b*255.0, a)
+            r = int(r*255.0) % 256
+            g = int(g*255.0) % 256
+            b = int(b*255.0) % 256
+            a = int(a) % 256
+            return array.array('B', [r,g,b,a])
         else:
             assert False
     def set(self, i, left, right, mid, left_col, right_col, bmode, cmode):

@@ -719,6 +719,169 @@ image_dims(PyObject *self, PyObject *args)
     return pyret;
 }
 
+class MyImage : public IImage
+{
+public:
+    int m_Xres;
+    int m_Yres;
+
+    int m_totalXres, m_totalYres;
+    char* m_pbuffer;
+
+    inline int Xres() const { return m_Xres; };
+    inline int Yres() const { return m_Yres; };
+
+    inline int totalXres() const { return m_totalXres; };
+    inline int totalYres() const { return m_totalYres; };
+
+    // accessors for fate data
+    virtual bool hasFate() const
+    {
+        
+    };
+
+    virtual bool ok()
+    {
+    }
+
+    // return true if this succeeded
+    virtual bool set_offset(int x, int y)
+    {
+    }
+
+    // return true if this resulted in a change of size
+    virtual bool set_resolution(int x, int y, int totalx, int totaly)
+    {
+    }
+
+    // lower-level color data accessors for image_writer
+    virtual char * getBuffer() const
+    {
+        return m_pbuffer;
+    }
+
+    virtual fate_t getFate(int x, int y, int sub) const
+    {
+    }
+
+    // accessors for index data
+    virtual float getIndex(int x, int y, int sub) const
+    {
+    }
+
+    // accessors for iteration data
+    virtual int getIter(int x, int y) const
+    {
+    }
+
+    virtual int Xoffset() const
+    {
+    }
+
+
+    virtual int Yoffset() const
+    {
+    }
+
+
+    virtual rgba_t get(int x, int y) const
+    {
+    }
+
+    // set every iter value to -1. Other data need not be cleared
+    virtual void clear()
+    {
+    }
+
+    // accessors for color data
+    virtual void put(int x, int y, rgba_t pixel)
+    {
+    }
+
+    virtual void setFate(int x, int y, int sub, fate_t fate)
+    {
+    }
+
+    virtual void setIndex(int x, int y, int sub, float index)
+    {
+    }
+
+    virtual void setIter(int x, int y, int iter)
+    {
+    }
+
+};
+static PyObject *
+Bookaa_write_image(PyObject *self,PyObject *args)
+{
+    int m_Xres, m_Yres, m_totalXres, m_totalYres;
+
+    PyObject * pbuffer;
+    PyObject *pyFP;
+    int len;
+    if(!PyArg_ParseTuple(args,"OOiiiii",&pyFP, &pbuffer, &len, &m_Xres, &m_Yres, &m_totalXres, &m_totalYres))
+    {
+        return NULL;
+    }
+    // printf("his type %s \n", pbuffer->ob_type->tp_name);
+
+    MyImage the = MyImage();
+
+    if (true)
+    {
+        struct arraydescr {
+            int typecode;
+            int itemsize;
+            PyObject * (*getitem)(struct arrayobject *, Py_ssize_t);
+            int (*setitem)(struct arrayobject *, Py_ssize_t, PyObject *);
+        };
+
+        typedef struct arrayobject {
+            PyObject_VAR_HEAD
+            char *ob_item;
+            Py_ssize_t allocated;
+            struct arraydescr *ob_descr;
+            PyObject *weakreflist; /* List of weak references */
+        } arrayobject;
+
+        arrayobject* p2 = (arrayobject*)pbuffer;
+        //printf("YYY %p %i %i \n", p2->ob_item, int(p2->allocated), p2->ob_descr->itemsize);
+        unsigned char *p = (unsigned char *)p2->ob_item;
+        int len = int(p2->allocated);
+        //printf("-lens %d\n", len);
+        //printf("-%02x %02x %02x %02x\n", p[0], p[1], p[2], p[3]);
+        //printf("-%02x %02x %02x %02x\n", p[len-4], p[len-3], p[len-2], p[len-1]);
+
+        the.m_pbuffer = (char*)p;
+        the.m_Xres = m_Xres;
+        the.m_Yres = m_Yres;
+        the.m_totalXres = m_totalXres;
+        the.m_totalYres = m_totalYres;
+    }
+
+    FILE *fp = PyFile_AsFile(pyFP);
+
+
+    ImageWriter *writer = ImageWriter::create(FILE_TYPE_PNG, fp, &the);
+    if(NULL == writer)
+    {
+        PyErr_SetString(PyExc_ValueError, "Unsupported file type");
+        return NULL;
+    }
+
+    // return PyCObject_FromVoidPtr(writer, (void (*)(void *))image_writer_delete);
+
+    writer->save_header();
+
+    writer->save_tile();
+
+    writer->save_footer();
+
+    delete writer;
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
 static PyObject *
 image_save_all(PyObject *self,PyObject *args)
 {
@@ -774,6 +937,9 @@ static PyMethodDef PfMethods[] = {
     { "image_create", image_create, METH_VARARGS, "Create a new image buffer"},
     { "image_dims", image_dims, METH_VARARGS, "get a tuple containing image's dimensions"},
     { "bookaa_set_offset_resolution", bookaa_set_offset_resolution, METH_VARARGS, "bookaa_set_offset_resolution"},
+
+    
+    { "Bookaa_write_image", Bookaa_write_image, METH_VARARGS, "Create a new image buffer"},
 
     { "image_save_all", image_save_all, METH_VARARGS, "image_sav_all" },
 

@@ -343,6 +343,11 @@ if __name__ == '__main__':
         f.loadFctFile(file)
         outputfile = f.compile()
         im = image.T(640,480)
+        from datetime import datetime
+        t1 = datetime.now()
         f.draw(im, outputfile)
+        t2 = datetime.now()
+        delta = t2 - t1
+        print 'time last :', delta.seconds, delta
         im.save(os.path.basename(arg) + ".png")
 
