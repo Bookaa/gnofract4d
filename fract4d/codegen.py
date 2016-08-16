@@ -217,7 +217,7 @@ loop_done:
         *t__p_pFate |= FATE_SOLID;
     if (*t__p_pDirectColorFlag)
         *t__p_pFate |= FATE_DIRECT;
-    if (*t__p_pFate | FATE_INSIDE)
+    if (*t__p_pFate & FATE_INSIDE)
         *t__p_pnIters = -1;
     %(save_colors)s
     %(return_inserts)s
