@@ -56,11 +56,7 @@ def pf_new():
     the = pf_real()
     return the
 
-def init(the_pf_real, pos_params, params):
-    the_pf_real.pfo.p = params # how to copy ?
-    the_pf_real.pfo.pos_params = pos_params + []
-
-def Mandelbrot_calc(pfo, params, maxiter):
+def Mandelbrot_calc(pfo_p, params, maxiter):
     '''
     Mandelbrot {
     init:
@@ -84,11 +80,11 @@ def Mandelbrot_calc(pfo, params, maxiter):
     pixel = complex(params[0], params[1])
     t__h_zwpixel = complex(params[2], params[3])
 
-    t__a_cf1_offset = pfo.p[5].doubleval
-    t__a_fbailout = pfo.p[1].doubleval
-    t__a_cf0_density = pfo.p[3].doubleval
-    t__a_cf0_offset = pfo.p[2].doubleval
-    t__a_cf0bailout = pfo.p[4].doubleval
+    t__a_cf1_offset = pfo_p[5].doubleval
+    t__a_fbailout = pfo_p[1].doubleval
+    t__a_cf0_density = pfo_p[3].doubleval
+    t__a_cf0_offset = pfo_p[2].doubleval
+    t__a_cf0bailout = pfo_p[4].doubleval
 
     t__h_numiter = 0
     z = t__h_zwpixel
@@ -119,7 +115,7 @@ def Mandelbrot_calc(pfo, params, maxiter):
         iter_ = -1
     return fUseColors, colors, solid, dist, iter_, fate
 
-def CGNewton3_calc(pfo, params, maxiter):
+def CGNewton3_calc(pfo_p, params, maxiter):
     '''
     CGNewton3 {
       z=(1,1):
@@ -135,16 +131,16 @@ def CGNewton3_calc(pfo, params, maxiter):
     pixel = complex(params[0], params[1])
     # t__h_zwpixel = complex(params[2], params[3])
 
-    t__a_cf1_offset = pfo.p[5+1].doubleval
-    # t__a_fbailout = pfo.p[1].doubleval
-    t__a_cf0_density = pfo.p[3+1].doubleval
-    t__a_cf0_offset = pfo.p[2+1].doubleval
-    t__a_cf0bailout = pfo.p[4+1].doubleval
+    t__a_cf1_offset = pfo_p[5+1].doubleval
+    # t__a_fbailout = pfo_p[1].doubleval
+    t__a_cf0_density = pfo_p[3+1].doubleval
+    t__a_cf0_offset = pfo_p[2+1].doubleval
+    t__a_cf0bailout = pfo_p[4+1].doubleval
 
     t__h_numiter = 0
     z = complex(1.0, 1.0)
 
-    p1 = complex(pfo.p[1].doubleval, pfo.p[2].doubleval)
+    p1 = complex(pfo_p[1].doubleval, pfo_p[2].doubleval)
 
     t__h_inside = 0
     while True:

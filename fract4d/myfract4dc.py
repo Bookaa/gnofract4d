@@ -2,8 +2,6 @@ import numpy as np
 import png  # pypng (0.0.18)
 import array
 
-UseHisImage = False
-
 (VX, VY, VZ, VW) = (0,1,2,3)
 (IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_TOTAL_WIDTH, IMAGE_TOTAL_HEIGHT, IMAGE_XOFFSET, IMAGE_YOFFSET) = (0,1,2,3,4,5)
 (XCENTER, YCENTER, ZCENTER, WCENTER, MAGNITUDE, XYANGLE, XZANGLE, XWANGLE, YZANGLE, YWANGLE, ZWANGLE) = (0,1,2,3,4,5,6,7,8,9,10)
@@ -171,9 +169,6 @@ class MyFract4dc:
     (IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_TOTAL_WIDTH, IMAGE_TOTAL_HEIGHT, IMAGE_XOFFSET, IMAGE_YOFFSET) = (0,1,2,3,4,5)
 
     def image_create(self, xsize, ysize, txsize, tysize):
-        if UseHisImage:
-            import fract4dc
-            return fract4dc.image_create(xsize, ysize, txsize, tysize)
         img = Image()
         img.set_resolution(xsize, ysize, txsize, tysize)
         return img
@@ -181,34 +176,30 @@ class MyFract4dc:
     def pf_load_and_create(self, outputfile, formuName):
         import mycalc
 
-        # import fract4dc
-        # pfunc = fract4dc.pf_load_and_create(outputfile)
-        pfh = Empty()
-        pfh.pfo = mycalc.pf_new()
-        pfh.cmap = None
-        pfh._img = None
-        pfh.formuName = formuName
-        return pfh
+        theEmpty = Empty()
+        theEmpty.pfo = mycalc.pf_new()
+        theEmpty.cmap = None
+        theEmpty._img = None
+        theEmpty.formuName = formuName
+        return theEmpty
     def pf_init(self, pfunc, params, initparams):
         import mycalc
 
-        the = pfunc
-        the.params = params
-        the.initparams = initparams
+        theEmpty = pfunc
+        theEmpty.params = params
+        theEmpty.initparams = initparams
 
         s_params = mycalc.parse_params(initparams)
-        mycalc.init(the, params, s_params)
+        # mycalc.init(theEmpty, params, s_params)
+        theEmpty.pfo.p = s_params
+        theEmpty.pfo.pos_params = params + []
 
     def pf_init2(self, pfunc, segs, maxiter, _img):
-        the = pfunc
-        the.cmap = cmap_from_pyobject(segs)
-        the.maxiter = maxiter
-        the._img = _img
+        theEmpty = pfunc
+        theEmpty.cmap = cmap_from_pyobject(segs)
+        theEmpty.maxiter = maxiter
+        theEmpty._img = _img
     def image_dims(self, _img):
-        if UseHisImage:
-            import fract4dc
-            return fract4dc.image_dims(_img)
-
         xsize = _img.Xres()
         ysize = _img.Yres()
         xoffset = _img.Xoffset()
@@ -217,33 +208,20 @@ class MyFract4dc:
         ytotalsize = _img.totalYres()
         return (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset)
     def calc(self, **ww):
-        the = ww['pfo']
-        #pfunc = the.pfunc
+        theEmpty = ww['pfo']
         xoff = ww['xoff']
         yoff = ww['yoff']
         xres = ww['xres']
         yres = ww['yres']
-        im = the._img
+        im = theEmpty._img
 
-        if UseHisImage:
-            # _,_,xtotalsize,ytotalsize,_,_ = self.image_dims(im)
-            import fract4dc
-            fract4dc.bookaa_set_offset_resolution(im, xoff, yoff, xres, yres)
+        xtotalsize = im.totalXres()
+        ytotalsize = im.totalYres()
+        im.set_resolution(xres, yres, xtotalsize, ytotalsize)
+        im.set_offset(xoff, yoff)
 
-        else:
-            xtotalsize = im.totalXres()
-            ytotalsize = im.totalYres()
-            im.set_resolution(xres, yres, xtotalsize, ytotalsize)
-            im.set_offset(xoff, yoff)
+        calc_4(theEmpty.params, theEmpty.maxiter, theEmpty.pfo.p, theEmpty.cmap, theEmpty._img, theEmpty.formuName)
 
-        #params = [0.0] * N_PARAMS # double
-        #parse_posparams(the.params, params)
-        # import mycalc
-        # mycalc.calc(pfo=the.pfo, xoff=xoff, yoff=yoff, xres=xres, yres=yres)
-        calc_4(the.params, the.maxiter, the.pfo, the.cmap, the._img, the.formuName)
-
-        #assert False
-        # fract4dc.calc(pfo=pfunc, xoff=xoff, yoff=yoff, xres=xres, yres=yres)
     def image_save_all(self, _img, fp):
         FILE_TYPE_PNG = 1
         iw = ImageWriter(FILE_TYPE_PNG, fp, _img)
@@ -252,8 +230,8 @@ class MyFract4dc:
         iw.save_footer()
 
 class STFractWorker:
-    def __init__(self, pfo, cmap, im, formuName):
-        self.pfo = pfo
+    def __init__(self, pfo_p, cmap, im, formuName):
+        self.pfo_p = pfo_p
         self.cmap = cmap
         self.im = im
         self.ff = None
@@ -273,7 +251,7 @@ class STFractWorker:
         if ii.fate == FATE_UNKNOWN:
             pos = self.ff.topleft + self.ff.deltax * x + self.ff.deltay * y
             ii2 = im_info(self.im)
-            calc_pf(self.pfo, self.cmap, self.formuName, pos, self.ff.maxiter, ii2)
+            calc_pf(self.pfo_p, self.cmap, self.formuName, pos, self.ff.maxiter, ii2)
             ii2.writeback(x,y)
             ii2.rectangle(x,y,w,h)
         else:
@@ -329,17 +307,18 @@ class STFractWorker:
         if self.RGB2INT(x,y) != targetCol:
             return False
         return True
+
 def Pixel2INT(pixel):
     assert isinstance(pixel, array.array)
     r,g,b,a=pixel
     return (r << 16) | (g << 8) | b
 
-def calc_pf(pfo, cmap, formuName, params, nIters, ii):
+def calc_pf(pfo_p, cmap, formuName, params, nIters, ii):
     import mycalc
     if formuName == 'Mandelbrot':
-        fUseColors, colors, solid, dist, iter_, fate = mycalc.Mandelbrot_calc(pfo, params, nIters)
+        fUseColors, colors, solid, dist, iter_, fate = mycalc.Mandelbrot_calc(pfo_p, params, nIters)
     elif formuName == 'CGNewton3':
-        fUseColors, colors, solid, dist, iter_, fate = mycalc.CGNewton3_calc(pfo, params, nIters)
+        fUseColors, colors, solid, dist, iter_, fate = mycalc.CGNewton3_calc(pfo_p, params, nIters)
     else:
         assert False
         # only support chainsoflight.fct and dragon2.fct now
@@ -710,8 +689,8 @@ def rotated_matrix(params):
         * rotZW(params[ZWANGLE], 1.0, 0.0)
     return id2
 
-def calc_4(params, maxiter, pfo, cmap, im, formuName):
-    w = STFractWorker(pfo, cmap, im, formuName)
+def calc_4(params, maxiter, pfo_p, cmap, im, formuName):
+    w = STFractWorker(pfo_p, cmap, im, formuName)
     ff = fractFunc(params, maxiter, w, im)
     w.ff = ff
     ff.draw()
