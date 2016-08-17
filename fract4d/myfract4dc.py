@@ -133,8 +133,23 @@ def cmap_from_pyobject(segs):
                  bmode, cmode)
     return cmap
 
-class Empty:
-    pass
+class PF_Class:
+
+    def calc(self, xoff, yoff, xres, yres):
+        im = self._img
+
+        xtotalsize = im.totalXres()
+        ytotalsize = im.totalYres()
+        im.set_resolution(xres, yres, xtotalsize, ytotalsize)
+        im.set_offset(xoff, yoff)
+
+        self.calc_4(self.params, self.maxiter, self.pfo_p, self.cmap, self._img, self.formuName)
+
+    def calc_4(self, params, maxiter, pfo_p, cmap, im, formuName):
+        w = STFractWorker(pfo_p, cmap, im, formuName)
+        ff = fractFunc(params, maxiter, w, im)
+        w.ff = ff
+        ff.draw()
 
 def image_create(xsize, ysize, txsize, tysize):
     img = Image()
@@ -144,7 +159,7 @@ def image_create(xsize, ysize, txsize, tysize):
 def pf_load_and_create(outputfile, formuName):
     import mycalc
 
-    theEmpty = Empty()
+    theEmpty = PF_Class()
     # theEmpty.pfo = mycalc.pf_new()
     theEmpty.cmap = None
     theEmpty._img = None
@@ -159,15 +174,6 @@ def image_dims(_img):
     xtotalsize = _img.totalXres()
     ytotalsize = _img.totalYres()
     return (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset)
-def calc(theEmpty, xoff, yoff, xres, yres):
-    im = theEmpty._img
-
-    xtotalsize = im.totalXres()
-    ytotalsize = im.totalYres()
-    im.set_resolution(xres, yres, xtotalsize, ytotalsize)
-    im.set_offset(xoff, yoff)
-
-    calc_4(theEmpty.params, theEmpty.maxiter, theEmpty.pfo_p, theEmpty.cmap, theEmpty._img, theEmpty.formuName)
 
 def image_save_all(_img, fp):
     # FILE_TYPE_PNG = 1
@@ -641,13 +647,6 @@ def rotated_matrix(params):
         * rotZW(params[ZWANGLE], 1.0, 0.0)
     return id2
 
-def calc_4(params, maxiter, pfo_p, cmap, im, formuName):
-    w = STFractWorker(pfo_p, cmap, im, formuName)
-    ff = fractFunc(params, maxiter, w, im)
-    w.ff = ff
-    ff.draw()
-
-
 Flag_My = True
 
 if not Flag_My:
@@ -674,7 +673,7 @@ def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
         pfcls._img = image._img
 
         for (xoff,yoff,xres,yres) in image.get_tile_list():
-            calc(pfcls, xoff, yoff, xres, yres)
+            pfcls.calc(xoff, yoff, xres, yres)
         return
 
     pfunc = fract4dc.pf_load_and_create(outputfile, formuName)
