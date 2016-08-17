@@ -7,36 +7,6 @@ import array
 (XCENTER, YCENTER, ZCENTER, WCENTER, MAGNITUDE, XYANGLE, XZANGLE, XWANGLE, YZANGLE, YWANGLE, ZWANGLE) = (0,1,2,3,4,5,6,7,8,9,10)
 (RED, GREEN, BLUE) = (0, 1, 2)
 (FATE_UNKNOWN, FATE_SOLID, FATE_DIRECT, FATE_INSIDE) = (255, 0x80, 0x40, 0x20)
-
-class ImageWriter:
-    def __init__(self, type_is_png, fp, _img):
-        self.fp = fp; self.im = _img
-        buf = _img.buffer
-        lens = len(buf)
-        #print 'len', lens
-        #print '%02x %02x %02x %02x' % (buf[0], buf[1], buf[2], buf[3])
-        #print '%02x %02x %02x %02x' % (buf[lens-4], buf[lens-3], buf[lens-2], buf[lens-1])
-        # len 921600
-        # 3b 28 68 3b
-        # 57 50 17 57
-        # for chainsoflight.fct
-        # 4d 19 12 4d
-        # 12 5f 25 1b
-
-    def save_header(self):
-        pass
-    def save_tile(self):
-        pass
-    def save_footer(self):
-        p, n = self.im.buffer.buffer_info()
-        pbuffer = self.im.buffer # buffer(self.im.buffer)
-        #pbuffer = buffer(self.im.buffer)
-        #print '%x %x' % (p, n)
-        import fract4dc
-        #print '>>>'
-        fract4dc.Bookaa_write_image(self.fp, pbuffer, n, self.im.Xres(), self.im.Yres(), self.im.totalXres(), self.im.totalYres())
-        #print '<<<'
-
 N_SUBPIXELS = 4
 N_PARAMS = 11
 
@@ -95,16 +65,16 @@ class Image:
            self.m_totalXres == totalx and self.m_totalYres == totaly:
            return
 
-        self.m_Xres = x;
-        self.m_Yres = y;
-        self.m_totalXres = totalx;
-        self.m_totalYres = totaly;
+        self.m_Xres = x
+        self.m_Yres = y
+        self.m_totalXres = totalx
+        self.m_totalYres = totaly
 
-        self.delete_buffers();
+        self.delete_buffers()
 
         self.alloc_buffers()
 
-        pixel = (0,0,0,255)
+        pixel = array.array('B', [0,0,0,255])
 
         for i in range(y):
             for j in range(x):
@@ -180,23 +150,7 @@ def pf_load_and_create(outputfile, formuName):
     theEmpty._img = None
     theEmpty.formuName = formuName
     return theEmpty
-def pf_init(pfunc, params, initparams):
-    import mycalc
 
-    theEmpty = pfunc
-    theEmpty.params = params
-    theEmpty.initparams = initparams
-
-    s_params = mycalc.parse_params(initparams)
-    # mycalc.init(theEmpty, params, s_params)
-    theEmpty.pfo_p = s_params
-    theEmpty.pfo_pos_params = params + []
-
-def pf_init2(pfunc, segs, maxiter, _img):
-    theEmpty = pfunc
-    theEmpty.cmap = cmap_from_pyobject(segs)
-    theEmpty.maxiter = maxiter
-    theEmpty._img = _img
 def image_dims(_img):
     xsize = _img.Xres()
     ysize = _img.Yres()
@@ -205,12 +159,7 @@ def image_dims(_img):
     xtotalsize = _img.totalXres()
     ytotalsize = _img.totalYres()
     return (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset)
-def calc(**ww):
-    theEmpty = ww['pfo']
-    xoff = ww['xoff']
-    yoff = ww['yoff']
-    xres = ww['xres']
-    yres = ww['yres']
+def calc(theEmpty, xoff, yoff, xres, yres):
     im = theEmpty._img
 
     xtotalsize = im.totalXres()
@@ -221,11 +170,27 @@ def calc(**ww):
     calc_4(theEmpty.params, theEmpty.maxiter, theEmpty.pfo_p, theEmpty.cmap, theEmpty._img, theEmpty.formuName)
 
 def image_save_all(_img, fp):
-    FILE_TYPE_PNG = 1
-    iw = ImageWriter(FILE_TYPE_PNG, fp, _img)
-    iw.save_header()
-    iw.save_tile()
-    iw.save_footer()
+    # FILE_TYPE_PNG = 1
+    buf = _img.buffer
+    lens = len(buf)
+    #print 'len', lens
+    #print '%02x %02x %02x %02x' % (buf[0], buf[1], buf[2], buf[3])
+    #print '%02x %02x %02x %02x' % (buf[lens-4], buf[lens-3], buf[lens-2], buf[lens-1])
+    # len 921600
+    # 3b 28 68 3b
+    # 57 50 17 57
+    # for chainsoflight.fct
+    # 4d 19 12 4d
+    # 12 5f 25 1b
+
+    p, n = _img.buffer.buffer_info()
+    pbuffer = _img.buffer # buffer(self.im.buffer)
+    #pbuffer = buffer(self.im.buffer)
+    #print '%x %x' % (p, n)
+    import fract4dc
+    #print '>>>'
+    fract4dc.Bookaa_write_image(fp, pbuffer, n, _img.Xres(), _img.Yres(), _img.totalXres(), _img.totalYres())
+    #print '<<<'
 
 class STFractWorker:
     def __init__(self, pfo_p, cmap, im, formuName):
@@ -377,12 +342,10 @@ class fractFunc:
         self.worker = worker
         self.im = im
 
-        if True:
-            (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset) = image_dims(im)
-            # xtotalsize is im.totalXres()
-            # ytotalsize is im.totalYres()
-            # xoffset is im.Xoffset()
-            # yoffset is im.Yoffset()
+        xtotalsize = im.totalXres()
+        ytotalsize = im.totalYres()
+        xoffset = im.Xoffset()
+        yoffset = im.Yoffset()
 
         center = np.asarray([params[XCENTER], params[YCENTER], params[ZCENTER], params[WCENTER]])
         #print 'mycenter', center
@@ -410,14 +373,7 @@ class fractFunc:
 
     def draw(self):
         rsize = 16; drawsize = 16
-        if True:
-            (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset) = image_dims(self.im)
-            # xtotalsize is im.totalXres()
-            # ytotalsize is im.totalYres()
-            # xoffset is im.Xoffset()
-            # yoffset is im.Yoffset()
-            # xsize is im.Xres()
-            # ysize is im.Yres()
+        xsize = self.im.Xres(); ysize = self.im.Yres()
         w = xsize; h = ysize
         y = 0
         while y < h - rsize:
@@ -703,14 +659,22 @@ if not Flag_My:
 
 def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
     if Flag_My:
-        pfunc = pf_load_and_create(outputfile, formuName)
+        pfcls = pf_load_and_create(outputfile, formuName)
 
-        pf_init(pfunc,params,initparams)
+        pfcls.params = params
+        # pfcls.initparams = initparams
 
-        pf_init2(pfunc, segs, maxiter, image._img)
+        import mycalc
+        s_params = mycalc.parse_params(initparams)
+        pfcls.pfo_p = s_params
+        # pfcls.pfo_pos_params = params + []
+
+        pfcls.cmap = cmap_from_pyobject(segs)
+        pfcls.maxiter = maxiter
+        pfcls._img = image._img
 
         for (xoff,yoff,xres,yres) in image.get_tile_list():
-            calc(pfo=pfunc, xoff=xoff, yoff=yoff, xres=xres, yres=yres)
+            calc(pfcls, xoff, yoff, xres, yres)
         return
 
     pfunc = fract4dc.pf_load_and_create(outputfile, formuName)
