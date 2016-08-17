@@ -165,69 +165,67 @@ def cmap_from_pyobject(segs):
 
 class Empty:
     pass
-class MyFract4dc:
-    (IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_TOTAL_WIDTH, IMAGE_TOTAL_HEIGHT, IMAGE_XOFFSET, IMAGE_YOFFSET) = (0,1,2,3,4,5)
 
-    def image_create(self, xsize, ysize, txsize, tysize):
-        img = Image()
-        img.set_resolution(xsize, ysize, txsize, tysize)
-        return img
-        #_img = fract4dc.image_create(xsize, ysize, txsize, tysize)
-    def pf_load_and_create(self, outputfile, formuName):
-        import mycalc
+def image_create(xsize, ysize, txsize, tysize):
+    img = Image()
+    img.set_resolution(xsize, ysize, txsize, tysize)
+    return img
+    #_img = fract4dc.image_create(xsize, ysize, txsize, tysize)
+def pf_load_and_create(outputfile, formuName):
+    import mycalc
 
-        theEmpty = Empty()
-        # theEmpty.pfo = mycalc.pf_new()
-        theEmpty.cmap = None
-        theEmpty._img = None
-        theEmpty.formuName = formuName
-        return theEmpty
-    def pf_init(self, pfunc, params, initparams):
-        import mycalc
+    theEmpty = Empty()
+    # theEmpty.pfo = mycalc.pf_new()
+    theEmpty.cmap = None
+    theEmpty._img = None
+    theEmpty.formuName = formuName
+    return theEmpty
+def pf_init(pfunc, params, initparams):
+    import mycalc
 
-        theEmpty = pfunc
-        theEmpty.params = params
-        theEmpty.initparams = initparams
+    theEmpty = pfunc
+    theEmpty.params = params
+    theEmpty.initparams = initparams
 
-        s_params = mycalc.parse_params(initparams)
-        # mycalc.init(theEmpty, params, s_params)
-        theEmpty.pfo_p = s_params
-        theEmpty.pfo_pos_params = params + []
+    s_params = mycalc.parse_params(initparams)
+    # mycalc.init(theEmpty, params, s_params)
+    theEmpty.pfo_p = s_params
+    theEmpty.pfo_pos_params = params + []
 
-    def pf_init2(self, pfunc, segs, maxiter, _img):
-        theEmpty = pfunc
-        theEmpty.cmap = cmap_from_pyobject(segs)
-        theEmpty.maxiter = maxiter
-        theEmpty._img = _img
-    def image_dims(self, _img):
-        xsize = _img.Xres()
-        ysize = _img.Yres()
-        xoffset = _img.Xoffset()
-        yoffset = _img.Yoffset()
-        xtotalsize = _img.totalXres()
-        ytotalsize = _img.totalYres()
-        return (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset)
-    def calc(self, **ww):
-        theEmpty = ww['pfo']
-        xoff = ww['xoff']
-        yoff = ww['yoff']
-        xres = ww['xres']
-        yres = ww['yres']
-        im = theEmpty._img
+def pf_init2(pfunc, segs, maxiter, _img):
+    theEmpty = pfunc
+    theEmpty.cmap = cmap_from_pyobject(segs)
+    theEmpty.maxiter = maxiter
+    theEmpty._img = _img
+def image_dims(_img):
+    xsize = _img.Xres()
+    ysize = _img.Yres()
+    xoffset = _img.Xoffset()
+    yoffset = _img.Yoffset()
+    xtotalsize = _img.totalXres()
+    ytotalsize = _img.totalYres()
+    return (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset)
+def calc(**ww):
+    theEmpty = ww['pfo']
+    xoff = ww['xoff']
+    yoff = ww['yoff']
+    xres = ww['xres']
+    yres = ww['yres']
+    im = theEmpty._img
 
-        xtotalsize = im.totalXres()
-        ytotalsize = im.totalYres()
-        im.set_resolution(xres, yres, xtotalsize, ytotalsize)
-        im.set_offset(xoff, yoff)
+    xtotalsize = im.totalXres()
+    ytotalsize = im.totalYres()
+    im.set_resolution(xres, yres, xtotalsize, ytotalsize)
+    im.set_offset(xoff, yoff)
 
-        calc_4(theEmpty.params, theEmpty.maxiter, theEmpty.pfo_p, theEmpty.cmap, theEmpty._img, theEmpty.formuName)
+    calc_4(theEmpty.params, theEmpty.maxiter, theEmpty.pfo_p, theEmpty.cmap, theEmpty._img, theEmpty.formuName)
 
-    def image_save_all(self, _img, fp):
-        FILE_TYPE_PNG = 1
-        iw = ImageWriter(FILE_TYPE_PNG, fp, _img)
-        iw.save_header()
-        iw.save_tile()
-        iw.save_footer()
+def image_save_all(_img, fp):
+    FILE_TYPE_PNG = 1
+    iw = ImageWriter(FILE_TYPE_PNG, fp, _img)
+    iw.save_header()
+    iw.save_tile()
+    iw.save_footer()
 
 class STFractWorker:
     def __init__(self, pfo_p, cmap, im, formuName):
@@ -380,8 +378,7 @@ class fractFunc:
         self.im = im
 
         if True:
-            fract4dc = MyFract4dc()
-            (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset) = fract4dc.image_dims(im)
+            (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset) = image_dims(im)
             # xtotalsize is im.totalXres()
             # ytotalsize is im.totalYres()
             # xoffset is im.Xoffset()
@@ -414,8 +411,7 @@ class fractFunc:
     def draw(self):
         rsize = 16; drawsize = 16
         if True:
-            fract4dc = MyFract4dc()
-            (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset) = fract4dc.image_dims(self.im)
+            (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset) = image_dims(self.im)
             # xtotalsize is im.totalXres()
             # ytotalsize is im.totalYres()
             # xoffset is im.Xoffset()
@@ -698,9 +694,7 @@ def calc_4(params, maxiter, pfo_p, cmap, im, formuName):
 
 Flag_My = True
 
-if Flag_My:
-    fract4dc = MyFract4dc()
-else:
+if not Flag_My:
     try:
         import fract4dcgmp as fract4dc
     except ImportError, err:
@@ -708,6 +702,16 @@ else:
 
 
 def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
+    if Flag_My:
+        pfunc = pf_load_and_create(outputfile, formuName)
+
+        pf_init(pfunc,params,initparams)
+
+        pf_init2(pfunc, segs, maxiter, image._img)
+
+        for (xoff,yoff,xres,yres) in image.get_tile_list():
+            calc(pfo=pfunc, xoff=xoff, yoff=yoff, xres=xres, yres=yres)
+        return
 
     pfunc = fract4dc.pf_load_and_create(outputfile, formuName)
 

@@ -2,11 +2,14 @@
 # exposed via fract4dmodule and provides some higher-level options around it
 
 import myfract4dc
-fract4dc = myfract4dc.fract4dc
+#fract4dc = myfract4dc.fract4dc
 
 
 class T:
     def __init__(self,xsize,ysize,txsize=-1,tysize=-1):
+        if myfract4dc.Flag_My:
+            self._img = myfract4dc.image_create(xsize, ysize, txsize, tysize)
+            return
         self._img = fract4dc.image_create(xsize, ysize, txsize, tysize)
 
     def save(self,name):
@@ -15,16 +18,26 @@ class T:
         except IOError, err:
             raise IOError("Unable to save image to '%s' : %s" % (name,err.strerror))
 
-        fract4dc.image_save_all(self._img, fp)
+        if myfract4dc.Flag_My:
+            myfract4dc.image_save_all(self._img, fp)
+        else:
+            fract4dc.image_save_all(self._img, fp)
 
         fp.close()
 
     def get_tile_list(self):
-        dims = fract4dc.image_dims(self._img)
-        xsize = dims[fract4dc.IMAGE_WIDTH]
-        ysize = dims[fract4dc.IMAGE_HEIGHT]
-        total_xsize = dims[fract4dc.IMAGE_TOTAL_WIDTH]
-        total_ysize = dims[fract4dc.IMAGE_TOTAL_HEIGHT]
+        if myfract4dc.Flag_My:
+            dims = myfract4dc.image_dims(self._img)
+            xsize = dims[myfract4dc.IMAGE_WIDTH]
+            ysize = dims[myfract4dc.IMAGE_HEIGHT]
+            total_xsize = dims[myfract4dc.IMAGE_TOTAL_WIDTH]
+            total_ysize = dims[myfract4dc.IMAGE_TOTAL_HEIGHT]
+        else:
+            dims = fract4dc.image_dims(self._img)
+            xsize = dims[fract4dc.IMAGE_WIDTH]
+            ysize = dims[fract4dc.IMAGE_HEIGHT]
+            total_xsize = dims[fract4dc.IMAGE_TOTAL_WIDTH]
+            total_ysize = dims[fract4dc.IMAGE_TOTAL_HEIGHT]
         x = 0
         y = 0
         base_xres = xsize
