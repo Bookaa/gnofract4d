@@ -178,7 +178,7 @@ class MyFract4dc:
         img.set_resolution(xsize, ysize, txsize, tysize)
         return img
         #_img = fract4dc.image_create(xsize, ysize, txsize, tysize)
-    def pf_load_and_create(self, outputfile):
+    def pf_load_and_create(self, outputfile, formuName):
         import mycalc
 
         # import fract4dc
@@ -187,6 +187,7 @@ class MyFract4dc:
         pfh.pfo = mycalc.pf_new()
         pfh.cmap = None
         pfh._img = None
+        pfh.formuName = formuName
         return pfh
     def pf_init(self, pfunc, params, initparams):
         import mycalc
@@ -239,7 +240,7 @@ class MyFract4dc:
         #parse_posparams(the.params, params)
         # import mycalc
         # mycalc.calc(pfo=the.pfo, xoff=xoff, yoff=yoff, xres=xres, yres=yres)
-        calc_4(the.params, the.maxiter, the.pfo, the.cmap, the._img)
+        calc_4(the.params, the.maxiter, the.pfo, the.cmap, the._img, the.formuName)
 
         #assert False
         # fract4dc.calc(pfo=pfunc, xoff=xoff, yoff=yoff, xres=xres, yres=yres)
@@ -251,11 +252,12 @@ class MyFract4dc:
         iw.save_footer()
 
 class STFractWorker:
-    def __init__(self, pfo, cmap, im):
+    def __init__(self, pfo, cmap, im, formuName):
         self.pfo = pfo
         self.cmap = cmap
         self.im = im
         self.ff = None
+        self.formuName = formuName
     def qbox_row(self, w, y, rsize, drawsize):
         x = 0
         while x < w-rsize:
@@ -266,18 +268,17 @@ class STFractWorker:
             self.row(x,y2,w-x)
             y2 += 1
     def pixel(self, x, y, w, h):
-        pf = pointFunc(self.pfo, self.cmap)
         ii = im_info(self.im)
         ii.init_fate(x,y)
         if ii.fate == FATE_UNKNOWN:
             pos = self.ff.topleft + self.ff.deltax * x + self.ff.deltay * y
             ii2 = im_info(self.im)
-            pf.calc_pf(pos, self.ff.maxiter, ii2)
+            calc_pf(self.pfo, self.cmap, self.formuName, pos, self.ff.maxiter, ii2)
             ii2.writeback(x,y)
             ii2.rectangle(x,y,w,h)
         else:
             ii.init(x,y)
-            pf.recolor(ii)
+            ii.recolor(self.cmap)
             ii.rectangle(x,y,w,h)
     def row(self, x, y, n):
         for i in range(n):
@@ -329,38 +330,27 @@ class STFractWorker:
             return False
         return True
 def Pixel2INT(pixel):
+    assert isinstance(pixel, array.array)
     r,g,b,a=pixel
-    r = int(r) % 255
-    g = int(g) % 255
-    b = int(b) % 255
     return (r << 16) | (g << 8) | b
 
-class pointFunc:
-    def __init__(self, pfo, cmap):
-        self.pfo = pfo
-        self.cmap = cmap
-    def calc_pf(self, params, nIters, ii):
-        import mycalc
-        fUseColors, colors, solid, dist, iter_, fate = mycalc.calc(self.pfo, params, nIters)
-        if fUseColors:
-            ii.pixel = self.cmap.lookup_with_dca(solid, colors)
-        else:
-            ii.pixel = self.cmap.lookup_with_transfer(dist, solid)
-        ii.fate = fate
-        ii.index = dist
-        ii.iter = iter_
-    def recolor(self, ii):
-        dist = ii.index
-        fate = ii.fate
-        solid = 0
-        inside = 0
-        if fate & FATE_DIRECT:
-            return
-        if fate & FATE_SOLID:
-            solid = 1
-        if fate & FATE_INSIDE:
-            inside = 1
-        ii.pixel = self.cmap.lookup_with_transfer(dist, solid)
+def calc_pf(pfo, cmap, formuName, params, nIters, ii):
+    import mycalc
+    if formuName == 'Mandelbrot':
+        fUseColors, colors, solid, dist, iter_, fate = mycalc.Mandelbrot_calc(pfo, params, nIters)
+    elif formuName == 'CGNewton3':
+        fUseColors, colors, solid, dist, iter_, fate = mycalc.CGNewton3_calc(pfo, params, nIters)
+    else:
+        assert False
+        # only support chainsoflight.fct and dragon2.fct now
+
+    if fUseColors:
+        ii.pixel = cmap.lookup_with_dca(solid, colors)
+    else:
+        ii.pixel = cmap.lookup_with_transfer(dist, solid)
+    ii.fate = fate
+    ii.index = dist
+    ii.iter = iter_
 
 class im_info:
     def __init__(self, im):
@@ -390,6 +380,18 @@ class im_info:
                 self.im.setIter(j,i,self.iter)
                 self.im.setFate(j,i,0,self.fate)
                 self.im.setIndex(j,i,0,self.index)
+    def recolor(self, cmap):
+        dist = self.index
+        fate = self.fate
+        solid = 0
+        inside = 0
+        if fate & FATE_DIRECT:
+            return
+        if fate & FATE_SOLID:
+            solid = 1
+        if fate & FATE_INSIDE:
+            inside = 1
+        self.pixel = cmap.lookup_with_transfer(dist, solid)
 
 class fractFunc:
     def __init__(self, params, maxiter, worker, im):
@@ -708,13 +710,13 @@ def rotated_matrix(params):
         * rotZW(params[ZWANGLE], 1.0, 0.0)
     return id2
 
-def calc_4(params, maxiter, pfo, cmap, im):
-    w = STFractWorker(pfo, cmap, im)
+def calc_4(params, maxiter, pfo, cmap, im, formuName):
+    w = STFractWorker(pfo, cmap, im, formuName)
     ff = fractFunc(params, maxiter, w, im)
     w.ff = ff
     ff.draw()
 
-if True:
+if False:
     try:
         import fract4dcgmp as fract4dc
     except ImportError, err:

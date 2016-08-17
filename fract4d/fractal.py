@@ -232,13 +232,16 @@ class T(fctutils.T):
     def all_params(self):
         p = []
         for form in self.forms:
+            p1 = zip(form.params, form.paramtypes, form.formula.symbols.var_params)
             p += form.params
         for transform in self.transforms:
+            assert False    # alert me
             p += transform.params
         return p
 
     def draw(self, image, outputfile):
-        pfunc = fract4dc.pf_load_and_create(outputfile)
+        formuName = self.forms[0].funcName
+        pfunc = fract4dc.pf_load_and_create(outputfile, formuName)
 
         initparams = self.all_params()
         fract4dc.pf_init(pfunc,self.params,initparams)

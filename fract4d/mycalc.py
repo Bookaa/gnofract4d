@@ -119,7 +119,7 @@ def Mandelbrot_calc(pfo, params, maxiter):
         iter_ = -1
     return fUseColors, colors, solid, dist, iter_, fate
 
-def calc(pfo, params, maxiter):
+def CGNewton3_calc(pfo, params, maxiter):
     '''
     CGNewton3 {
       z=(1,1):
