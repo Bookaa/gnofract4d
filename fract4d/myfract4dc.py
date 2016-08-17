@@ -135,6 +135,11 @@ def cmap_from_pyobject(segs):
 
 class PF_Class:
 
+    def __init__(self, formuName):
+        self.cmap = None
+        self._img = None
+        self.formuName = formuName
+
     def calc(self, xoff, yoff, xres, yres):
         im = self._img
 
@@ -143,11 +148,10 @@ class PF_Class:
         im.set_resolution(xres, yres, xtotalsize, ytotalsize)
         im.set_offset(xoff, yoff)
 
-        self.calc_4(self.params, self.maxiter, self.pfo_p, self.cmap, self._img, self.formuName)
-
-    def calc_4(self, params, maxiter, pfo_p, cmap, im, formuName):
-        w = STFractWorker(pfo_p, cmap, im, formuName)
-        ff = fractFunc(params, maxiter, w, im)
+        #self.calc_4(self.params, self.maxiter, self.pfo_p, self.cmap, self._img, self.formuName)
+        #def calc_4(self, params, maxiter, pfo_p, cmap, im, formuName):
+        w = STFractWorker(self.pfo_p, self.cmap, self._img, self.formuName)
+        ff = fractFunc(self.params, self.maxiter, w, self._img)
         w.ff = ff
         ff.draw()
 
@@ -156,15 +160,6 @@ def image_create(xsize, ysize, txsize, tysize):
     img.set_resolution(xsize, ysize, txsize, tysize)
     return img
     #_img = fract4dc.image_create(xsize, ysize, txsize, tysize)
-def pf_load_and_create(outputfile, formuName):
-    import mycalc
-
-    theEmpty = PF_Class()
-    # theEmpty.pfo = mycalc.pf_new()
-    theEmpty.cmap = None
-    theEmpty._img = None
-    theEmpty.formuName = formuName
-    return theEmpty
 
 def image_dims(_img):
     xsize = _img.Xres()
@@ -647,6 +642,25 @@ def rotated_matrix(params):
         * rotZW(params[ZWANGLE], 1.0, 0.0)
     return id2
 
+class s_param:
+    pass
+
+def parse_params(params):
+    lst = []
+    import gradient
+    for itm in params:
+        the = s_param()
+        if isinstance(itm, gradient.Gradient):
+            the.t = 2 # GRADIENT
+            the.gradient = itm
+        elif isinstance(itm, float):
+            the.t = 1 # FLOAT
+            the.doubleval = itm
+        else:
+            assert False
+        lst.append(the)
+    return lst
+
 Flag_My = True
 
 if not Flag_My:
@@ -658,13 +672,12 @@ if not Flag_My:
 
 def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
     if Flag_My:
-        pfcls = pf_load_and_create(outputfile, formuName)
+        pfcls = PF_Class(formuName)
 
         pfcls.params = params
         # pfcls.initparams = initparams
 
-        import mycalc
-        s_params = mycalc.parse_params(initparams)
+        s_params = parse_params(initparams)
         pfcls.pfo_p = s_params
         # pfcls.pfo_pos_params = params + []
 

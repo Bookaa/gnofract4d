@@ -23,25 +23,6 @@ struct s_param
 PF_MAXPARAMS = 200
 N_PARAMS = 11
 
-class s_param:
-    pass
-
-def parse_params(params):
-    lst = []
-    import gradient
-    for itm in params:
-        the = s_param()
-        if isinstance(itm, gradient.Gradient):
-            the.t = 2 # GRADIENT
-            the.gradient = itm
-        elif isinstance(itm, float):
-            the.t = 1 # FLOAT
-            the.doubleval = itm
-        else:
-            assert False
-        lst.append(the)
-    return lst
-
 def Mandelbrot_calc(pfo_p, params, maxiter):
     '''
     Mandelbrot {
