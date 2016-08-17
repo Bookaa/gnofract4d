@@ -12,7 +12,6 @@ import random
 from time import time as now
 
 import myfract4dc
-fract4dc = myfract4dc.fract4dc
 
 # import fracttypes
 import gradient
@@ -241,16 +240,10 @@ class T(fctutils.T):
 
     def draw(self, image, outputfile):
         formuName = self.forms[0].funcName
-        pfunc = fract4dc.pf_load_and_create(outputfile, formuName)
-
         initparams = self.all_params()
-        fract4dc.pf_init(pfunc,self.params,initparams)
-
         segs = self.get_gradient().segments
-        fract4dc.pf_init2(pfunc, segs, self.maxiter, image._img)
-
-        for (xoff,yoff,xres,yres) in image.get_tile_list():
-            fract4dc.calc(pfo=pfunc, xoff=xoff, yoff=yoff, xres=xres, yres=yres)
+        myfract4dc.draw(image, outputfile, formuName, initparams, self.params, segs, self.maxiter)
+        return
 
     def set_param(self,n,val):
         val = float(val)

@@ -42,20 +42,6 @@ def parse_params(params):
         lst.append(the)
     return lst
 
-class pf_real:
-    def __init__(self):
-        # self.p = [None] * PF_MAXPARAMS
-        p = []
-        for i in range(PF_MAXPARAMS):
-            the = s_param()
-            p.append(the)
-        self.p = p
-        self.pos_params = [0.0] * N_PARAMS
-
-def pf_new():
-    the = pf_real()
-    return the
-
 def Mandelbrot_calc(pfo_p, params, maxiter):
     '''
     Mandelbrot {

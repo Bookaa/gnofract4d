@@ -177,7 +177,7 @@ class MyFract4dc:
         import mycalc
 
         theEmpty = Empty()
-        theEmpty.pfo = mycalc.pf_new()
+        # theEmpty.pfo = mycalc.pf_new()
         theEmpty.cmap = None
         theEmpty._img = None
         theEmpty.formuName = formuName
@@ -191,8 +191,8 @@ class MyFract4dc:
 
         s_params = mycalc.parse_params(initparams)
         # mycalc.init(theEmpty, params, s_params)
-        theEmpty.pfo.p = s_params
-        theEmpty.pfo.pos_params = params + []
+        theEmpty.pfo_p = s_params
+        theEmpty.pfo_pos_params = params + []
 
     def pf_init2(self, pfunc, segs, maxiter, _img):
         theEmpty = pfunc
@@ -220,7 +220,7 @@ class MyFract4dc:
         im.set_resolution(xres, yres, xtotalsize, ytotalsize)
         im.set_offset(xoff, yoff)
 
-        calc_4(theEmpty.params, theEmpty.maxiter, theEmpty.pfo.p, theEmpty.cmap, theEmpty._img, theEmpty.formuName)
+        calc_4(theEmpty.params, theEmpty.maxiter, theEmpty.pfo_p, theEmpty.cmap, theEmpty._img, theEmpty.formuName)
 
     def image_save_all(self, _img, fp):
         FILE_TYPE_PNG = 1
@@ -695,13 +695,25 @@ def calc_4(params, maxiter, pfo_p, cmap, im, formuName):
     w.ff = ff
     ff.draw()
 
-if False:
+
+Flag_My = True
+
+if Flag_My:
+    fract4dc = MyFract4dc()
+else:
     try:
         import fract4dcgmp as fract4dc
     except ImportError, err:
         import fract4dc
 
-else:
-    fract4dc = MyFract4dc()
 
+def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
 
+    pfunc = fract4dc.pf_load_and_create(outputfile, formuName)
+
+    fract4dc.pf_init(pfunc,params,initparams)
+
+    fract4dc.pf_init2(pfunc, segs, maxiter, image._img)
+
+    for (xoff,yoff,xres,yres) in image.get_tile_list():
+        fract4dc.calc(pfo=pfunc, xoff=xoff, yoff=yoff, xres=xres, yres=yres)
