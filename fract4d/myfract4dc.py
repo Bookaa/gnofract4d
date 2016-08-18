@@ -7,18 +7,20 @@ import array
 (XCENTER, YCENTER, ZCENTER, WCENTER, MAGNITUDE, XYANGLE, XZANGLE, XWANGLE, YZANGLE, YWANGLE, ZWANGLE) = (0,1,2,3,4,5,6,7,8,9,10)
 (RED, GREEN, BLUE) = (0, 1, 2)
 (FATE_UNKNOWN, FATE_SOLID, FATE_DIRECT, FATE_INSIDE) = (255, 0x80, 0x40, 0x20)
+(RGB, HSV_CCW, HSV_CW) = (0, 1, 2)
+(BLEND_LINEAR,BLEND_CURVED,BLEND_SINE,BLEND_SPHERE_INCREASING,BLEND_SPHERE_DECREASING) = (0,1,2,3,4)
 N_SUBPIXELS = 4
 N_PARAMS = 11
 
 class Image:
     def __init__(self):
-        self.m_Xres = self.m_Yres = 0;
-        self.m_totalXres = self.m_totalYres = 0;
-        self.m_xoffset = self.m_yoffset = 0;
-        self.buffer = None #NULL;
-        self.iter_buf = None #NULL;
-        self.fate_buf = None #NULL;
-        self.index_buf = None #NULL;
+        self.m_Xres = self.m_Yres = 0
+        self.m_totalXres = self.m_totalYres = 0
+        self.m_xoffset = self.m_yoffset = 0
+        self.buffer = None
+        self.iter_buf = None
+        self.fate_buf = None
+        self.index_buf = None
 
     def Xres(self): return self.m_Xres
     def Yres(self): return self.m_Yres
@@ -28,12 +30,6 @@ class Image:
     def Yoffset(self): return self.m_yoffset
     def row_length(self): return self.Xres() * 3
     def bytes(self): return self.row_length() * self.m_Yres
-
-    def delete_buffers(self):
-        self.buffer = None #NULL;
-        self.iter_buf = None #NULL;
-        self.fate_buf = None #NULL;
-        self.index_buf = None #NULL;
 
     def alloc_buffers(self):
         # https://docs.python.org/2/library/array.html
@@ -45,6 +41,9 @@ class Image:
         if self.m_Xres * self.m_Yres <= MAX_RECOLOR_SIZE:
             self.index_buf = array.array('f', [0.0] * (self.m_Xres * self.m_Yres * N_SUBPIXELS))
             self.fate_buf = array.array('B', [0] * (self.m_Xres * self.m_Yres * N_SUBPIXELS))
+        else:
+            self.index_buf = None
+            self.fate_buf = None
         self.clear()
 
     def clear(self):
@@ -70,8 +69,6 @@ class Image:
         self.m_totalXres = totalx
         self.m_totalYres = totaly
 
-        self.delete_buffers()
-
         self.alloc_buffers()
 
         pixel = array.array('B', [0,0,0,255])
@@ -79,7 +76,6 @@ class Image:
         for i in range(y):
             for j in range(x):
                 self.put(j,i,pixel)
-        pass
 
     def set_offset(self, x, y):
         self.m_xoffset = x
@@ -148,8 +144,6 @@ class PF_Class:
         im.set_resolution(xres, yres, xtotalsize, ytotalsize)
         im.set_offset(xoff, yoff)
 
-        #self.calc_4(self.params, self.maxiter, self.pfo_p, self.cmap, self._img, self.formuName)
-        #def calc_4(self, params, maxiter, pfo_p, cmap, im, formuName):
         w = STFractWorker(self.pfo_p, self.cmap, self._img, self.formuName)
         ff = fractFunc(self.params, self.maxiter, w, self._img)
         w.ff = ff
@@ -214,8 +208,8 @@ class STFractWorker:
         ii.init_fate(x,y)
         if ii.fate == FATE_UNKNOWN:
             pos = self.ff.topleft + self.ff.deltax * x + self.ff.deltay * y
-            ii2 = im_info(self.im)
-            calc_pf(self.pfo_p, self.cmap, self.formuName, pos, self.ff.maxiter, ii2)
+            ii2 = calc_pf(self.pfo_p, self.cmap, self.formuName, pos, self.ff.maxiter)
+            ii2.im = self.im
             ii2.writeback(x,y)
             ii2.rectangle(x,y,w,h)
         else:
@@ -274,10 +268,10 @@ class STFractWorker:
 
 def Pixel2INT(pixel):
     assert isinstance(pixel, array.array)
-    r,g,b,a=pixel
+    r,g,b,a = pixel
     return (r << 16) | (g << 8) | b
 
-def calc_pf(pfo_p, cmap, formuName, params, nIters, ii):
+def calc_pf(pfo_p, cmap, formuName, params, nIters):
     import mycalc
     if formuName == 'Mandelbrot':
         fUseColors, colors, solid, dist, iter_, fate = mycalc.Mandelbrot_calc(pfo_p, params, nIters)
@@ -287,6 +281,7 @@ def calc_pf(pfo_p, cmap, formuName, params, nIters, ii):
         assert False
         # only support chainsoflight.fct and dragon2.fct now
 
+    ii = im_info(None)
     if fUseColors:
         ii.pixel = cmap.lookup_with_dca(solid, colors)
     else:
@@ -294,6 +289,7 @@ def calc_pf(pfo_p, cmap, formuName, params, nIters, ii):
     ii.fate = fate
     ii.index = dist
     ii.iter = iter_
+    return ii
 
 class im_info:
     def __init__(self, im):
@@ -388,9 +384,6 @@ class fractFunc:
             self.worker.box_row(w,y,rsize)
             y += rsize
 
-(RGB, HSV_CCW, HSV_CW) = (0, 1, 2)
-(BLEND_LINEAR,BLEND_CURVED,BLEND_SINE,BLEND_SPHERE_INCREASING,BLEND_SPHERE_DECREASING) = (0,1,2,3,4)
-
 class gradient_item_t:
     def __init__(self):
         self.left = 0
@@ -407,16 +400,16 @@ class ColorMap:
             items.append(the)
         self.items = items
     def lookup_with_dca(self, solid, colors):
-        black = [0,0,0,255]
+        black = array.array('B', [0,0,0,255])
         if solid:
             return black
-        r = 255.0 * colors[0]
-        g = 255.0 * colors[1]
-        b = 255.0 * colors[2]
-        a = 255.0 * colors[3]
-        return (r,g,b,a)
+        r = int(255.0 * colors[0]) % 256
+        g = int(255.0 * colors[1]) % 256
+        b = int(255.0 * colors[2]) % 256
+        a = int(255.0 * colors[3]) % 256
+        return array.array('B', [r,g,b,a])
     def lookup_with_transfer(self, index, solid):
-        black = [0,0,0,255]
+        black = array.array('B', [0,0,0,255])
         if solid:
             return black
         return self.lookup(index)
@@ -644,6 +637,24 @@ def rotated_matrix(params):
 
 class s_param:
     pass
+    '''
+    typedef enum
+    {
+        INT = 0,
+        FLOAT = 1,
+        GRADIENT = 2,
+        PARAM_IMAGE = 3
+    } e_paramtype;
+
+    struct s_param
+    {
+        e_paramtype t;
+        int intval;
+        double doubleval;
+        void *gradient;
+        void *image;
+    };
+    '''
 
 def parse_params(params):
     lst = []
@@ -661,6 +672,15 @@ def parse_params(params):
         lst.append(the)
     return lst
 
+def parse_params_to_dict(params):
+    dic = {}
+    for param, var in params:
+        name = var.cname
+        if name == 't__a_p1':
+            pass
+        dic[name] = param
+    return dic
+
 Flag_My = True
 
 if not Flag_My:
@@ -675,11 +695,9 @@ def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
         pfcls = PF_Class(formuName)
 
         pfcls.params = params
-        # pfcls.initparams = initparams
 
-        s_params = parse_params(initparams)
+        s_params = parse_params_to_dict(initparams)
         pfcls.pfo_p = s_params
-        # pfcls.pfo_pos_params = params + []
 
         pfcls.cmap = cmap_from_pyobject(segs)
         pfcls.maxiter = maxiter

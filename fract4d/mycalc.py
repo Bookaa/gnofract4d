@@ -1,24 +1,6 @@
 
 (FATE_UNKNOWN, FATE_SOLID, FATE_DIRECT, FATE_INSIDE) = (255, 0x80, 0x40, 0x20)
 
-'''
-typedef enum
-{
-    INT = 0,
-    FLOAT = 1,
-    GRADIENT = 2,
-    PARAM_IMAGE = 3
-} e_paramtype;
-
-struct s_param
-{
-    e_paramtype t;
-    int intval;
-    double doubleval;
-    void *gradient;
-    void *image;
-};
-'''
 
 PF_MAXPARAMS = 200
 N_PARAMS = 11
@@ -47,11 +29,18 @@ def Mandelbrot_calc(pfo_p, params, maxiter):
     pixel = complex(params[0], params[1])
     t__h_zwpixel = complex(params[2], params[3])
 
-    t__a_cf1_offset = pfo_p[5].doubleval
-    t__a_fbailout = pfo_p[1].doubleval
-    t__a_cf0_density = pfo_p[3].doubleval
-    t__a_cf0_offset = pfo_p[2].doubleval
-    t__a_cf0bailout = pfo_p[4].doubleval
+    if False:
+        t__a_cf1_offset = pfo_p[5].doubleval
+        t__a_fbailout = pfo_p[1].doubleval
+        t__a_cf0_density = pfo_p[3].doubleval
+        t__a_cf0_offset = pfo_p[2].doubleval
+        t__a_cf0bailout = pfo_p[4].doubleval
+    else:
+        t__a_cf1_offset = pfo_p['t__a_cf1_offset']
+        t__a_fbailout = pfo_p['t__a_fbailout']
+        t__a_cf0_density = pfo_p['t__a_cf0_density']
+        t__a_cf0_offset = pfo_p['t__a_cf0_offset']
+        t__a_cf0bailout = pfo_p['t__a_cf0bailout']
 
     t__h_numiter = 0
     z = t__h_zwpixel
@@ -98,16 +87,25 @@ def CGNewton3_calc(pfo_p, params, maxiter):
     pixel = complex(params[0], params[1])
     # t__h_zwpixel = complex(params[2], params[3])
 
-    t__a_cf1_offset = pfo_p[5+1].doubleval
-    # t__a_fbailout = pfo_p[1].doubleval
-    t__a_cf0_density = pfo_p[3+1].doubleval
-    t__a_cf0_offset = pfo_p[2+1].doubleval
-    t__a_cf0bailout = pfo_p[4+1].doubleval
+
+    if False:
+        t__a_cf1_offset = pfo_p[5+1].doubleval
+        # t__a_fbailout = pfo_p[1].doubleval
+        t__a_cf0_density = pfo_p[3+1].doubleval
+        t__a_cf0_offset = pfo_p[2+1].doubleval
+        t__a_cf0bailout = pfo_p[4+1].doubleval
+        p1 = complex(pfo_p[1].doubleval, pfo_p[2].doubleval)
+    else:
+        t__a_cf1_offset = pfo_p['t__a_cf1_offset']
+        t__a_cf0_density = pfo_p['t__a_cf0_density']
+        t__a_cf0_offset = pfo_p['t__a_cf0_offset']
+        t__a_cf0bailout = pfo_p['t__a_cf0bailout']
+        p1_tuple = pfo_p['t__a_p1']
+        p1 = complex(p1_tuple[0], p1_tuple[1])
 
     t__h_numiter = 0
     z = complex(1.0, 1.0)
 
-    p1 = complex(pfo_p[1].doubleval, pfo_p[2].doubleval)
 
     t__h_inside = 0
     while True:

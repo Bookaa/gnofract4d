@@ -231,8 +231,18 @@ class T(fctutils.T):
     def all_params(self):
         p = []
         for form in self.forms:
-            p1 = zip(form.params, form.paramtypes, form.formula.symbols.var_params)
-            p += form.params
+            n2 = 0
+            for varr in form.formula.symbols.var_params:
+                typ = varr.type
+                if typ == 3:    # complex
+                    p.append(((form.params[n2], form.params[n2+1]), varr))
+                    n2 += 1
+                else:
+                    p.append((form.params[n2], varr))
+                n2 += 1
+            #p1 = zip(form.params, form.paramtypes, form.formula.symbols.var_params)
+            # p += form.params
+            #p += p1
         for transform in self.transforms:
             assert False    # alert me
             p += transform.params
