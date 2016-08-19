@@ -277,6 +277,8 @@ def calc_pf(pfo_p, cmap, formuName, params, nIters):
         fUseColors, colors, solid, dist, iter_, fate = mycalc.Mandelbrot_calc(pfo_p, params, nIters)
     elif formuName == 'CGNewton3':
         fUseColors, colors, solid, dist, iter_, fate = mycalc.CGNewton3_calc(pfo_p, params, nIters)
+    elif formuName == 'Cubic Mandelbrot':
+        fUseColors, colors, solid, dist, iter_, fate = mycalc.Cubic_Mandelbrot_calc(pfo_p, params, nIters)
     else:
         assert False
         # only support chainsoflight.fct and dragon2.fct now

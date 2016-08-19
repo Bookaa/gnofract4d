@@ -1,4 +1,4 @@
-from numba import jit # 0.27.0
+from numba import jit, types, int64, float64, complex64 # 0.27.0
 
 (FATE_UNKNOWN, FATE_SOLID, FATE_DIRECT, FATE_INSIDE) = (255, 0x80, 0x40, 0x20)
 
@@ -72,7 +72,42 @@ def CGNewton3_calc(pfo_p, params, maxiter):
         iter_ = -1
     return fUseColors, colors, solid, dist, iter_, fate
 
-@jit(nopython=True)
+def Cubic_Mandelbrot_calc(pfo_p, params, maxiter):
+    fUseColors = 0
+    colors = [0.0, 0.0, 0.0, 0.0]
+
+    pixel = complex(params[0], params[1])
+    t__h_zwpixel = complex(params[2], params[3])
+
+    t__a_cf1_offset = pfo_p['t__a_cf1_offset']
+    t__a_fbailout = pfo_p['t__a_fbailout']
+    t__a_cf0_density = pfo_p['t__a_cf0_density']
+    t__a_cf0_offset = pfo_p['t__a_cf0_offset']
+    t__a_cf0bailout = pfo_p['t__a_cf0bailout']
+    t__a_fa = pfo_p['t__a_fa']
+    fa = complex(t__a_fa[0], t__a_fa[1])
+
+    t__h_inside, t__h_numiter, z = Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, t__h_zwpixel, maxiter)
+
+    iter_ = t__h_numiter
+    if t__h_inside == 0:
+        t__cf03 = abs2(z) + 0.000000001
+        t__cf06 = t__h_numiter + t__a_cf0bailout / t__cf03
+        t__h_index = t__a_cf0_density * t__cf06 / 256.0 + t__a_cf0_offset
+    else:
+        t__h_index = t__a_cf1_offset
+    fate = FATE_INSIDE if t__h_inside != 0 else 0
+    dist = t__h_index
+    solid = t__h_inside
+    if solid:
+        fate |= FATE_SOLID
+    if fUseColors:
+        fate |= FATE_DIRECT
+    if fate & FATE_INSIDE:
+        iter_ = -1
+    return fUseColors, colors, solid, dist, iter_, fate
+
+@jit(float64(complex64))
 def abs2(c):
     return c.imag * c.imag + c.real * c.real
 
@@ -139,3 +174,41 @@ def CGNewton3_1(p1, pixel, maxiter):
     return t__h_inside, t__h_numiter, z
 
 
+@jit(types.Tuple((int64,int64,complex64))(complex64, float64, complex64, complex64, int64), nopython=True, nogil=True)
+def Cubic_Mandelbrot_1(fa, fbailout, pixel, zwpixel, maxiter):
+    '''
+    Cubic Mandelbrot {
+    ; z <- z^3 + c
+    ; The cubic set actually has two critical values, but this formula just uses
+    ; zero - to be fixed later.
+    init:
+        z = #zwpixel
+        ; nothing to do here
+    loop:
+        z = z * z * (z - 3.0 * @a) + #pixel
+    bailout:
+        @bailfunc(z) < @bailout
+    default:
+    float param bailout
+        default = 4.0
+    endparam
+    float func bailfunc
+        default = cmag
+    endfunc
+    complex param a
+        default = (0.0,0.0)
+    endparam
+    }
+    '''
+    t__h_numiter = 0
+    z = zwpixel
+    t__h_inside = 0
+    while True:
+        z = z*z*(z - fa * 3.0) + pixel
+        if abs2(z) >= fbailout:
+            break
+        t__h_numiter += 1
+        if t__h_numiter >= maxiter:
+            t__h_inside = 1
+            break
+    return t__h_inside, t__h_numiter, z
