@@ -1,3 +1,4 @@
+from numba import jit # 0.27.0
 
 (FATE_UNKNOWN, FATE_SOLID, FATE_DIRECT, FATE_INSIDE) = (255, 0x80, 0x40, 0x20)
 
@@ -10,18 +11,11 @@ def Mandelbrot_calc(pfo_p, params, maxiter):
     pixel = complex(params[0], params[1])
     t__h_zwpixel = complex(params[2], params[3])
 
-    if False:
-        t__a_cf1_offset = pfo_p[5].doubleval
-        t__a_fbailout = pfo_p[1].doubleval
-        t__a_cf0_density = pfo_p[3].doubleval
-        t__a_cf0_offset = pfo_p[2].doubleval
-        t__a_cf0bailout = pfo_p[4].doubleval
-    else:
-        t__a_cf1_offset = pfo_p['t__a_cf1_offset']
-        t__a_fbailout = pfo_p['t__a_fbailout']
-        t__a_cf0_density = pfo_p['t__a_cf0_density']
-        t__a_cf0_offset = pfo_p['t__a_cf0_offset']
-        t__a_cf0bailout = pfo_p['t__a_cf0bailout']
+    t__a_cf1_offset = pfo_p['t__a_cf1_offset']
+    t__a_fbailout = pfo_p['t__a_fbailout']
+    t__a_cf0_density = pfo_p['t__a_cf0_density']
+    t__a_cf0_offset = pfo_p['t__a_cf0_offset']
+    t__a_cf0bailout = pfo_p['t__a_cf0bailout']
 
     t__h_inside, t__h_numiter, z = Mandelbrot_1(t__a_fbailout, pixel, t__h_zwpixel, maxiter)
 
@@ -50,20 +44,12 @@ def CGNewton3_calc(pfo_p, params, maxiter):
     pixel = complex(params[0], params[1])
     # t__h_zwpixel = complex(params[2], params[3])
 
-    if False:
-        t__a_cf1_offset = pfo_p[5+1].doubleval
-        # t__a_fbailout = pfo_p[1].doubleval
-        t__a_cf0_density = pfo_p[3+1].doubleval
-        t__a_cf0_offset = pfo_p[2+1].doubleval
-        t__a_cf0bailout = pfo_p[4+1].doubleval
-        p1 = complex(pfo_p[1].doubleval, pfo_p[2].doubleval)
-    else:
-        t__a_cf1_offset = pfo_p['t__a_cf1_offset']
-        t__a_cf0_density = pfo_p['t__a_cf0_density']
-        t__a_cf0_offset = pfo_p['t__a_cf0_offset']
-        t__a_cf0bailout = pfo_p['t__a_cf0bailout']
-        p1_tuple = pfo_p['t__a_p1']
-        p1 = complex(p1_tuple[0], p1_tuple[1])
+    t__a_cf1_offset = pfo_p['t__a_cf1_offset']
+    t__a_cf0_density = pfo_p['t__a_cf0_density']
+    t__a_cf0_offset = pfo_p['t__a_cf0_offset']
+    t__a_cf0bailout = pfo_p['t__a_cf0bailout']
+    p1_tuple = pfo_p['t__a_p1']
+    p1 = complex(p1_tuple[0], p1_tuple[1])
 
     t__h_inside, t__h_numiter, z = CGNewton3_1(p1, pixel, maxiter)
 
@@ -86,9 +72,11 @@ def CGNewton3_calc(pfo_p, params, maxiter):
         iter_ = -1
     return fUseColors, colors, solid, dist, iter_, fate
 
+@jit(nopython=True)
 def abs2(c):
     return c.imag * c.imag + c.real * c.real
 
+@jit(nopython=True)
 def Mandelbrot_1(fbailout, pixel, zwpixel, maxiter):
     '''
     Mandelbrot {
@@ -121,6 +109,7 @@ def Mandelbrot_1(fbailout, pixel, zwpixel, maxiter):
             break
     return t__h_inside, t__h_numiter, z
 
+@jit(nopython=True)
 def CGNewton3_1(p1, pixel, maxiter):
     '''
     CGNewton3 {
@@ -148,3 +137,5 @@ def CGNewton3_1(p1, pixel, maxiter):
             break
 
     return t__h_inside, t__h_numiter, z
+
+
