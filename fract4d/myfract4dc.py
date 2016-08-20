@@ -1,6 +1,8 @@
 import numpy as np
-import png  # pypng (0.0.18)
+# import png  # pypng (0.0.18)
 import array
+from numba import jit, jitclass, types, int64, float64, complex64 # 0.27.0
+import mycalc
 
 (VX, VY, VZ, VW) = (0,1,2,3)
 (IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_TOTAL_WIDTH, IMAGE_TOTAL_HEIGHT, IMAGE_XOFFSET, IMAGE_YOFFSET) = (0,1,2,3,4,5)
@@ -187,13 +189,20 @@ def image_save_all(_img, fp):
     fract4dc.Bookaa_write_image(fp, pbuffer, n, _img.Xres(), _img.Yres(), _img.totalXres(), _img.totalYres())
     #print '<<<'
 
-class STFractWorker:
+class STFractWorker(object):
     def __init__(self, pfo_p, cmap, im, formuName):
         self.pfo_p = pfo_p
         self.cmap = cmap
         self.im = im
         self.ff = None
-        self.formuName = formuName
+        if formuName == 'Mandelbrot':
+            formuNameNo = 1
+        elif formuName == 'CGNewton3':
+            formuNameNo = 2
+        else: # if formuName == 'Cubic Mandelbrot':
+            formuNameNo = 3
+        self.formuNameNo = formuNameNo
+
     def qbox_row(self, w, y, rsize, drawsize):
         x = 0
         while x < w-rsize:
@@ -203,12 +212,14 @@ class STFractWorker:
         while y2 < y + rsize:
             self.row(x,y2,w-x)
             y2 += 1
+
+    @jit
     def pixel(self, x, y, w, h):
         ii = im_info(self.im)
         ii.init_fate(x,y)
         if ii.fate == FATE_UNKNOWN:
             pos = self.ff.topleft + self.ff.deltax * x + self.ff.deltay * y
-            (pixel, fate, index, iter_) = calc_pf(self.pfo_p, self.cmap, self.formuName, pos, self.ff.maxiter)
+            (pixel, fate, index, iter_) = calc_pf(self.pfo_p, self.cmap, self.formuNameNo, pos, self.ff.maxiter)
             ii2 = im_info(self.im)
             ii2.pixel = pixel; ii2.fate = fate; ii2.index = index; ii2.iter = iter_
             ii2.writeback(x,y)
@@ -272,40 +283,34 @@ def Pixel2INT(pixel):
     r,g,b,a = pixel
     return (r << 16) | (g << 8) | b
 
-def calc_pf(pfo_p, cmap, formuName, params, nIters):
-    cf0cf1, names, values = pfo_p
+@jit
+def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
+    cf0cf1, values = pfo_p
     pixel = complex(params[0], params[1])
     zwpixel = complex(params[2], params[3])
 
-    fUseColors, colors, solid, dist, iter_, fate = Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuName)
+    return Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuNameNo, cmap)
 
-    if fUseColors:
-        pixel = cmap.lookup_with_dca(solid, colors)
-    else:
-        pixel = cmap.lookup_with_transfer(dist, solid)
-    return (pixel, fate, dist, iter_)
 
-def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuName):
+@jit # (nopython=True)
+def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap):
     fUseColors = 0
     colors = [0.0, 0.0, 0.0, 0.0]
 
     (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = cf0cf1
 
-    import mycalc
-    if formuName == 'Mandelbrot':
+    if formuNameNo == 1: # 'Mandelbrot':
         t__a_fbailout = param_values[0]
         t__h_inside, t__h_numiter, z = mycalc.Mandelbrot_1(t__a_fbailout, pixel, zwpixel, maxiter)
-    elif formuName == 'CGNewton3':
+    elif formuNameNo == 2: # 'CGNewton3':
         p1_tuple = param_values[0]
         p1 = complex(p1_tuple[0], p1_tuple[1])
         t__h_inside, t__h_numiter, z = mycalc.CGNewton3_1(p1, pixel, maxiter)
-    elif formuName == 'Cubic Mandelbrot':
+    else: # if formuNameNo == 3: # 'Cubic Mandelbrot':
         t__a_fbailout = param_values[0]
         t__a_fa = param_values[1]
         fa = complex(t__a_fa[0], t__a_fa[1])
         t__h_inside, t__h_numiter, z = mycalc.Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, zwpixel, maxiter)
-    else:
-        assert False
 
     iter_ = t__h_numiter
     if t__h_inside == 0:
@@ -323,7 +328,12 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuName):
         fate |= FATE_DIRECT
     if fate & FATE_INSIDE:
         iter_ = -1
-    return fUseColors, colors, solid, dist, iter_, fate
+    # return fUseColors, colors, solid, dist, iter_, fate
+    if fUseColors:
+        pixel_ = lookup_with_dca(solid, colors)
+    else:
+        pixel_ = cmap.lookup_with_transfer(dist, solid)
+    return (pixel_, fate, dist, iter_)
 
 def abs2(c):
     return c.imag * c.imag + c.real * c.real
@@ -428,7 +438,8 @@ class gradient_item_t:
         self.bmode = BLEND_LINEAR
         self.cmode = RGB
 
-class ColorMap:
+# @jitclass
+class ColorMap(object):
     def __init__(self, ncolors):
         self.ncolors = ncolors
         items = []
@@ -436,15 +447,6 @@ class ColorMap:
             the = gradient_item_t()
             items.append(the)
         self.items = items
-    def lookup_with_dca(self, solid, colors):
-        black = array.array('B', [0,0,0,255])
-        if solid:
-            return black
-        r = int(255.0 * colors[0]) % 256
-        g = int(255.0 * colors[1]) % 256
-        b = int(255.0 * colors[2]) % 256
-        a = int(255.0 * colors[3]) % 256
-        return array.array('B', [r,g,b,a])
     def lookup_with_transfer(self, index, solid):
         black = array.array('B', [0,0,0,255])
         if solid:
@@ -516,6 +518,16 @@ class ColorMap:
         self.items[i].right_color = right_col
         self.items[i].bmode = bmode
         self.items[i].cmode = cmode
+
+def lookup_with_dca(solid, colors):
+    black = array.array('B', [0,0,0,255])
+    if solid:
+        return black
+    r = int(255.0 * colors[0]) % 256
+    g = int(255.0 * colors[1]) % 256
+    b = int(255.0 * colors[2]) % 256
+    a = int(255.0 * colors[3]) % 256
+    return array.array('B', [r,g,b,a])
 
 EPSILON = 1e-10
 
@@ -727,7 +739,7 @@ def parse_params_to_dict(params):
             values.append(param)
 
     cf0cf1 = (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset)
-    return (cf0cf1, names, values)
+    return (cf0cf1, values)
 
 Flag_My = True
 
