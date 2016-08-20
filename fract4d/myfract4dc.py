@@ -273,14 +273,16 @@ def Pixel2INT(pixel):
 
 def calc_pf(pfo_p, cmap, formuName, params, nIters):
     cf0cf1, names, values = pfo_p
+    pixel = complex(params[0], params[1])
+    zwpixel = complex(params[2], params[3])
 
     import mycalc
     if formuName == 'Mandelbrot':
-        fUseColors, colors, solid, dist, iter_, fate = mycalc.Mandelbrot_calc(values, params, nIters, cf0cf1)
+        fUseColors, colors, solid, dist, iter_, fate = mycalc.Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1)
     elif formuName == 'CGNewton3':
-        fUseColors, colors, solid, dist, iter_, fate = mycalc.CGNewton3_calc(values, params, nIters, cf0cf1)
+        fUseColors, colors, solid, dist, iter_, fate = mycalc.CGNewton3_calc(values, pixel, zwpixel, nIters, cf0cf1)
     elif formuName == 'Cubic Mandelbrot':
-        fUseColors, colors, solid, dist, iter_, fate = mycalc.Cubic_Mandelbrot_calc(values, params, nIters, cf0cf1)
+        fUseColors, colors, solid, dist, iter_, fate = mycalc.Cubic_Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1)
     else:
         assert False
         # only support chainsoflight.fct and dragon2.fct now

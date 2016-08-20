@@ -4,17 +4,14 @@ from numba import jit, types, int64, float64, complex64 # 0.27.0
 
 
 
-def Mandelbrot_calc(param_values, params, maxiter, cf0cf1):
+def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1):
     fUseColors = 0
     colors = [0.0, 0.0, 0.0, 0.0]
-
-    pixel = complex(params[0], params[1])
-    t__h_zwpixel = complex(params[2], params[3])
 
     (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = cf0cf1
     t__a_fbailout = param_values[0] # pfo_p['t__a_fbailout']
 
-    t__h_inside, t__h_numiter, z = Mandelbrot_1(t__a_fbailout, pixel, t__h_zwpixel, maxiter)
+    t__h_inside, t__h_numiter, z = Mandelbrot_1(t__a_fbailout, pixel, zwpixel, maxiter)
 
     iter_ = t__h_numiter
     if t__h_inside == 0:
@@ -34,12 +31,9 @@ def Mandelbrot_calc(param_values, params, maxiter, cf0cf1):
         iter_ = -1
     return fUseColors, colors, solid, dist, iter_, fate
 
-def CGNewton3_calc(param_values, params, maxiter, cf0cf1):
+def CGNewton3_calc(param_values, pixel, nouse_zwpixel, maxiter, cf0cf1):
     fUseColors = 0
     colors = [0.0, 0.0, 0.0, 0.0]
-
-    pixel = complex(params[0], params[1])
-    # t__h_zwpixel = complex(params[2], params[3])
 
     (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = cf0cf1
     p1_tuple = param_values[0]
@@ -66,12 +60,9 @@ def CGNewton3_calc(param_values, params, maxiter, cf0cf1):
         iter_ = -1
     return fUseColors, colors, solid, dist, iter_, fate
 
-def Cubic_Mandelbrot_calc(param_values, params, maxiter, cf0cf1):
+def Cubic_Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1):
     fUseColors = 0
     colors = [0.0, 0.0, 0.0, 0.0]
-
-    pixel = complex(params[0], params[1])
-    t__h_zwpixel = complex(params[2], params[3])
 
     (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = cf0cf1
 
@@ -79,7 +70,7 @@ def Cubic_Mandelbrot_calc(param_values, params, maxiter, cf0cf1):
     t__a_fa = param_values[1] # pfo_p['t__a_fa']
     fa = complex(t__a_fa[0], t__a_fa[1])
 
-    t__h_inside, t__h_numiter, z = Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, t__h_zwpixel, maxiter)
+    t__h_inside, t__h_numiter, z = Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, zwpixel, maxiter)
 
     iter_ = t__h_numiter
     if t__h_inside == 0:
