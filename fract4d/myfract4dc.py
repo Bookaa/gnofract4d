@@ -272,13 +272,15 @@ def Pixel2INT(pixel):
     return (r << 16) | (g << 8) | b
 
 def calc_pf(pfo_p, cmap, formuName, params, nIters):
+    cf0cf1, names, values = pfo_p
+
     import mycalc
     if formuName == 'Mandelbrot':
-        fUseColors, colors, solid, dist, iter_, fate = mycalc.Mandelbrot_calc(pfo_p, params, nIters)
+        fUseColors, colors, solid, dist, iter_, fate = mycalc.Mandelbrot_calc(values, params, nIters, cf0cf1)
     elif formuName == 'CGNewton3':
-        fUseColors, colors, solid, dist, iter_, fate = mycalc.CGNewton3_calc(pfo_p, params, nIters)
+        fUseColors, colors, solid, dist, iter_, fate = mycalc.CGNewton3_calc(values, params, nIters, cf0cf1)
     elif formuName == 'Cubic Mandelbrot':
-        fUseColors, colors, solid, dist, iter_, fate = mycalc.Cubic_Mandelbrot_calc(pfo_p, params, nIters)
+        fUseColors, colors, solid, dist, iter_, fate = mycalc.Cubic_Mandelbrot_calc(values, params, nIters, cf0cf1)
     else:
         assert False
         # only support chainsoflight.fct and dragon2.fct now
@@ -675,13 +677,24 @@ def parse_params(params):
     return lst
 
 def parse_params_to_dict(params):
-    dic = {}
+    (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = (0.0, 0.0, 0.0, 0.0, 0.0)
+    names = []
+    values = []
     for param, var in params:
         name = var.cname
-        if name == 't__a_p1':
+        if name == 't__a_cf0bailout': t__a_cf0bailout = param
+        elif name == 't__a_cf0_density': t__a_cf0_density = param
+        elif name == 't__a_cf0_offset': t__a_cf0_offset = param
+        elif name == 't__a_cf1_density': t__a_cf1_density = param
+        elif name == 't__a_cf1_offset': t__a_cf1_offset = param
+        elif name == 't__a__gradient':
             pass
-        dic[name] = param
-    return dic
+        else:
+            names.append(name)
+            values.append(param)
+
+    cf0cf1 = (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset)
+    return (cf0cf1, names, values)
 
 Flag_My = True
 

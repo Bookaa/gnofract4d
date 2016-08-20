@@ -347,7 +347,9 @@ if __name__ == '__main__':
     for arg in sys.argv[1:]:
         file = open(arg)
         f.loadFctFile(file)
-        outputfile = f.compile()
+        outputfile = None # f.compile()
+        if not myfract4dc.Flag_My:
+            outputfile = f.compile()
         im = image.T(640,480)
         from datetime import datetime
         t1 = datetime.now()

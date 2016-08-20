@@ -501,10 +501,10 @@ def ParseFormulaFileRemote(s):
     p = Popen(["python", g_compile_cmds, '4'], stdin=PIPE, stdout=PIPE)
     print >>p.stdin, sFile
     while True:
-        s = p.stdout.readline().strip()
-        if s == 'next is json':
+        s1 = p.stdout.readline().strip()
+        if s1 == 'next is json':
             break
-        print s
+        print s1
     sJson = p.communicate("\n")[0]
     dict_ = json.loads(sJson)
     return dict_
