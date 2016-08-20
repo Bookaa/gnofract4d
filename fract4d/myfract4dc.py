@@ -208,8 +208,9 @@ class STFractWorker:
         ii.init_fate(x,y)
         if ii.fate == FATE_UNKNOWN:
             pos = self.ff.topleft + self.ff.deltax * x + self.ff.deltay * y
-            ii2 = calc_pf(self.pfo_p, self.cmap, self.formuName, pos, self.ff.maxiter)
-            ii2.im = self.im
+            (pixel, fate, index, iter_) = calc_pf(self.pfo_p, self.cmap, self.formuName, pos, self.ff.maxiter)
+            ii2 = im_info(self.im)
+            ii2.pixel = pixel; ii2.fate = fate; ii2.index = index; ii2.iter = iter_
             ii2.writeback(x,y)
             ii2.rectangle(x,y,w,h)
         else:
@@ -276,18 +277,56 @@ def calc_pf(pfo_p, cmap, formuName, params, nIters):
     pixel = complex(params[0], params[1])
     zwpixel = complex(params[2], params[3])
 
-    import mycalc
-    fUseColors, colors, solid, dist, iter_, fate = mycalc.Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuName)
+    fUseColors, colors, solid, dist, iter_, fate = Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuName)
 
-    ii = im_info(None)
     if fUseColors:
-        ii.pixel = cmap.lookup_with_dca(solid, colors)
+        pixel = cmap.lookup_with_dca(solid, colors)
     else:
-        ii.pixel = cmap.lookup_with_transfer(dist, solid)
-    ii.fate = fate
-    ii.index = dist
-    ii.iter = iter_
-    return ii
+        pixel = cmap.lookup_with_transfer(dist, solid)
+    return (pixel, fate, dist, iter_)
+
+def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuName):
+    fUseColors = 0
+    colors = [0.0, 0.0, 0.0, 0.0]
+
+    (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = cf0cf1
+
+    import mycalc
+    if formuName == 'Mandelbrot':
+        t__a_fbailout = param_values[0]
+        t__h_inside, t__h_numiter, z = mycalc.Mandelbrot_1(t__a_fbailout, pixel, zwpixel, maxiter)
+    elif formuName == 'CGNewton3':
+        p1_tuple = param_values[0]
+        p1 = complex(p1_tuple[0], p1_tuple[1])
+        t__h_inside, t__h_numiter, z = mycalc.CGNewton3_1(p1, pixel, maxiter)
+    elif formuName == 'Cubic Mandelbrot':
+        t__a_fbailout = param_values[0]
+        t__a_fa = param_values[1]
+        fa = complex(t__a_fa[0], t__a_fa[1])
+        t__h_inside, t__h_numiter, z = mycalc.Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, zwpixel, maxiter)
+    else:
+        assert False
+
+    iter_ = t__h_numiter
+    if t__h_inside == 0:
+        t__cf03 = abs2(z) + 0.000000001
+        t__cf06 = t__h_numiter + t__a_cf0bailout / t__cf03
+        t__h_index = t__a_cf0_density * t__cf06 / 256.0 + t__a_cf0_offset
+    else:
+        t__h_index = t__a_cf1_offset
+    fate = FATE_INSIDE if t__h_inside != 0 else 0
+    dist = t__h_index
+    solid = t__h_inside
+    if solid:
+        fate |= FATE_SOLID
+    if fUseColors:
+        fate |= FATE_DIRECT
+    if fate & FATE_INSIDE:
+        iter_ = -1
+    return fUseColors, colors, solid, dist, iter_, fate
+
+def abs2(c):
+    return c.imag * c.imag + c.real * c.real
 
 class im_info:
     def __init__(self, im):
