@@ -191,36 +191,6 @@ def image_dims(_img):
     ytotalsize = _img.totalYres()
     return (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset)
 
-def image_save_all(_img, fp):
-    # FILE_TYPE_PNG = 1
-    buf = _img.buffer
-    lens = len(buf)
-    #print 'len', lens
-    #print '%02x %02x %02x %02x' % (buf[0], buf[1], buf[2], buf[3])
-    #print '%02x %02x %02x %02x' % (buf[lens-4], buf[lens-3], buf[lens-2], buf[lens-1])
-    # len 921600
-    # 3b 28 68 3b
-    # 57 50 17 57
-    # for chainsoflight.fct
-    # 4d 19 12 4d
-    # 12 5f 25 1b
-
-    if False:
-        p, n = _img.buffer.buffer_info()
-        pbuffer = _img.buffer # buffer(self.im.buffer)
-    else:
-        pbuffer = array.array('B', [0] * _img.bytes()) # char
-        p, n = pbuffer.buffer_info()
-        for i in range(n):
-            pbuffer[i] = _img.buffer[i]
-
-    #pbuffer = buffer(self.im.buffer)
-    #print '%x %x' % (p, n)
-    import fract4dc
-    #print '>>>'
-    fract4dc.Bookaa_write_image(fp, pbuffer, n, _img.Xres(), _img.Yres(), _img.totalXres(), _img.totalYres())
-    #print '<<<'
-
 class STFractWorker(object):
     def __init__(self, pfo_p, cmap, im, formuName):
         self.pfo_p = pfo_p
@@ -235,6 +205,7 @@ class STFractWorker(object):
             formuNameNo = 3
         self.formuNameNo = formuNameNo
 
+    @jit
     def qbox_row(self, w, y, rsize, drawsize):
         x = 0
         while x < w-rsize:
@@ -260,6 +231,7 @@ class STFractWorker(object):
             ii.init(x,y)
             ii.recolor(self.cmap)
             ii.rectangle(x,y,w,h)
+    @jit
     def row(self, x, y, n):
         for i in range(n):
             self.pixel(x+i, y, 1, 1)
@@ -273,6 +245,7 @@ class STFractWorker(object):
     def RGB2INT(self,x,y):
         pixel = self.im.get(x,y)
         return Pixel2INT(pixel)
+    @jit
     def box(self, x, y, rsize):
         bFlat = True
         iter = self.im.getIter(x,y)
@@ -521,15 +494,6 @@ class gradient_item_t(object):
         self.cmode = cmode
 
 
-class ColorMap(object):
-    def __init__(self, ncolors):
-        self.ncolors = ncolors
-        items = [] #np.zeros(ncolors, dtype=gradient_item_t)
-        for i in range(ncolors):
-            the = gradient_item_t()
-            items.append(the)
-            #items[i] = the
-        self.items = items
 def lookup_with_transfer(cmap_items, index, solid):
     #black = array.array('B', [0,0,0,255])
     black = np.array([0,0,0,255], dtype=np.uint8)

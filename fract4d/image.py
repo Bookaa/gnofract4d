@@ -13,6 +13,11 @@ class T:
         self._img = fract4dc.image_create(xsize, ysize, txsize, tysize)
 
     def save(self,name):
+        from skimage.io import imsave # scikit-image (0.12.3)
+        buf1 = self._img.buffer.reshape((self._img.Yres(), self._img.Xres(), 3))
+        imsave(name, buf1)
+
+    def old_save(self,name):
         try:
             fp = open(name, "wb")
         except IOError, err:
