@@ -146,25 +146,18 @@ def cmap_from_pyobject(segs):
         cmap_items.append(the)
     return cmap_items
 
-class PF_Class:
+def calc_7(pfcls, xoff, yoff, xres, yres):
+    (self_formuName, self_params, self_pfo_p, self_cmap, self_maxiter, im) = pfcls
 
-    def __init__(self, formuName):
-        self.cmap = None
-        self._img = None
-        self.formuName = formuName
+    xtotalsize = im.totalXres()
+    ytotalsize = im.totalYres()
+    im.set_resolution(xres, yres, xtotalsize, ytotalsize)
+    im.set_offset(xoff, yoff)
 
-    def calc(self, xoff, yoff, xres, yres):
-        im = self._img
-
-        xtotalsize = im.totalXres()
-        ytotalsize = im.totalYres()
-        im.set_resolution(xres, yres, xtotalsize, ytotalsize)
-        im.set_offset(xoff, yoff)
-
-        w = STFractWorker(self.pfo_p, self.cmap, self._img, self.formuName)
-        ff = fractFunc(self.params, self.maxiter, w, self._img)
-        w.ff = ff
-        ff.draw()
+    w = STFractWorker(self_pfo_p, self_cmap, im, self_formuName)
+    ff = fractFunc(self_params, self_maxiter, w, im)
+    w.ff = ff
+    ff.draw()
 
 def image_create(xsize, ysize, txsize, tysize):
     img = Image()
@@ -332,14 +325,18 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
 def abs2(c):
     return c.imag * c.imag + c.real * c.real
 
+
+tem33 = Image()
+
 ii_spec = [
-    ('im', typeof(Image)),
+    #('im', typeof(Image)),
+    ('im', typeof(tem33)),
     ('index', float64),
     ('iter', int64),
     ('fate', i1),
     ('pixel', numba.i1[:]),
 ]
-#@jitclass(ii_spec)
+# @jitclass(ii_spec)
 class im_info(object):
     def __init__(self, im):
         self.im = im
@@ -372,6 +369,7 @@ class im_info(object):
                 self.im.setIter(j,i,self.iter)
                 self.im.setFate(j,i,0,self.fate)
                 self.im.setIndex(j,i,0,self.index)
+    #@jit
     def recolor(self, cmap):
         dist = self.index
         fate = self.fate
@@ -480,12 +478,13 @@ class gradient_item_t(object):
         self.bmode = bmode
         self.cmode = cmode
 
-
+@jit
 def lookup_with_transfer(cmap_items, index, solid):
     black = np.array([0,0,0,255], dtype=np.uint8)
     if solid:
         return black
     return lookup(cmap_items, index)
+@jit
 def lookup(cmap_items, input_index):
     self_items = cmap_items
     self_ncolors = len(cmap_items)
@@ -510,7 +509,8 @@ def lookup(cmap_items, input_index):
     elif seg.bmode == BLEND_SPHERE_DECREASING:
         factor = calc_sphere_decreasing_factor(middle, pos)
     else:
-        assert False
+        pass
+        # assert False
     lc = seg.left_color
     rc = seg.right_color
     if seg.cmode == RGB:
@@ -524,7 +524,6 @@ def lookup(cmap_items, input_index):
         a = int(a) % 256
         return np.array([r,g,b,a], dtype=np.uint8)
     elif seg.cmode in (HSV_CCW, HSV_CW):
-        pass
         (lh,ls,lv) = gimp_rgb_to_hsv(lc[0], lc[1], lc[2])
         (rh,rs,rv) = gimp_rgb_to_hsv(rc[0], rc[1], rc[2])
 
@@ -545,7 +544,9 @@ def lookup(cmap_items, input_index):
         a = int(a) % 256
         return np.array([r,g,b,a], dtype=np.uint8)
     else:
-        assert False
+        pass
+        # assert False
+        return np.array([0,0,0,0], dtype=np.uint8)
 
 def lookup_with_dca(solid, colors):
     black = np.array([0,0,0,255], dtype=np.uint8)
@@ -780,19 +781,15 @@ if not Flag_My:
 
 def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
     if Flag_My:
-        pfcls = PF_Class(formuName)
 
-        pfcls.params = params
+        pfo_p = parse_params_to_dict(initparams)
+        cmap = cmap_from_pyobject(segs)
+        _img = image._img
 
-        s_params = parse_params_to_dict(initparams)
-        pfcls.pfo_p = s_params
-
-        pfcls.cmap = cmap_from_pyobject(segs)
-        pfcls.maxiter = maxiter
-        pfcls._img = image._img
+        pfcls = (formuName, params, pfo_p, cmap, maxiter, _img)
 
         for (xoff,yoff,xres,yres) in image.get_tile_list():
-            pfcls.calc(xoff, yoff, xres, yres)
+            calc_7(pfcls, xoff, yoff, xres, yres)
         return
 
     pfunc = fract4dc.pf_load_and_create(outputfile, formuName)
