@@ -1,6 +1,5 @@
 import numpy as np
 # import png  # pypng (0.0.18)
-import array
 import numba
 from numba import jit, jitclass, types, typeof, i1, int64, float64, complex64 # 0.27.0
 import mycalc
@@ -49,24 +48,17 @@ class Image(object):
     def bytes(self): return self.row_length() * self.m_Yres
 
     def alloc_buffers(self):
-        # https://docs.python.org/2/library/array.html
-        #self.buffer = array.array('B', [0] * self.bytes()) # char
-        #self.iter_buf = array.array('i', [0] * (self.m_Xres * self.m_Yres))
         self.buffer = np.zeros(self.bytes(),dtype=np.uint8)
         self.iter_buf = np.zeros(self.m_Xres * self.m_Yres,dtype=np.int64)
 
         MAX_RECOLOR_SIZE  = 1024*768
 
         if self.m_Xres * self.m_Yres <= MAX_RECOLOR_SIZE:
-            #self.index_buf = array.array('f', [0.0] * (self.m_Xres * self.m_Yres * N_SUBPIXELS))
-            #self.fate_buf = array.array('B', [0] * (self.m_Xres * self.m_Yres * N_SUBPIXELS))
-            self.index_buf = np.zeros(self.m_Xres * self.m_Yres * N_SUBPIXELS,dtype=np.float64) #None
-            self.fate_buf = np.zeros(self.m_Xres * self.m_Yres * N_SUBPIXELS,dtype=np.uint8) #None
+            self.index_buf = np.zeros(self.m_Xres * self.m_Yres * N_SUBPIXELS,dtype=np.float64)
+            self.fate_buf = np.zeros(self.m_Xres * self.m_Yres * N_SUBPIXELS,dtype=np.uint8)
         else:
-            self.index_buf = np.zeros(0,dtype=np.float64) #None
-            self.fate_buf = np.zeros(0,dtype=np.uint8) #None
-            #self.index_buf = None
-            #self.fate_buf = None
+            self.index_buf = np.zeros(0,dtype=np.float64)
+            self.fate_buf = np.zeros(0,dtype=np.uint8)
         self.clear()
 
     def clear(self):
@@ -94,7 +86,6 @@ class Image(object):
 
         self.alloc_buffers()
 
-        #pixel = array.array('B', [0,0,0,255])
         pixel = np.array([0,0,0,255], dtype = np.uint8)
 
         for i in range(y):
@@ -133,7 +124,6 @@ class Image(object):
         g = self.buffer[pos + GREEN]
         b = self.buffer[pos + BLUE]
         return np.array([r,g,b,0], dtype = np.uint8)
-        # return array.array('B', [r,g,b,0])
     def getIndex(self,x,y,subpixel):
         n = self.index_of_subpixel(x,y,subpixel)
         return self.index_buf[n]
@@ -284,7 +274,6 @@ class STFractWorker(object):
         return True
 
 def Pixel2INT(pixel):
-    #assert isinstance(pixel, (array.array, np.array))
     r,g,b,a = pixel
     return (r << 16) | (g << 8) | b
 
@@ -349,7 +338,6 @@ ii_spec = [
     ('iter', int64),
     ('fate', i1),
     ('pixel', numba.i1[:]),
-    #('pixel', typeof(array.array)),
 ]
 #@jitclass(ii_spec)
 class im_info(object):
@@ -358,7 +346,6 @@ class im_info(object):
         self.index = 0.0
         self.iter = 0
         self.fate = 0
-        #self.pixel = array.array('B', [0,0,0,0])
         self.pixel = np.array([0,0,0,0], dtype=np.uint8)
     def init_fate(self, x, y):
         self.index = 0.0
@@ -495,7 +482,6 @@ class gradient_item_t(object):
 
 
 def lookup_with_transfer(cmap_items, index, solid):
-    #black = array.array('B', [0,0,0,255])
     black = np.array([0,0,0,255], dtype=np.uint8)
     if solid:
         return black
@@ -537,7 +523,6 @@ def lookup(cmap_items, input_index):
         b = int(b) % 256
         a = int(a) % 256
         return np.array([r,g,b,a], dtype=np.uint8)
-        # return array.array('B', [r,g,b,a])
     elif seg.cmode in (HSV_CCW, HSV_CW):
         pass
         (lh,ls,lv) = gimp_rgb_to_hsv(lc[0], lc[1], lc[2])
@@ -559,13 +544,11 @@ def lookup(cmap_items, input_index):
         b = int(b*255.0) % 256
         a = int(a) % 256
         return np.array([r,g,b,a], dtype=np.uint8)
-        # return array.array('B', [r,g,b,a])
     else:
         assert False
 
 def lookup_with_dca(solid, colors):
     black = np.array([0,0,0,255], dtype=np.uint8)
-    # black = array.array('B', [0,0,0,255])
     if solid:
         return black
     r = int(255.0 * colors[0]) % 256
@@ -573,7 +556,6 @@ def lookup_with_dca(solid, colors):
     b = int(255.0 * colors[2]) % 256
     a = int(255.0 * colors[3]) % 256
     return np.array([r,g,b,a], dtype=np.uint8)
-    # return array.array('B', [r,g,b,a])
 
 EPSILON = 1e-10
 
