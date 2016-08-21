@@ -155,9 +155,11 @@ def calc_7(pfcls, xoff, yoff, xres, yres):
     im.set_offset(xoff, yoff)
 
     w = STFractWorker(self_pfo_p, self_cmap, im, self_formuName)
-    ff = fractFunc(self_params, self_maxiter, w, im)
-    w.ff = ff
-    ff.draw()
+
+    (ff_deltax, ff_deltay, ff_topleft) = GetPos_delta(im, self_params)
+    w.ff = (ff_topleft, ff_deltax, ff_deltay, self_maxiter)
+
+    draw_8(im, w)
 
 def image_create(xsize, ysize, txsize, tysize):
     img = Image()
@@ -204,8 +206,9 @@ class STFractWorker(object):
         ii = im_info(self.im)
         ii.init_fate(x,y)
         if ii.fate == FATE_UNKNOWN:
-            pos = self.ff.topleft + self.ff.deltax * x + self.ff.deltay * y
-            (pixel, fate, index, iter_) = calc_pf(self.pfo_p, self.cmap, self.formuNameNo, pos, self.ff.maxiter)
+            (ff_topleft, ff_deltax, ff_deltay, ff_maxiter) = self.ff
+            pos = ff_topleft + ff_deltax * x + ff_deltay * y
+            (pixel, fate, index, iter_) = calc_pf(self.pfo_p, self.cmap, self.formuNameNo, pos, ff_maxiter)
             ii2 = im_info(self.im)
             ii2.pixel = pixel; ii2.fate = fate; ii2.index = index; ii2.iter = iter_
             ii2.writeback(x,y)
@@ -383,57 +386,50 @@ class im_info(object):
             inside = 1
         self.pixel = lookup_with_transfer(cmap, dist, solid)
 
-class fractFunc:
-    def __init__(self, params, maxiter, worker, im):
-        self.params = params
-        self.maxiter = maxiter
-        self.worker = worker
-        self.im = im
+def GetPos_delta(im, params):
+    xtotalsize = im.totalXres()
+    ytotalsize = im.totalYres()
+    xoffset = im.Xoffset()
+    yoffset = im.Yoffset()
 
-        xtotalsize = im.totalXres()
-        ytotalsize = im.totalYres()
-        xoffset = im.Xoffset()
-        yoffset = im.Yoffset()
+    center = np.asarray([params[XCENTER], params[YCENTER], params[ZCENTER], params[WCENTER]])
+    #print 'mycenter', center
 
-        center = np.asarray([params[XCENTER], params[YCENTER], params[ZCENTER], params[WCENTER]])
-        #print 'mycenter', center
+    rot = rotated_matrix(params)
 
-        rot = rotated_matrix(params)
+    rot = rot / xtotalsize
+    #print 'myrot', rot
 
-        rot = rot / xtotalsize
-        #print 'myrot', rot
+    self_deltax = rot[VX].getA1()
+    self_deltay = -rot[VY].getA1()
 
-        self.deltax = rot[VX].getA1()
-        self.deltay = -rot[VY].getA1()
+    delta_aa_x = self_deltax / 2.0
+    delta_aa_y = self_deltay / 2.0
 
-        delta_aa_x = self.deltax / 2.0
-        delta_aa_y = self.deltay / 2.0
+    topleft = center - self_deltax * xtotalsize / 2.0 - self_deltay * ytotalsize / 2.0
 
-        topleft = center - self.deltax * xtotalsize / 2.0 - self.deltay * ytotalsize / 2.0
+    topleft += xoffset * self_deltax;
+    topleft += yoffset * self_deltay;
 
-        topleft += xoffset * self.deltax;
-        topleft += yoffset * self.deltay;
+    topleft += delta_aa_x + delta_aa_y;
 
-        topleft += delta_aa_x + delta_aa_y;
+    return self_deltax, self_deltay, topleft
 
-        self.topleft = topleft
-        #print 'mytopleft', topleft
-
-    def draw(self):
-        rsize = 16; drawsize = 16
-        xsize = self.im.Xres(); ysize = self.im.Yres()
-        w = xsize; h = ysize
-        y = 0
-        while y < h - rsize:
-            self.worker.qbox_row(w,y,rsize,drawsize)
-            y += rsize
-        while y < h:
-            self.worker.row(0,y,w)
-            y += 1
-        y = 0
-        while y < h - rsize:
-            self.worker.box_row(w,y,rsize)
-            y += rsize
+def draw_8(im, worker):
+    rsize = 16; drawsize = 16
+    xsize = im.Xres(); ysize = im.Yres()
+    w = xsize; h = ysize
+    y = 0
+    while y < h - rsize:
+        worker.qbox_row(w,y,rsize,drawsize)
+        y += rsize
+    while y < h:
+        worker.row(0,y,w)
+        y += 1
+    y = 0
+    while y < h - rsize:
+        worker.box_row(w,y,rsize)
+        y += rsize
 
 gradient_item_t_spec = [
     ('left', float64),
