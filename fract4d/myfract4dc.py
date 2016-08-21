@@ -1,7 +1,8 @@
 import numpy as np
 # import png  # pypng (0.0.18)
 import array
-from numba import jit, jitclass, types, int64, float64, complex64 # 0.27.0
+import numba
+from numba import jit, jitclass, types, typeof, i1, int64, float64, complex64 # 0.27.0
 import mycalc
 
 (VX, VY, VZ, VW) = (0,1,2,3)
@@ -14,15 +15,29 @@ import mycalc
 N_SUBPIXELS = 4
 N_PARAMS = 11
 
-class Image:
+Image_spec = [
+    ('m_Xres', int64),
+    ('m_Yres', int64),
+    ('m_totalXres', int64),
+    ('m_totalYres', int64),
+    ('m_xoffset', int64),
+    ('m_yoffset', int64),
+    ('buffer', numba.u1[:]),
+    ('iter_buf', int64[:]),
+    ('fate_buf', numba.u1[:]),
+    ('index_buf', float64[:]),
+]
+
+@jitclass(Image_spec)
+class Image(object):
     def __init__(self):
         self.m_Xres = self.m_Yres = 0
         self.m_totalXres = self.m_totalYres = 0
         self.m_xoffset = self.m_yoffset = 0
-        self.buffer = None
-        self.iter_buf = None
-        self.fate_buf = None
-        self.index_buf = None
+        self.buffer = np.zeros(0,dtype=np.uint8) #None
+        self.iter_buf = np.zeros(0,dtype=np.int64) #None
+        self.fate_buf = np.zeros(0,dtype=np.uint8) #None
+        self.index_buf = np.zeros(0,dtype=np.float64) #None
 
     def Xres(self): return self.m_Xres
     def Yres(self): return self.m_Yres
@@ -35,17 +50,23 @@ class Image:
 
     def alloc_buffers(self):
         # https://docs.python.org/2/library/array.html
-        self.buffer = array.array('B', [0] * self.bytes()) # char
-        self.iter_buf = array.array('i', [0] * (self.m_Xres * self.m_Yres))
+        #self.buffer = array.array('B', [0] * self.bytes()) # char
+        #self.iter_buf = array.array('i', [0] * (self.m_Xres * self.m_Yres))
+        self.buffer = np.zeros(self.bytes(),dtype=np.uint8)
+        self.iter_buf = np.zeros(self.m_Xres * self.m_Yres,dtype=np.int64)
 
         MAX_RECOLOR_SIZE  = 1024*768
 
         if self.m_Xres * self.m_Yres <= MAX_RECOLOR_SIZE:
-            self.index_buf = array.array('f', [0.0] * (self.m_Xres * self.m_Yres * N_SUBPIXELS))
-            self.fate_buf = array.array('B', [0] * (self.m_Xres * self.m_Yres * N_SUBPIXELS))
+            #self.index_buf = array.array('f', [0.0] * (self.m_Xres * self.m_Yres * N_SUBPIXELS))
+            #self.fate_buf = array.array('B', [0] * (self.m_Xres * self.m_Yres * N_SUBPIXELS))
+            self.index_buf = np.zeros(self.m_Xres * self.m_Yres * N_SUBPIXELS,dtype=np.float64) #None
+            self.fate_buf = np.zeros(self.m_Xres * self.m_Yres * N_SUBPIXELS,dtype=np.uint8) #None
         else:
-            self.index_buf = None
-            self.fate_buf = None
+            self.index_buf = np.zeros(0,dtype=np.float64) #None
+            self.fate_buf = np.zeros(0,dtype=np.uint8) #None
+            #self.index_buf = None
+            #self.fate_buf = None
         self.clear()
 
     def clear(self):
@@ -61,7 +82,7 @@ class Image:
         totalx = x if (totalx == -1) else totalx
         totaly = y if (totaly == -1) else totaly
 
-        if self.buffer and \
+        if len(self.buffer) and \
            self.m_Xres == x and self.m_Yres == y and \
            self.m_totalXres == totalx and self.m_totalYres == totaly:
            return
@@ -73,7 +94,8 @@ class Image:
 
         self.alloc_buffers()
 
-        pixel = array.array('B', [0,0,0,255])
+        #pixel = array.array('B', [0,0,0,255])
+        pixel = np.array([0,0,0,255], dtype = np.uint8)
 
         for i in range(y):
             for j in range(x):
@@ -110,15 +132,17 @@ class Image:
         r = self.buffer[pos + RED]
         g = self.buffer[pos + GREEN]
         b = self.buffer[pos + BLUE]
-        return array.array('B', [r,g,b,0])
+        return np.array([r,g,b,0], dtype = np.uint8)
+        # return array.array('B', [r,g,b,0])
     def getIndex(self,x,y,subpixel):
         n = self.index_of_subpixel(x,y,subpixel)
         return self.index_buf[n]
 
 def cmap_from_pyobject(segs):
     n = len(segs)
-    cmap = ColorMap(n)
+    cmap_items = [] # ColorMap(n)
     for i in range(n):
+        the = gradient_item_t()
         left = segs[i].left
         right = segs[i].right
         mid = segs[i].mid
@@ -126,10 +150,11 @@ def cmap_from_pyobject(segs):
         bmode = segs[i].bmode
         left_col = segs[i].left_color
         right_col = segs[i].right_color
-        cmap.set(i, left, right, mid,
+        the.set(left, right, mid,
                  left_col, right_col,
                  bmode, cmode)
-    return cmap
+        cmap_items.append(the)
+    return cmap_items
 
 class PF_Class:
 
@@ -180,8 +205,15 @@ def image_save_all(_img, fp):
     # 4d 19 12 4d
     # 12 5f 25 1b
 
-    p, n = _img.buffer.buffer_info()
-    pbuffer = _img.buffer # buffer(self.im.buffer)
+    if False:
+        p, n = _img.buffer.buffer_info()
+        pbuffer = _img.buffer # buffer(self.im.buffer)
+    else:
+        pbuffer = array.array('B', [0] * _img.bytes()) # char
+        p, n = pbuffer.buffer_info()
+        for i in range(n):
+            pbuffer[i] = _img.buffer[i]
+
     #pbuffer = buffer(self.im.buffer)
     #print '%x %x' % (p, n)
     import fract4dc
@@ -279,7 +311,7 @@ class STFractWorker(object):
         return True
 
 def Pixel2INT(pixel):
-    assert isinstance(pixel, array.array)
+    #assert isinstance(pixel, (array.array, np.array))
     r,g,b,a = pixel
     return (r << 16) | (g << 8) | b
 
@@ -332,15 +364,29 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
     if fUseColors:
         pixel_ = lookup_with_dca(solid, colors)
     else:
-        pixel_ = cmap.lookup_with_transfer(dist, solid)
+        pixel_ = lookup_with_transfer(cmap, dist, solid)
     return (pixel_, fate, dist, iter_)
 
 def abs2(c):
     return c.imag * c.imag + c.real * c.real
 
-class im_info:
+ii_spec = [
+    ('im', typeof(Image)),
+    ('index', float64),
+    ('iter', int64),
+    ('fate', i1),
+    ('pixel', numba.i1[:]),
+    #('pixel', typeof(array.array)),
+]
+#@jitclass(ii_spec)
+class im_info(object):
     def __init__(self, im):
         self.im = im
+        self.index = 0.0
+        self.iter = 0
+        self.fate = 0
+        #self.pixel = array.array('B', [0,0,0,0])
+        self.pixel = np.array([0,0,0,0], dtype=np.uint8)
     def init_fate(self, x, y):
         self.index = 0.0
         self.iter = 0
@@ -377,7 +423,7 @@ class im_info:
             solid = 1
         if fate & FATE_INSIDE:
             inside = 1
-        self.pixel = cmap.lookup_with_transfer(dist, solid)
+        self.pixel = lookup_with_transfer(cmap, dist, solid)
 
 class fractFunc:
     def __init__(self, params, maxiter, worker, im):
@@ -431,103 +477,139 @@ class fractFunc:
             self.worker.box_row(w,y,rsize)
             y += rsize
 
-class gradient_item_t:
+gradient_item_t_spec = [
+    ('left', float64),
+    ('right', float64),
+    ('bmode', int64),
+    ('cmode', int64),
+    ('mid', float64),
+    ('left_color', float64[:]),
+    ('right_color', float64[:]),
+]
+
+@jitclass(gradient_item_t_spec)
+class gradient_item_t(object):
     def __init__(self):
-        self.left = 0
-        self.right = 0
+        self.left = 0.0
+        self.right = 0.0
+        self.mid = 0.0
+        self.left_color = np.zeros(0,dtype=np.float64)
+        self.right_color = np.zeros(0,dtype=np.float64)
         self.bmode = BLEND_LINEAR
         self.cmode = RGB
+    def set(self, left, right, mid, left_col, right_col, bmode, cmode):
+        self.left = left
+        self.right = right
+        self.mid = mid
+        #print 'left_col', type(left_col), left_col
+        #print 'right_col', type(right_col), right_col
+        n = len(left_col)
+        leftc = np.zeros(n,dtype=np.float64)
+        for j in range(n):
+            leftc[j] = left_col[j]
+        self.left_color = leftc
 
-# @jitclass
+        n = len(right_col)
+        rightc = np.zeros(n,dtype=np.float64)
+        for j in range(n):
+            rightc[j] = right_col[j]
+        self.right_color = rightc
+
+        #self.items[i].left_color = left_col
+        #self.items[i].right_color = right_col
+        self.bmode = bmode
+        self.cmode = cmode
+
+
 class ColorMap(object):
     def __init__(self, ncolors):
         self.ncolors = ncolors
-        items = []
+        items = [] #np.zeros(ncolors, dtype=gradient_item_t)
         for i in range(ncolors):
             the = gradient_item_t()
             items.append(the)
+            #items[i] = the
         self.items = items
-    def lookup_with_transfer(self, index, solid):
-        black = array.array('B', [0,0,0,255])
-        if solid:
-            return black
-        return self.lookup(index)
-    def lookup(self, input_index):
-        index = 1.0 if input_index == 1.0 else input_index - int(input_index)
-        i = grad_find(index, self.items, self.ncolors)
-        seg = self.items[i]
-        seg_len = seg.right - seg.left
-        if seg_len < EPSILON:
-            middle = 0.5
-            pos = 0.5
-        else:
-            middle = (seg.mid - seg.left) / seg_len
-            pos = (index - seg.left) / seg_len
-        if seg.bmode == BLEND_LINEAR:
-            factor = calc_linear_factor(middle, pos)
-        elif seg.bmode == BLEND_CURVED:
-            factor = calc_curved_factor(middle, pos)
-        elif seg.bmode == BLEND_SINE:
-            factor = calc_sine_factor(middle, pos)
-        elif seg.bmode == BLEND_SPHERE_INCREASING:
-            factor = calc_sphere_increasing_factor(middle, pos)
-        elif seg.bmode == BLEND_SPHERE_DECREASING:
-            factor = calc_sphere_decreasing_factor(middle, pos)
-        else:
-            assert False
-        lc = seg.left_color
-        rc = seg.right_color
-        if seg.cmode == RGB:
-            r = 255.0 * (lc[0] + (rc[0] - lc[0]) * factor)
-            g = 255.0 * (lc[1] + (rc[1] - lc[1]) * factor)
-            b = 255.0 * (lc[2] + (rc[2] - lc[2]) * factor)
-            a = 255.0 * (lc[3] + (rc[3] - lc[3]) * factor)
-            r = int(r) % 256
-            g = int(g) % 256
-            b = int(b) % 256
-            a = int(a) % 256
-            return array.array('B', [r,g,b,a])
-        elif seg.cmode in (HSV_CCW, HSV_CW):
-            pass
-            (lh,ls,lv) = gimp_rgb_to_hsv(lc[0], lc[1], lc[2])
-            (rh,rs,rv) = gimp_rgb_to_hsv(rc[0], rc[1], rc[2])
+def lookup_with_transfer(cmap_items, index, solid):
+    #black = array.array('B', [0,0,0,255])
+    black = np.array([0,0,0,255], dtype=np.uint8)
+    if solid:
+        return black
+    return lookup(cmap_items, index)
+def lookup(cmap_items, input_index):
+    self_items = cmap_items
+    self_ncolors = len(cmap_items)
+    index = 1.0 if input_index == 1.0 else input_index - int(input_index)
+    i = grad_find(index, self_items, self_ncolors)
+    seg = self_items[i]
+    seg_len = seg.right - seg.left
+    if seg_len < EPSILON:
+        middle = 0.5
+        pos = 0.5
+    else:
+        middle = (seg.mid - seg.left) / seg_len
+        pos = (index - seg.left) / seg_len
+    if seg.bmode == BLEND_LINEAR:
+        factor = calc_linear_factor(middle, pos)
+    elif seg.bmode == BLEND_CURVED:
+        factor = calc_curved_factor(middle, pos)
+    elif seg.bmode == BLEND_SINE:
+        factor = calc_sine_factor(middle, pos)
+    elif seg.bmode == BLEND_SPHERE_INCREASING:
+        factor = calc_sphere_increasing_factor(middle, pos)
+    elif seg.bmode == BLEND_SPHERE_DECREASING:
+        factor = calc_sphere_decreasing_factor(middle, pos)
+    else:
+        assert False
+    lc = seg.left_color
+    rc = seg.right_color
+    if seg.cmode == RGB:
+        r = 255.0 * (lc[0] + (rc[0] - lc[0]) * factor)
+        g = 255.0 * (lc[1] + (rc[1] - lc[1]) * factor)
+        b = 255.0 * (lc[2] + (rc[2] - lc[2]) * factor)
+        a = 255.0 * (lc[3] + (rc[3] - lc[3]) * factor)
+        r = int(r) % 256
+        g = int(g) % 256
+        b = int(b) % 256
+        a = int(a) % 256
+        return np.array([r,g,b,a], dtype=np.uint8)
+        # return array.array('B', [r,g,b,a])
+    elif seg.cmode in (HSV_CCW, HSV_CW):
+        pass
+        (lh,ls,lv) = gimp_rgb_to_hsv(lc[0], lc[1], lc[2])
+        (rh,rs,rv) = gimp_rgb_to_hsv(rc[0], rc[1], rc[2])
 
-            if seg.cmode == HSV_CCW and lh >= rh:
-                rh += 1.0
-            if seg.cmode == HSV_CW and lh <= rh:
-                lh += 1.0
-            h = lh + (rh - lh) * factor
-            s = ls + (rs - ls) * factor
-            v = lv + (rv - lv) * factor
-            if h > 1.0:
-                h -= 1.0
-            (r,g,b) = gimp_hsv_to_rgb(h,s,v)
-            a = 255.0 * (lc[3] + (rc[3] - lc[3]) * factor)
-            r = int(r*255.0) % 256
-            g = int(g*255.0) % 256
-            b = int(b*255.0) % 256
-            a = int(a) % 256
-            return array.array('B', [r,g,b,a])
-        else:
-            assert False
-    def set(self, i, left, right, mid, left_col, right_col, bmode, cmode):
-        self.items[i].left = left
-        self.items[i].right = right
-        self.items[i].mid = mid
-        self.items[i].left_color = left_col
-        self.items[i].right_color = right_col
-        self.items[i].bmode = bmode
-        self.items[i].cmode = cmode
+        if seg.cmode == HSV_CCW and lh >= rh:
+            rh += 1.0
+        if seg.cmode == HSV_CW and lh <= rh:
+            lh += 1.0
+        h = lh + (rh - lh) * factor
+        s = ls + (rs - ls) * factor
+        v = lv + (rv - lv) * factor
+        if h > 1.0:
+            h -= 1.0
+        (r,g,b) = gimp_hsv_to_rgb(h,s,v)
+        a = 255.0 * (lc[3] + (rc[3] - lc[3]) * factor)
+        r = int(r*255.0) % 256
+        g = int(g*255.0) % 256
+        b = int(b*255.0) % 256
+        a = int(a) % 256
+        return np.array([r,g,b,a], dtype=np.uint8)
+        # return array.array('B', [r,g,b,a])
+    else:
+        assert False
 
 def lookup_with_dca(solid, colors):
-    black = array.array('B', [0,0,0,255])
+    black = np.array([0,0,0,255], dtype=np.uint8)
+    # black = array.array('B', [0,0,0,255])
     if solid:
         return black
     r = int(255.0 * colors[0]) % 256
     g = int(255.0 * colors[1]) % 256
     b = int(255.0 * colors[2]) % 256
     a = int(255.0 * colors[3]) % 256
-    return array.array('B', [r,g,b,a])
+    return np.array([r,g,b,a], dtype=np.uint8)
+    # return array.array('B', [r,g,b,a])
 
 EPSILON = 1e-10
 
