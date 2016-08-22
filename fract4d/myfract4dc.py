@@ -1,7 +1,7 @@
 import numpy as np
 # import png  # pypng (0.0.18)
 import numba
-from numba import jit, jitclass, types, typeof, i1, int64, float64, complex64 # 0.27.0
+from numba import jit, jitclass, types, typeof, int64, float64, complex64 # 0.27.0
 import mycalc
 
 (VX, VY, VZ, VW) = (0,1,2,3)
@@ -204,7 +204,7 @@ def do_pixel(stfw, x, y, w, h):
         ii2.rectangle(x,y,w,h)
     else:
         ii.init(x,y)
-        ii.recolor(self_cmap)
+        recolor(ii, self_cmap)
         ii.rectangle(x,y,w,h)
 
 @jit
@@ -212,6 +212,7 @@ def row(stfw, x, y, n):
     for i in range(n):
         do_pixel(stfw,x+i, y, 1, 1)
 
+@jit
 def box_row(stfw, w, y, rsize):
     x = 0
     while x < w-rsize:
@@ -219,12 +220,12 @@ def box_row(stfw, w, y, rsize):
         x += rsize - 1
     for y2 in range(y, y+rsize):
         row(stfw,x,y2,w-x)
-
+@jit
 def RGB2INT(stfw,x,y):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     pixel = im.get(x,y)
     return Pixel2INT(pixel)
-#@jit
+@jit
 def do_box(stfw, x, y, rsize):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     bFlat = True
@@ -253,7 +254,7 @@ def do_box(stfw, x, y, rsize):
         else:
             for y2 in range(y+1,y+rsize-1):
                 row(stfw,x+1,y2,rsize-2)
-
+@jit
 def isTheSame(stfw, bFlat, targetIter, targetCol, x, y):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     if not bFlat:
@@ -264,6 +265,7 @@ def isTheSame(stfw, bFlat, targetIter, targetCol, x, y):
         return False
     return True
 
+@jit
 def Pixel2INT(pixel):
     r,g,b,a = pixel
     return (r << 16) | (g << 8) | b
@@ -320,6 +322,7 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         pixel_ = lookup_with_transfer(cmap, dist, solid)
     return (pixel_, fate, dist, iter_)
 
+@jit(float64(complex64))
 def abs2(c):
     return c.imag * c.imag + c.real * c.real
 
@@ -331,10 +334,12 @@ ii_spec = [
     ('im', typeof(tem33)),
     ('index', float64),
     ('iter', int64),
-    ('fate', i1),
-    ('pixel', numba.i1[:]),
+    ('fate', numba.uint8),
+    ('pixel', numba.uint8[:]),
 ]
-# @jitclass(ii_spec)
+del tem33
+
+@jitclass(ii_spec)
 class im_info(object):
     def __init__(self, im):
         self.im = im
@@ -367,19 +372,23 @@ class im_info(object):
                 self.im.setIter(j,i,self.iter)
                 self.im.setFate(j,i,0,self.fate)
                 self.im.setIndex(j,i,0,self.index)
-    #@jit
-    def recolor(self, cmap):
-        dist = self.index
-        fate = self.fate
-        solid = 0
-        inside = 0
-        if fate & FATE_DIRECT:
-            return
-        if fate & FATE_SOLID:
-            solid = 1
-        if fate & FATE_INSIDE:
-            inside = 1
-        self.pixel = lookup_with_transfer(cmap, dist, solid)
+    def set_pixel(self, pixel):
+        self.pixel = pixel
+
+@jit
+def recolor(selfii, cmap):
+    dist = selfii.index
+    fate = selfii.fate
+    solid = 0
+    inside = 0
+    if fate & FATE_DIRECT:
+        return
+    if fate & FATE_SOLID:
+        solid = 1
+    if fate & FATE_INSIDE:
+        inside = 1
+    pixel = lookup_with_transfer(cmap, dist, solid)
+    selfii.set_pixel(pixel)
 
 def GetPos_delta(im, params):
     xtotalsize = im.totalXres()
@@ -410,6 +419,7 @@ def GetPos_delta(im, params):
 
     return self_deltax, self_deltay, topleft
 
+@jit
 def draw_8(stfw):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
 
