@@ -142,17 +142,31 @@ def cmap_from_pyobject(segs):
         left_col = segs[i].left_color
         right_col = segs[i].right_color
 
-        n = len(left_col)
-        leftc = np.zeros(n,dtype=np.float64)
-        for j in range(n):
-            leftc[j] = left_col[j]
+        (f1,f2,f3,f4) = left_col
+        leftc = (f1,f2,f3,f4)
+        (f1,f2,f3,f4) = right_col
+        rightc = (f1,f2,f3,f4)
+        #n = len(left_col)
+        #leftc = np.zeros(n,dtype=np.float64)
+        #for j in range(n):
+        #    leftc[j] = left_col[j]
 
-        n = len(right_col)
-        rightc = np.zeros(n,dtype=np.float64)
-        for j in range(n):
-            rightc[j] = right_col[j]
+        #n = len(right_col)
+        #rightc = np.zeros(n,dtype=np.float64)
+        #for j in range(n):
+        #    rightc[j] = right_col[j]
 
         the = (left, right, mid, bmode, cmode, leftc, rightc)
+        ''' gradient_item_t_spec = [
+            ('left', float64),
+            ('right', float64),
+            ('bmode', int64),
+            ('cmode', int64),
+            ('mid', float64),
+            ('left_color', float64[:]),
+            ('right_color', float64[:]),
+        ]'''
+
         # the.set(left, right, mid, left_col, right_col, bmode, cmode)
         cmap_items.append(the)
     return cmap_items
@@ -451,49 +465,6 @@ def draw_8(stfw):
         box_row(stfw,w,y,rsize)
         y += rsize
 
-gradient_item_t_spec = [
-    ('left', float64),
-    ('right', float64),
-    ('bmode', int64),
-    ('cmode', int64),
-    ('mid', float64),
-    ('left_color', float64[:]),
-    ('right_color', float64[:]),
-]
-
-@jitclass(gradient_item_t_spec)
-class gradient_item_t(object):
-    def __init__(self):
-        self.left = 0.0
-        self.right = 0.0
-        self.mid = 0.0
-        self.left_color = np.zeros(0,dtype=np.float64)
-        self.right_color = np.zeros(0,dtype=np.float64)
-        self.bmode = BLEND_LINEAR
-        self.cmode = RGB
-    def set(self, left, right, mid, left_col, right_col, bmode, cmode):
-        self.left = left
-        self.right = right
-        self.mid = mid
-        #print 'left_col', type(left_col), left_col
-        #print 'right_col', type(right_col), right_col
-        n = len(left_col)
-        leftc = np.zeros(n,dtype=np.float64)
-        for j in range(n):
-            leftc[j] = left_col[j]
-        self.left_color = leftc
-
-        n = len(right_col)
-        rightc = np.zeros(n,dtype=np.float64)
-        for j in range(n):
-            rightc[j] = right_col[j]
-        self.right_color = rightc
-
-        #self.items[i].left_color = left_col
-        #self.items[i].right_color = right_col
-        self.bmode = bmode
-        self.cmode = cmode
-
 @jit
 def lookup_with_transfer(cmap_items, index, solid):
     black = np.array([0,0,0,255], dtype=np.uint8)
@@ -669,7 +640,7 @@ def calc_linear_factor(middle, pos):
             return 1.0
         return 0.5 + 0.5 * pos / middle
 
-@jit #(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True)
 def grad_find(index, items, ncolors):
 
     i = ncolors - ncolors
