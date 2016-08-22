@@ -3,8 +3,7 @@ from numba import jit, types, int64, float64, complex64 # 0.27.0
 (FATE_UNKNOWN, FATE_SOLID, FATE_DIRECT, FATE_INSIDE) = (255, 0x80, 0x40, 0x20)
 
 
-
-@jit(float64(complex64))
+@jit(float64(complex64), nopython=True, nogil=True)
 def abs2(c):
     return c.imag * c.imag + c.real * c.real
 

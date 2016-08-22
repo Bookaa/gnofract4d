@@ -133,7 +133,7 @@ def cmap_from_pyobject(segs):
     n = len(segs)
     cmap_items = [] # ColorMap(n)
     for i in range(n):
-        the = gradient_item_t()
+        # the = gradient_item_t()
         left = segs[i].left
         right = segs[i].right
         mid = segs[i].mid
@@ -141,9 +141,19 @@ def cmap_from_pyobject(segs):
         bmode = segs[i].bmode
         left_col = segs[i].left_color
         right_col = segs[i].right_color
-        the.set(left, right, mid,
-                 left_col, right_col,
-                 bmode, cmode)
+
+        n = len(left_col)
+        leftc = np.zeros(n,dtype=np.float64)
+        for j in range(n):
+            leftc[j] = left_col[j]
+
+        n = len(right_col)
+        rightc = np.zeros(n,dtype=np.float64)
+        for j in range(n):
+            rightc[j] = right_col[j]
+
+        the = (left, right, mid, bmode, cmode, leftc, rightc)
+        # the.set(left, right, mid, left_col, right_col, bmode, cmode)
         cmap_items.append(the)
     return cmap_items
 
@@ -271,7 +281,7 @@ def Pixel2INT(pixel):
     r,g,b,a = pixel
     return (r << 16) | (g << 8) | b
 
-@jit
+@jit #(nopython=True, nogil=True)
 def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
     cf0cf1, values = pfo_p
     pixel = complex(params[0], params[1])
@@ -280,7 +290,7 @@ def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
     return Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuNameNo, cmap)
 
 
-@jit # (nopython=True)
+@jit #(nopython=True, nogil=True)
 def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap):
     fUseColors = 0
     colors = [0.0, 0.0, 0.0, 0.0]
@@ -291,13 +301,15 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         t__a_fbailout = param_values[0]
         t__h_inside, t__h_numiter, z = mycalc.Mandelbrot_1(t__a_fbailout, pixel, zwpixel, maxiter)
     elif formuNameNo == 2: # 'CGNewton3':
-        p1_tuple = param_values[0]
-        p1 = complex(p1_tuple[0], p1_tuple[1])
+        #p1_tuple = param_values[0]
+        #p1 = complex(p1_tuple[0], p1_tuple[1])
+        p1 = complex(param_values[0], param_values[1])
         t__h_inside, t__h_numiter, z = mycalc.CGNewton3_1(p1, pixel, maxiter)
     else: # if formuNameNo == 3: # 'Cubic Mandelbrot':
         t__a_fbailout = param_values[0]
-        t__a_fa = param_values[1]
-        fa = complex(t__a_fa[0], t__a_fa[1])
+        #t__a_fa = param_values[1]
+        #fa = complex(t__a_fa[0], t__a_fa[1])
+        fa = complex(param_values[1], param_values[2])
         t__h_inside, t__h_numiter, z = mycalc.Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, zwpixel, maxiter)
 
     iter_ = t__h_numiter
@@ -495,29 +507,32 @@ def lookup(cmap_items, input_index):
     index = 1.0 if input_index == 1.0 else input_index - int(input_index)
     i = grad_find(index, self_items, self_ncolors)
     seg = self_items[i]
-    seg_len = seg.right - seg.left
+    (seg_left, seg_right, seg_mid, seg_bmode, seg_cmode, seg_left_color, seg_right_color) = seg
+
+    seg_len = seg_right - seg_left
+    EPSILON = 1e-10
     if seg_len < EPSILON:
         middle = 0.5
         pos = 0.5
     else:
-        middle = (seg.mid - seg.left) / seg_len
-        pos = (index - seg.left) / seg_len
-    if seg.bmode == BLEND_LINEAR:
+        middle = (seg_mid - seg_left) / seg_len
+        pos = (index - seg_left) / seg_len
+    if seg_bmode == BLEND_LINEAR:
         factor = calc_linear_factor(middle, pos)
-    elif seg.bmode == BLEND_CURVED:
+    elif seg_bmode == BLEND_CURVED:
         factor = calc_curved_factor(middle, pos)
-    elif seg.bmode == BLEND_SINE:
+    elif seg_bmode == BLEND_SINE:
         factor = calc_sine_factor(middle, pos)
-    elif seg.bmode == BLEND_SPHERE_INCREASING:
+    elif seg_bmode == BLEND_SPHERE_INCREASING:
         factor = calc_sphere_increasing_factor(middle, pos)
-    elif seg.bmode == BLEND_SPHERE_DECREASING:
+    elif seg_bmode == BLEND_SPHERE_DECREASING:
         factor = calc_sphere_decreasing_factor(middle, pos)
     else:
         pass
         # assert False
-    lc = seg.left_color
-    rc = seg.right_color
-    if seg.cmode == RGB:
+    lc = seg_left_color
+    rc = seg_right_color
+    if seg_cmode == RGB:
         r = 255.0 * (lc[0] + (rc[0] - lc[0]) * factor)
         g = 255.0 * (lc[1] + (rc[1] - lc[1]) * factor)
         b = 255.0 * (lc[2] + (rc[2] - lc[2]) * factor)
@@ -527,13 +542,13 @@ def lookup(cmap_items, input_index):
         b = int(b) % 256
         a = int(a) % 256
         return np.array([r,g,b,a], dtype=np.uint8)
-    elif seg.cmode in (HSV_CCW, HSV_CW):
+    elif seg_cmode in (HSV_CCW, HSV_CW):
         (lh,ls,lv) = gimp_rgb_to_hsv(lc[0], lc[1], lc[2])
         (rh,rs,rv) = gimp_rgb_to_hsv(rc[0], rc[1], rc[2])
 
-        if seg.cmode == HSV_CCW and lh >= rh:
+        if seg_cmode == HSV_CCW and lh >= rh:
             rh += 1.0
-        if seg.cmode == HSV_CW and lh <= rh:
+        if seg_cmode == HSV_CW and lh <= rh:
             lh += 1.0
         h = lh + (rh - lh) * factor
         s = ls + (rs - ls) * factor
@@ -563,8 +578,7 @@ def lookup_with_dca(solid, colors):
     a = int(255.0 * colors[3]) % 256
     return np.array([r,g,b,a], dtype=np.uint8)
 
-EPSILON = 1e-10
-@jit
+@jit(nopython=True, nogil=True)
 def rgb_to_hsv(r,g,b):
     min_ = min(r,g,b)
     max_ = max(r,g,b)
@@ -583,11 +597,12 @@ def rgb_to_hsv(r,g,b):
     if h < 0:
         h += 6.0
     return (h, s, v)
-@jit
+@jit(nopython=True, nogil=True)
 def gimp_rgb_to_hsv(r,g,b):
     (h,s,v) = rgb_to_hsv(r,g,b)
     return (h / 6.0, s, v)
-@jit
+
+@jit(nopython=True, nogil=True)
 def hsv_to_rgb(h,s,v):
     if s == 0:
         return (v,v,v)
@@ -613,33 +628,36 @@ def hsv_to_rgb(h,s,v):
     elif i == 5:
         return (v, p, q)
     else:
-        assert False
-@jit
+        #assert False
+        return (0, 0, 0)
+@jit(nopython=True, nogil=True)
 def gimp_hsv_to_rgb(h,s,v):
     return hsv_to_rgb(h * 6.0, s, v)
 
-@jit
+@jit(nopython=True, nogil=True)
 def calc_sphere_decreasing_factor(middle, pos):
     pos = calc_linear_factor(middle, pos)
     return 1.0 - math.sqrt(1.0 - pos * pos)
 
-@jit
+@jit(nopython=True, nogil=True)
 def calc_sphere_increasing_factor(middle, pos):
     pos = calc_linear_factor(middle, pos) - 1.0
     return math.sqrt(1.0 - pos * pos)
 
-@jit
+@jit(nopython=True, nogil=True)
 def calc_sine_factor(middle, pos):
     pos = calc_linear_factor(middle, pos)
     return (math.sin((-math.pi / 2.0) + math.pi * pos) + 1.0) / 2.0
 
-@jit
+@jit(nopython=True, nogil=True)
 def calc_curved_factor(middle, pos):
+    EPSILON = 1e-10
     middle = max(middle, EPSILON)
     return math.pow(pos, math.log(0.5)) / math.log(middle)
 
-@jit
+@jit(nopython=True, nogil=True)
 def calc_linear_factor(middle, pos):
+    EPSILON = 1e-10
     if pos <= middle:
         if middle < EPSILON:
             return 0.0
@@ -651,11 +669,19 @@ def calc_linear_factor(middle, pos):
             return 1.0
         return 0.5 + 0.5 * pos / middle
 
-@jit
+@jit #(nopython=True, nogil=True)
 def grad_find(index, items, ncolors):
-    for i in range(ncolors):
-        if index <= items[i].right:
+
+    i = ncolors - ncolors
+
+    #for i in range(ncolors):
+
+    while i < ncolors:
+        (left, right, mid, bmode, cmode, leftc, rightc) = items[i]
+        if index <= right:
             return i
+        i+=1
+
     return -1
 
 @jit
@@ -730,46 +756,8 @@ def rotated_matrix(params):
         * rotZW(params[ZWANGLE], 1.0, 0.0)
     return id2
 
-class s_param:
-    pass
-    '''
-    typedef enum
-    {
-        INT = 0,
-        FLOAT = 1,
-        GRADIENT = 2,
-        PARAM_IMAGE = 3
-    } e_paramtype;
-
-    struct s_param
-    {
-        e_paramtype t;
-        int intval;
-        double doubleval;
-        void *gradient;
-        void *image;
-    };
-    '''
-
-def parse_params(params):
-    lst = []
-    import gradient
-    for itm in params:
-        the = s_param()
-        if isinstance(itm, gradient.Gradient):
-            the.t = 2 # GRADIENT
-            the.gradient = itm
-        elif isinstance(itm, float):
-            the.t = 1 # FLOAT
-            the.doubleval = itm
-        else:
-            assert False
-        lst.append(the)
-    return lst
-
 def parse_params_to_dict(params):
     (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = (0.0, 0.0, 0.0, 0.0, 0.0)
-    names = []
     values = []
     for param, var in params:
         name = var.cname
@@ -781,8 +769,12 @@ def parse_params_to_dict(params):
         elif name == 't__a__gradient':
             pass
         else:
-            names.append(name)
-            values.append(param)
+            #names.append(name)
+            if var.type == 3:
+                values.append(param[0])
+                values.append(param[1])
+            else:
+                values.append(param)
 
     cf0cf1 = (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset)
     return (cf0cf1, values)
