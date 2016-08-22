@@ -1,3 +1,4 @@
+import math
 import numpy as np
 # import png  # pypng (0.0.18)
 import numba
@@ -551,6 +552,7 @@ def lookup(cmap_items, input_index):
         # assert False
         return np.array([0,0,0,0], dtype=np.uint8)
 
+@jit
 def lookup_with_dca(solid, colors):
     black = np.array([0,0,0,255], dtype=np.uint8)
     if solid:
@@ -562,7 +564,7 @@ def lookup_with_dca(solid, colors):
     return np.array([r,g,b,a], dtype=np.uint8)
 
 EPSILON = 1e-10
-
+@jit
 def rgb_to_hsv(r,g,b):
     min_ = min(r,g,b)
     max_ = max(r,g,b)
@@ -581,11 +583,11 @@ def rgb_to_hsv(r,g,b):
     if h < 0:
         h += 6.0
     return (h, s, v)
-
+@jit
 def gimp_rgb_to_hsv(r,g,b):
     (h,s,v) = rgb_to_hsv(r,g,b)
     return (h / 6.0, s, v)
-
+@jit
 def hsv_to_rgb(h,s,v):
     if s == 0:
         return (v,v,v)
@@ -612,26 +614,31 @@ def hsv_to_rgb(h,s,v):
         return (v, p, q)
     else:
         assert False
-
+@jit
 def gimp_hsv_to_rgb(h,s,v):
     return hsv_to_rgb(h * 6.0, s, v)
 
+@jit
 def calc_sphere_decreasing_factor(middle, pos):
     pos = calc_linear_factor(middle, pos)
     return 1.0 - math.sqrt(1.0 - pos * pos)
 
+@jit
 def calc_sphere_increasing_factor(middle, pos):
     pos = calc_linear_factor(middle, pos) - 1.0
     return math.sqrt(1.0 - pos * pos)
 
+@jit
 def calc_sine_factor(middle, pos):
     pos = calc_linear_factor(middle, pos)
     return (math.sin((-math.pi / 2.0) + math.pi * pos) + 1.0) / 2.0
 
+@jit
 def calc_curved_factor(middle, pos):
     middle = max(middle, EPSILON)
     return math.pow(pos, math.log(0.5)) / math.log(middle)
 
+@jit
 def calc_linear_factor(middle, pos):
     if pos <= middle:
         if middle < EPSILON:
@@ -644,13 +651,14 @@ def calc_linear_factor(middle, pos):
             return 1.0
         return 0.5 + 0.5 * pos / middle
 
+@jit
 def grad_find(index, items, ncolors):
     for i in range(ncolors):
         if index <= items[i].right:
             return i
     return -1
 
-import math
+@jit
 def rotXY(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -660,6 +668,7 @@ def rotXY(theta, one, zero):
         [zero, zero, one, zero],
         [zero, zero, zero, one]
     ])
+@jit
 def rotXZ(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -669,6 +678,7 @@ def rotXZ(theta, one, zero):
         [-s, zero, c, zero],
         [zero, zero, zero, one]
     ])
+@jit
 def rotXW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -678,6 +688,7 @@ def rotXW(theta, one, zero):
         [zero, zero, one, zero],
         [-s, zero, zero, c]
     ])
+@jit
 def rotYZ(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -687,6 +698,7 @@ def rotYZ(theta, one, zero):
         [zero, s, c, zero],
         [zero, zero, zero, one]
     ])
+@jit
 def rotYW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -696,6 +708,7 @@ def rotYW(theta, one, zero):
         [zero, zero, one, zero],
         [zero, -s, zero, c]
     ])
+@jit
 def rotZW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -706,6 +719,7 @@ def rotZW(theta, one, zero):
         [zero, zero, s, c]
     ])
 
+@jit
 def rotated_matrix(params):
     id = np.identity(4) * params[MAGNITUDE]
     id2 = id * rotXY(params[XYANGLE], 1.0, 0.0) \
