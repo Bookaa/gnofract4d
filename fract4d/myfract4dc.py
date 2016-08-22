@@ -147,19 +147,20 @@ def cmap_from_pyobject(segs):
     return cmap_items
 
 def calc_7(pfcls, xoff, yoff, xres, yres):
-    (self_formuName, self_params, self_pfo_p, self_cmap, self_maxiter, im) = pfcls
+    (self_formuNameNo, self_params, self_pfo_p, self_cmap, self_maxiter, im) = pfcls
 
     xtotalsize = im.totalXres()
     ytotalsize = im.totalYres()
     im.set_resolution(xres, yres, xtotalsize, ytotalsize)
     im.set_offset(xoff, yoff)
 
-    w = STFractWorker(self_pfo_p, self_cmap, im, self_formuName)
-
     (ff_deltax, ff_deltay, ff_topleft) = GetPos_delta(im, self_params)
-    w.ff = (ff_topleft, ff_deltax, ff_deltay, self_maxiter)
 
-    draw_8(im, w)
+    ff = (ff_topleft, ff_deltax, ff_deltay, self_maxiter)
+
+    stfw = (self_pfo_p, self_cmap, im, self_formuNameNo, ff)
+
+    draw_8(stfw)
 
 def image_create(xsize, ysize, txsize, tysize):
     img = Image()
@@ -176,98 +177,92 @@ def image_dims(_img):
     ytotalsize = _img.totalYres()
     return (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset)
 
-class STFractWorker(object):
-    def __init__(self, pfo_p, cmap, im, formuName):
-        self.pfo_p = pfo_p
-        self.cmap = cmap
-        self.im = im
-        self.ff = None
-        if formuName == 'Mandelbrot':
-            formuNameNo = 1
-        elif formuName == 'CGNewton3':
-            formuNameNo = 2
-        else: # if formuName == 'Cubic Mandelbrot':
-            formuNameNo = 3
-        self.formuNameNo = formuNameNo
+@jit
+def qbox_row(stfw, w, y, rsize, drawsize):
+    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+    x = 0
+    while x < w-rsize:
+        do_pixel(stfw,x,y,drawsize,drawsize)
+        x += rsize-1
+    y2 = y
+    while y2 < y + rsize:
+        row(stfw,x,y2,w-x)
+        y2 += 1
 
-    @jit
-    def qbox_row(self, w, y, rsize, drawsize):
-        x = 0
-        while x < w-rsize:
-            self.pixel(x,y,drawsize,drawsize)
-            x += rsize-1
-        y2 = y
-        while y2 < y + rsize:
-            self.row(x,y2,w-x)
-            y2 += 1
+@jit
+def do_pixel(stfw, x, y, w, h):
+    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+    ii = im_info(im)
+    ii.init_fate(x,y)
+    if ii.fate == FATE_UNKNOWN:
+        (ff_topleft, ff_deltax, ff_deltay, ff_maxiter) = ff
+        pos = ff_topleft + ff_deltax * x + ff_deltay * y
+        (pixel, fate, index, iter_) = calc_pf(self_pfo_p, self_cmap, self_formuNameNo, pos, ff_maxiter)
+        ii2 = im_info(im)
+        ii2.pixel = pixel; ii2.fate = fate; ii2.index = index; ii2.iter = iter_
+        ii2.writeback(x,y)
+        ii2.rectangle(x,y,w,h)
+    else:
+        ii.init(x,y)
+        ii.recolor(self_cmap)
+        ii.rectangle(x,y,w,h)
 
-    @jit
-    def pixel(self, x, y, w, h):
-        ii = im_info(self.im)
-        ii.init_fate(x,y)
-        if ii.fate == FATE_UNKNOWN:
-            (ff_topleft, ff_deltax, ff_deltay, ff_maxiter) = self.ff
-            pos = ff_topleft + ff_deltax * x + ff_deltay * y
-            (pixel, fate, index, iter_) = calc_pf(self.pfo_p, self.cmap, self.formuNameNo, pos, ff_maxiter)
-            ii2 = im_info(self.im)
-            ii2.pixel = pixel; ii2.fate = fate; ii2.index = index; ii2.iter = iter_
-            ii2.writeback(x,y)
-            ii2.rectangle(x,y,w,h)
+@jit
+def row(stfw, x, y, n):
+    for i in range(n):
+        do_pixel(stfw,x+i, y, 1, 1)
+
+def box_row(stfw, w, y, rsize):
+    x = 0
+    while x < w-rsize:
+        do_box(stfw,x,y,rsize)
+        x += rsize - 1
+    for y2 in range(y, y+rsize):
+        row(stfw,x,y2,w-x)
+
+def RGB2INT(stfw,x,y):
+    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+    pixel = im.get(x,y)
+    return Pixel2INT(pixel)
+#@jit
+def do_box(stfw, x, y, rsize):
+    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+    bFlat = True
+    iter = im.getIter(x,y)
+    pcol = RGB2INT(stfw,x,y)
+    for x2 in range(x, x+rsize):
+        do_pixel(stfw,x2,y,1,1)
+        bFlat = isTheSame(stfw,bFlat,iter,pcol,x2,y)
+        do_pixel(stfw,x2,y+rsize-1,1,1)
+        bFlat = isTheSame(stfw,bFlat,iter,pcol,x2,y+rsize-1)
+    for y2 in range(y, y+rsize):
+        do_pixel(stfw,x,y2,1,1)
+        bFlat = isTheSame(stfw,bFlat,iter,pcol,x,y2)
+        do_pixel(stfw,x+rsize-1,y2,1,1)
+        bFlat = isTheSame(stfw,bFlat,iter,pcol,x+rsize-1,y2)
+    if bFlat:
+        ii = im_info(im); ii.init(x,y)
+        ii.rectangle_with_iter(x+1,y+1,rsize-2,rsize-2)
+    else:
+        if rsize > 4:
+            half_size = rsize / 2
+            do_box(stfw,x,y,half_size)
+            do_box(stfw,x+half_size,y,half_size)
+            do_box(stfw,x,y+half_size, half_size)
+            do_box(stfw,x+half_size,y+half_size,half_size)
         else:
-            ii.init(x,y)
-            ii.recolor(self.cmap)
-            ii.rectangle(x,y,w,h)
-    @jit
-    def row(self, x, y, n):
-        for i in range(n):
-            self.pixel(x+i, y, 1, 1)
-    def box_row(self, w, y, rsize):
-        x = 0
-        while x < w-rsize:
-            self.box(x,y,rsize)
-            x += rsize - 1
-        for y2 in range(y, y+rsize):
-            self.row(x,y2,w-x)
-    def RGB2INT(self,x,y):
-        pixel = self.im.get(x,y)
-        return Pixel2INT(pixel)
-    @jit
-    def box(self, x, y, rsize):
-        bFlat = True
-        iter = self.im.getIter(x,y)
-        pcol = self.RGB2INT(x,y)
-        for x2 in range(x, x+rsize):
-            self.pixel(x2,y,1,1)
-            bFlat = self.isTheSame(bFlat,iter,pcol,x2,y)
-            self.pixel(x2,y+rsize-1,1,1)
-            bFlat = self.isTheSame(bFlat,iter,pcol,x2,y+rsize-1)
-        for y2 in range(y, y+rsize):
-            self.pixel(x,y2,1,1)
-            bFlat = self.isTheSame(bFlat,iter,pcol,x,y2)
-            self.pixel(x+rsize-1,y2,1,1)
-            bFlat = self.isTheSame(bFlat,iter,pcol,x+rsize-1,y2)
-        if bFlat:
-            ii = im_info(self.im); ii.init(x,y)
-            ii.rectangle_with_iter(x+1,y+1,rsize-2,rsize-2)
-        else:
-            if rsize > 4:
-                half_size = rsize / 2
-                self.box(x,y,half_size)
-                self.box(x+half_size,y,half_size)
-                self.box(x,y+half_size, half_size)
-                self.box(x+half_size,y+half_size,half_size)
-            else:
-                for y2 in range(y+1,y+rsize-1):
-                    self.row(x+1,y2,rsize-2)
+            for y2 in range(y+1,y+rsize-1):
+                row(stfw,x+1,y2,rsize-2)
 
-    def isTheSame(self, bFlat, targetIter, targetCol, x, y):
-        if not bFlat:
-            return False
-        if self.im.getIter(x,y) != targetIter:
-            return False
-        if self.RGB2INT(x,y) != targetCol:
-            return False
-        return True
+def isTheSame(stfw, bFlat, targetIter, targetCol, x, y):
+    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+    if not bFlat:
+        return False
+    if im.getIter(x,y) != targetIter:
+        return False
+    if RGB2INT(stfw,x,y) != targetCol:
+        return False
+    return True
 
 def Pixel2INT(pixel):
     r,g,b,a = pixel
@@ -415,20 +410,22 @@ def GetPos_delta(im, params):
 
     return self_deltax, self_deltay, topleft
 
-def draw_8(im, worker):
+def draw_8(stfw):
+    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+
     rsize = 16; drawsize = 16
     xsize = im.Xres(); ysize = im.Yres()
     w = xsize; h = ysize
     y = 0
     while y < h - rsize:
-        worker.qbox_row(w,y,rsize,drawsize)
+        qbox_row(stfw,w,y,rsize,drawsize)
         y += rsize
     while y < h:
-        worker.row(0,y,w)
+        row(stfw,0,y,w)
         y += 1
     y = 0
     while y < h - rsize:
-        worker.box_row(w,y,rsize)
+        box_row(stfw,w,y,rsize)
         y += rsize
 
 gradient_item_t_spec = [
@@ -778,11 +775,18 @@ if not Flag_My:
 def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
     if Flag_My:
 
+        if formuName == 'Mandelbrot':
+            formuNameNo = 1
+        elif formuName == 'CGNewton3':
+            formuNameNo = 2
+        else: # if formuName == 'Cubic Mandelbrot':
+            formuNameNo = 3
+
         pfo_p = parse_params_to_dict(initparams)
         cmap = cmap_from_pyobject(segs)
         _img = image._img
 
-        pfcls = (formuName, params, pfo_p, cmap, maxiter, _img)
+        pfcls = (formuNameNo, params, pfo_p, cmap, maxiter, _img)
 
         for (xoff,yoff,xres,yres) in image.get_tile_list():
             calc_7(pfcls, xoff, yoff, xres, yres)
