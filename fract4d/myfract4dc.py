@@ -423,7 +423,7 @@ def GetPos_delta(im, params):
     xoffset = im.Xoffset()
     yoffset = im.Yoffset()
 
-    center = np.asarray([params[XCENTER], params[YCENTER], params[ZCENTER], params[WCENTER]])
+    center = np.array([params[XCENTER], params[YCENTER], params[ZCENTER], params[WCENTER]])
     #print 'mycenter', center
 
     rot = rotated_matrix(params)
@@ -655,76 +655,65 @@ def grad_find(index, items, ncolors):
 
     return -1
 
-@jit
+@jit(nopython=True, nogil=True)
 def rotXY(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
-    return np.matrix([
-        [c, -s, zero, zero],
-        [s, c, zero, zero],
-        [zero, zero, one, zero],
-        [zero, zero, zero, one]
-    ])
-@jit
+    return [c, -s, zero, zero,
+        s, c, zero, zero,
+        zero, zero, one, zero,
+        zero, zero, zero, one]
+@jit(nopython=True, nogil=True)
 def rotXZ(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
-    return np.matrix([
-        [c, zero, s, zero],
-        [zero, one, zero, zero],
-        [-s, zero, c, zero],
-        [zero, zero, zero, one]
-    ])
-@jit
+    return [c, zero, s, zero,
+        zero, one, zero, zero,
+        -s, zero, c, zero,
+        zero, zero, zero, one]
+@jit(nopython=True, nogil=True)
 def rotXW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
-    return np.matrix([
-        [c, zero, zero, s],
-        [zero, one, zero, zero],
-        [zero, zero, one, zero],
-        [-s, zero, zero, c]
-    ])
-@jit
+    return [c, zero, zero, s,
+        zero, one, zero, zero,
+        zero, zero, one, zero,
+        -s, zero, zero, c]
+@jit(nopython=True, nogil=True)
 def rotYZ(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
-    return np.matrix([
-        [one, zero, zero, zero],
-        [zero, c, -s, zero],
-        [zero, s, c, zero],
-        [zero, zero, zero, one]
-    ])
-@jit
+    return [one, zero, zero, zero,
+        zero, c, -s, zero,
+        zero, s, c, zero,
+        zero, zero, zero, one]
+@jit(nopython=True, nogil=True)
 def rotYW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
-    return np.matrix([
-        [one, zero, zero, zero],
-        [zero, c, zero, s],
-        [zero, zero, one, zero],
-        [zero, -s, zero, c]
-    ])
-@jit
+    return [one, zero, zero, zero,
+        zero, c, zero, s,
+        zero, zero, one, zero,
+        zero, -s, zero, c]
+@jit(nopython=True, nogil=True)
 def rotZW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
-    return np.matrix([
-        [one, zero, zero, zero],
-        [zero, one, zero, zero],
-        [zero, zero, c, -s],
-        [zero, zero, s, c]
-    ])
+    return [one, zero, zero, zero,
+        zero, one, zero, zero,
+        zero, zero, c, -s,
+        zero, zero, s, c]
 
 @jit
 def rotated_matrix(params):
     id = np.identity(4) * params[MAGNITUDE]
-    id2 = id * rotXY(params[XYANGLE], 1.0, 0.0) \
-        * rotXZ(params[XZANGLE], 1.0, 0.0) \
-        * rotXW(params[XWANGLE], 1.0, 0.0) \
-        * rotYZ(params[YZANGLE], 1.0, 0.0) \
-        * rotYW(params[YWANGLE], 1.0, 0.0) \
-        * rotZW(params[ZWANGLE], 1.0, 0.0)
+    m1 = np.asmatrix(np.asarray(rotXY(params[XYANGLE], 1.0, 0.0), dtype=np.float64).reshape((4,4)))
+    m2 = np.asmatrix(np.asarray(rotXZ(params[XZANGLE], 1.0, 0.0), dtype=np.float64).reshape((4,4)))
+    m3 = np.asmatrix(np.asarray(rotXW(params[XWANGLE], 1.0, 0.0), dtype=np.float64).reshape((4,4)))
+    m4 = np.asmatrix(np.asarray(rotYZ(params[YZANGLE], 1.0, 0.0), dtype=np.float64).reshape((4,4)))
+    m5 = np.asmatrix(np.asarray(rotYW(params[YWANGLE], 1.0, 0.0), dtype=np.float64).reshape((4,4)))
+    m6 = np.asmatrix(np.asarray(rotZW(params[ZWANGLE], 1.0, 0.0), dtype=np.float64).reshape((4,4)))
+    id2 = id * m1 * m2 * m3 * m4 * m5 * m6
     return id2
 
 def parse_params_to_dict(params):
