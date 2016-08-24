@@ -1,8 +1,7 @@
 import math
 import numpy as np
-# import png  # pypng (0.0.18)
 import numba
-from numba import jit, jitclass, types, typeof, int64, float64, complex64 # 0.27.0
+from numba import jit, jitclass, typeof, int64, float64, complex64 # 0.27.0
 import mycalc
 
 (VX, VY, VZ, VW) = (0,1,2,3)
@@ -202,7 +201,7 @@ def image_dims(_img):
     ytotalsize = _img.totalYres()
     return (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset)
 
-@jit
+@jit(nopython=True, nogil=True)
 def qbox_row(stfw, w, y, rsize, drawsize):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     x = 0
@@ -232,12 +231,12 @@ def do_pixel(stfw, x, y, w, h):
         recolor(ii, self_cmap)
         ii.rectangle(x,y,w,h)
 
-@jit
+@jit(nopython=True, nogil=True)
 def row(stfw, x, y, n):
     for i in range(n):
         do_pixel(stfw,x+i, y, 1, 1)
 
-@jit
+@jit(nopython=True, nogil=True)
 def box_row(stfw, w, y, rsize):
     x = 0
     while x < w-rsize:
@@ -450,7 +449,7 @@ def GetPos_delta(im, params):
 
     return self_deltax, self_deltay, topleft
 
-@jit
+@jit(nopython=True, nogil=True)
 def draw_8(stfw):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
 
