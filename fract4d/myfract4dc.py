@@ -214,7 +214,7 @@ def qbox_row(stfw, w, y, rsize, drawsize):
         row(stfw,x,y2,w-x)
         y2 += 1
 
-@jit
+@jit(nopython=True, nogil=True)
 def do_pixel(stfw, x, y, w, h):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     ii = im_info(im)
@@ -245,12 +245,14 @@ def box_row(stfw, w, y, rsize):
         x += rsize - 1
     for y2 in range(y, y+rsize):
         row(stfw,x,y2,w-x)
-@jit
+
+@jit(nopython=True, nogil=True)
 def RGB2INT(stfw,x,y):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     pixel = im.get(x,y)
     return Pixel2INT(pixel)
-@jit
+
+@jit(nopython=True, nogil=True)
 def do_box(stfw, x, y, rsize):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     bFlat = True
@@ -279,7 +281,8 @@ def do_box(stfw, x, y, rsize):
         else:
             for y2 in range(y+1,y+rsize-1):
                 row(stfw,x+1,y2,rsize-2)
-@jit
+
+@jit(nopython=True, nogil=True)
 def isTheSame(stfw, bFlat, targetIter, targetCol, x, y):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     if not bFlat:
@@ -290,12 +293,12 @@ def isTheSame(stfw, bFlat, targetIter, targetCol, x, y):
         return False
     return True
 
-@jit
+@jit(nopython=True, nogil=True)
 def Pixel2INT(pixel):
     r,g,b,a = pixel
     return (r << 16) | (g << 8) | b
 
-@jit #(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True)
 def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
     cf0cf1, values = pfo_p
     pixel = complex(params[0], params[1])
@@ -304,7 +307,7 @@ def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
     return Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuNameNo, cmap)
 
 
-@jit #(nopython=True, nogil=True)
+@jit(nopython=True, nogil=True)
 def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap):
     fUseColors = 0
     colors = [0.0, 0.0, 0.0, 0.0]
@@ -402,7 +405,7 @@ class im_info(object):
     def set_pixel(self, pixel):
         self.pixel = pixel
 
-@jit
+@jit(nopython=True, nogil=True)
 def recolor(selfii, cmap):
     dist = selfii.index
     fate = selfii.fate
@@ -416,7 +419,8 @@ def recolor(selfii, cmap):
         inside = 1
     pixel = lookup_with_transfer(cmap, dist, solid)
     selfii.set_pixel(pixel)
-@jit
+
+@jit(nopython=True, nogil=True)
 def GetPos_delta(im, params):
     xtotalsize = im.totalXres()
     ytotalsize = im.totalYres()
@@ -465,13 +469,14 @@ def draw_8(stfw):
         box_row(stfw,w,y,rsize)
         y += rsize
 
-@jit
+@jit(nopython=True, nogil=True)
 def lookup_with_transfer(cmap_items, index, solid):
     black = np.array([0,0,0,255], dtype=np.uint8)
     if solid:
         return black
     return lookup(cmap_items, index)
-@jit
+
+@jit(nopython=True, nogil=True)
 def lookup(cmap_items, input_index):
     self_items = cmap_items
     self_ncolors = len(cmap_items)
