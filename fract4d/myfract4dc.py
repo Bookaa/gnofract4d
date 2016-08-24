@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import numba
-from numba import jit, jitclass, typeof, int64, float64, complex64 # 0.27.0
+from numba import jit, jitclass, typeof, int64, float64, complex128 # 0.27.0
 import mycalc
 
 (VX, VY, VZ, VW) = (0,1,2,3)
@@ -351,7 +351,7 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         pixel_ = lookup_with_transfer(cmap, dist, solid)
     return (pixel_, fate, dist, iter_)
 
-@jit(float64(complex64))
+@jit(float64(complex128))
 def abs2(c):
     return c.imag * c.imag + c.real * c.real
 

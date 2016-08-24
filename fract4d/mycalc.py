@@ -1,13 +1,14 @@
-from numba import jit, types, int64, float64, complex64 # 0.27.0
+import numba
+from numba import jit, types, int64, float64, complex128, typeof # 0.27.0
 
 (FATE_UNKNOWN, FATE_SOLID, FATE_DIRECT, FATE_INSIDE) = (255, 0x80, 0x40, 0x20)
 
 
-@jit(float64(complex64), nopython=True, nogil=True)
+@jit(float64(complex128), nopython=True, nogil=True)
 def abs2(c):
     return c.imag * c.imag + c.real * c.real
 
-@jit(nopython=True)
+@jit(types.Tuple((int64,int64,complex128))(float64, complex128, complex128, int64), nopython=True, nogil=True)
 def Mandelbrot_1(fbailout, pixel, zwpixel, maxiter):
     '''
     Mandelbrot {
@@ -27,6 +28,7 @@ def Mandelbrot_1(fbailout, pixel, zwpixel, maxiter):
     }
     '''
 
+    #print str(type(fbailout)), str(type(pixel)), str(type(zwpixel)), str(type(maxiter))
     t__h_numiter = 0
     z = zwpixel
     t__h_inside = 0
@@ -40,7 +42,7 @@ def Mandelbrot_1(fbailout, pixel, zwpixel, maxiter):
             break
     return t__h_inside, t__h_numiter, z
 
-@jit(nopython=True)
+@jit(types.Tuple((int64,int64,complex128))(complex128, complex128, int64), nopython=True, nogil=True)
 def CGNewton3_1(p1, pixel, maxiter):
     '''
     CGNewton3 {
@@ -70,7 +72,7 @@ def CGNewton3_1(p1, pixel, maxiter):
     return t__h_inside, t__h_numiter, z
 
 
-@jit(types.Tuple((int64,int64,complex64))(complex64, float64, complex64, complex64, int64), nopython=True, nogil=True)
+@jit(types.Tuple((int64,int64,complex128))(complex128, float64, complex128, complex128, int64), nopython=True, nogil=True)
 def Cubic_Mandelbrot_1(fa, fbailout, pixel, zwpixel, maxiter):
     '''
     Cubic Mandelbrot {
