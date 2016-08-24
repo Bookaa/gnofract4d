@@ -416,7 +416,7 @@ def recolor(selfii, cmap):
         inside = 1
     pixel = lookup_with_transfer(cmap, dist, solid)
     selfii.set_pixel(pixel)
-
+@jit
 def GetPos_delta(im, params):
     xtotalsize = im.totalXres()
     ytotalsize = im.totalYres()
@@ -431,8 +431,8 @@ def GetPos_delta(im, params):
     rot = rot / xtotalsize
     #print 'myrot', rot
 
-    self_deltax = rot[VX].getA1()
-    self_deltay = -rot[VY].getA1()
+    self_deltax = rot[VX] #.getA1()
+    self_deltay = -rot[VY] #.getA1()
 
     delta_aa_x = self_deltax / 2.0
     delta_aa_y = self_deltay / 2.0
@@ -659,62 +659,91 @@ def grad_find(index, items, ncolors):
 def rotXY(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
-    return [c, -s, zero, zero,
+    return np.array([c, -s, zero, zero,
         s, c, zero, zero,
         zero, zero, one, zero,
-        zero, zero, zero, one]
+        zero, zero, zero, one], dtype=np.float64) #.reshape((4,4))
+
 @jit(nopython=True, nogil=True)
 def rotXZ(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
-    return [c, zero, s, zero,
+    return np.array([c, zero, s, zero,
         zero, one, zero, zero,
         -s, zero, c, zero,
-        zero, zero, zero, one]
+        zero, zero, zero, one], dtype=np.float64) #.reshape((4,4))
 @jit(nopython=True, nogil=True)
 def rotXW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
-    return [c, zero, zero, s,
+    return np.array([c, zero, zero, s,
         zero, one, zero, zero,
         zero, zero, one, zero,
-        -s, zero, zero, c]
+        -s, zero, zero, c], dtype=np.float64) #.reshape((4,4))
 @jit(nopython=True, nogil=True)
 def rotYZ(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
-    return [one, zero, zero, zero,
+    return np.array([one, zero, zero, zero,
         zero, c, -s, zero,
         zero, s, c, zero,
-        zero, zero, zero, one]
+        zero, zero, zero, one], dtype=np.float64) #.reshape((4,4))
 @jit(nopython=True, nogil=True)
 def rotYW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
-    return [one, zero, zero, zero,
+    return np.array([one, zero, zero, zero,
         zero, c, zero, s,
         zero, zero, one, zero,
-        zero, -s, zero, c]
+        zero, -s, zero, c], dtype=np.float64) #.reshape((4,4))
 @jit(nopython=True, nogil=True)
 def rotZW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
-    return [one, zero, zero, zero,
+    return np.array([one, zero, zero, zero,
         zero, one, zero, zero,
         zero, zero, c, -s,
-        zero, zero, s, c]
+        zero, zero, s, c], dtype=np.float64) #.reshape((4,4))
 
-@jit
+@jit(nopython=True, nogil=True)
+def matmult(a,b):
+    return np.array([a[0]*b[0]+a[1]*b[4]+a[2]*b[8]+a[3]*b[12],
+                     a[0]*b[1]+a[1]*b[5]+a[2]*b[9]+a[3]*b[13],
+                     a[0]*b[2]+a[1]*b[6]+a[2]*b[10]+a[3]*b[14],
+                     a[0]*b[3]+a[1]*b[7]+a[2]*b[11]+a[3]*b[15],
+
+                     a[4]*b[0]+a[5]*b[4]+a[6]*b[8]+a[7]*b[12],
+                     a[4]*b[1]+a[5]*b[5]+a[6]*b[9]+a[7]*b[13],
+                     a[4]*b[2]+a[5]*b[6]+a[6]*b[10]+a[7]*b[14],
+                     a[4]*b[3]+a[5]*b[7]+a[6]*b[11]+a[7]*b[15],
+
+                     a[8]*b[0]+a[9]*b[4]+a[10]*b[8]+a[11]*b[12],
+                     a[8]*b[1]+a[9]*b[5]+a[10]*b[9]+a[11]*b[13],
+                     a[8]*b[2]+a[9]*b[6]+a[10]*b[10]+a[11]*b[14],
+                     a[8]*b[3]+a[9]*b[7]+a[10]*b[11]+a[11]*b[15],
+
+                     a[12]*b[0]+a[13]*b[4]+a[14]*b[8]+a[15]*b[12],
+                     a[12]*b[1]+a[13]*b[5]+a[14]*b[9]+a[15]*b[13],
+                     a[12]*b[2]+a[13]*b[6]+a[14]*b[10]+a[15]*b[14],
+                     a[12]*b[3]+a[13]*b[7]+a[14]*b[11]+a[15]*b[15],
+                     ])
+
+@jit(nopython=True, nogil=True)
 def rotated_matrix(params):
-    id = np.identity(4) * params[MAGNITUDE]
-    m1 = np.asmatrix(np.asarray(rotXY(params[XYANGLE], 1.0, 0.0), dtype=np.float64).reshape((4,4)))
-    m2 = np.asmatrix(np.asarray(rotXZ(params[XZANGLE], 1.0, 0.0), dtype=np.float64).reshape((4,4)))
-    m3 = np.asmatrix(np.asarray(rotXW(params[XWANGLE], 1.0, 0.0), dtype=np.float64).reshape((4,4)))
-    m4 = np.asmatrix(np.asarray(rotYZ(params[YZANGLE], 1.0, 0.0), dtype=np.float64).reshape((4,4)))
-    m5 = np.asmatrix(np.asarray(rotYW(params[YWANGLE], 1.0, 0.0), dtype=np.float64).reshape((4,4)))
-    m6 = np.asmatrix(np.asarray(rotZW(params[ZWANGLE], 1.0, 0.0), dtype=np.float64).reshape((4,4)))
-    id2 = id * m1 * m2 * m3 * m4 * m5 * m6
-    return id2
+    id = (np.identity(4) * params[MAGNITUDE]).reshape(16)
+    m12 = rotXY(params[XYANGLE], 1.0, 0.0)
+    m12 = matmult(id, m12)
+    m23 = rotXZ(params[XZANGLE], 1.0, 0.0)
+    m = matmult(m12, m23)
+    m23 = rotXW(params[XWANGLE], 1.0, 0.0)
+    m = matmult(m, m23)
+    m23 = rotYZ(params[YZANGLE], 1.0, 0.0)
+    m = matmult(m, m23)
+    m23 = rotYW(params[YWANGLE], 1.0, 0.0)
+    m = matmult(m, m23)
+    m23 = rotZW(params[ZWANGLE], 1.0, 0.0)
+    m = matmult(m, m23)
+    return m.reshape((4,4))
 
 def parse_params_to_dict(params):
     (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = (0.0, 0.0, 0.0, 0.0, 0.0)
