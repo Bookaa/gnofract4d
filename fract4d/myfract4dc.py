@@ -1,8 +1,10 @@
 import math
 import numpy as np
 import numba
-from numba import jit, jitclass, typeof, int64, float64, complex128 # 0.27.0
+from numba import jit, typeof, int64, float64, complex128 # 0.27.0
 import mycalc
+
+from mycalc import myjit, myjitclass, UseLLVM
 
 (VX, VY, VZ, VW) = (0,1,2,3)
 (IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_TOTAL_WIDTH, IMAGE_TOTAL_HEIGHT, IMAGE_XOFFSET, IMAGE_YOFFSET) = (0,1,2,3,4,5)
@@ -27,7 +29,7 @@ Image_spec = [
     ('index_buf', float64[:]),
 ]
 
-@jitclass(Image_spec)
+@myjitclass(Image_spec)
 class Image(object):
     def __init__(self):
         self.m_Xres = self.m_Yres = 0
@@ -201,7 +203,7 @@ def image_dims(_img):
     ytotalsize = _img.totalYres()
     return (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def qbox_row(stfw, w, y, rsize, drawsize):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     x = 0
@@ -213,7 +215,7 @@ def qbox_row(stfw, w, y, rsize, drawsize):
         row(stfw,x,y2,w-x)
         y2 += 1
 
-@jit(nopython=True, nogil=True)
+@myjit
 def do_pixel(stfw, x, y, w, h):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     ii = im_info(im)
@@ -231,12 +233,12 @@ def do_pixel(stfw, x, y, w, h):
         recolor(ii, self_cmap)
         ii.rectangle(x,y,w,h)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def row(stfw, x, y, n):
     for i in range(n):
         do_pixel(stfw,x+i, y, 1, 1)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def box_row(stfw, w, y, rsize):
     x = 0
     while x < w-rsize:
@@ -245,13 +247,13 @@ def box_row(stfw, w, y, rsize):
     for y2 in range(y, y+rsize):
         row(stfw,x,y2,w-x)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def RGB2INT(stfw,x,y):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     pixel = im.get(x,y)
     return Pixel2INT(pixel)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def do_box(stfw, x, y, rsize):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     bFlat = True
@@ -281,7 +283,7 @@ def do_box(stfw, x, y, rsize):
             for y2 in range(y+1,y+rsize-1):
                 row(stfw,x+1,y2,rsize-2)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def isTheSame(stfw, bFlat, targetIter, targetCol, x, y):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     if not bFlat:
@@ -292,12 +294,12 @@ def isTheSame(stfw, bFlat, targetIter, targetCol, x, y):
         return False
     return True
 
-@jit(nopython=True, nogil=True)
+@myjit
 def Pixel2INT(pixel):
     r,g,b,a = pixel
     return (r << 16) | (g << 8) | b
 
-@jit(nopython=True, nogil=True)
+@myjit
 def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
     cf0cf1, values = pfo_p
     pixel = complex(params[0], params[1])
@@ -305,8 +307,19 @@ def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
 
     return Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuNameNo, cmap)
 
+import tryllvm
+from ctypes import byref
 
-@jit(nopython=True, nogil=True)
+the = tryllvm.ST1(0,0,tryllvm.ST2(0.0,0.0))
+g_ref_the = byref(the)
+
+dtype_i8i8f8f8 = np.dtype([('foo', 'i8'),('foo1', 'i8'),('bar1', 'f8'),('bar', 'f8')])
+
+cfunc2_Mandelbrot_1 = tryllvm.cfunc2_Mandelbrot_1
+cfunc2_CGNewton3_1 = tryllvm.cfunc2_CGNewton3_1
+cfunc2_Cubic_Mandelbrot_1 = tryllvm.cfunc2_Cubic_Mandelbrot_1
+
+@myjit
 def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap):
     fUseColors = 0
     colors = [0.0, 0.0, 0.0, 0.0]
@@ -315,18 +328,52 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
 
     if formuNameNo == 1: # 'Mandelbrot':
         t__a_fbailout = param_values[0]
-        t__h_inside, t__h_numiter, z = mycalc.Mandelbrot_1(t__a_fbailout, pixel, zwpixel, maxiter)
+        if UseLLVM:
+            arr = np.zeros(1, dtype=dtype_i8i8f8f8)
+            cfunc2_Mandelbrot_1(arr.ctypes.data, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+            a1,a2,a3,a4 = arr[0]['foo'], arr[0]['foo1'], arr[0]['bar1'], arr[0]['bar']
+            a1 = a1 + len(arr) - len(arr)
+
+            # a1,a2,a3,a4 = tryllvm.cfunc_Mandelbrot_1(g_ref_the, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+            t__h_inside, t__h_numiter, z = a1, a2, complex(a3, a4)
+            #print 'get res', res
+            #print the.t__h_inside, the.t__h_numiter, the.z.z_real + the.z.z_image * 1j
+            #t__h_inside, t__h_numiter, z = the.t__h_inside, the.t__h_numiter, complex(the.z.z_real, the.z.z_image)
+        else:
+            #print 'input', t__a_fbailout, pixel, zwpixel, maxiter
+            t__h_inside, t__h_numiter, z = mycalc.Mandelbrot_1(t__a_fbailout, pixel, zwpixel, maxiter)
+            #print 'output', t__h_inside, t__h_numiter, z
+
+
     elif formuNameNo == 2: # 'CGNewton3':
+
         #p1_tuple = param_values[0]
         #p1 = complex(p1_tuple[0], p1_tuple[1])
         p1 = complex(param_values[0], param_values[1])
-        t__h_inside, t__h_numiter, z = mycalc.CGNewton3_1(p1, pixel, maxiter)
+        if UseLLVM:
+            arr = np.zeros(1, dtype=dtype_i8i8f8f8)
+            cfunc2_CGNewton3_1(arr.ctypes.data, p1.real, p1.imag, pixel.real, pixel.imag, maxiter)
+            a1,a2,a3,a4 = arr[0]['foo'], arr[0]['foo1'], arr[0]['bar1'], arr[0]['bar']
+            a1 = a1 + len(arr) - len(arr)
+
+            # a1,a2,a3,a4 = tryllvm.cfunc_Mandelbrot_1(g_ref_the, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+            t__h_inside, t__h_numiter, z = a1, a2, complex(a3, a4)
+        else:
+            t__h_inside, t__h_numiter, z = mycalc.CGNewton3_1(p1, pixel, maxiter)
     else: # if formuNameNo == 3: # 'Cubic Mandelbrot':
         t__a_fbailout = param_values[0]
         #t__a_fa = param_values[1]
         #fa = complex(t__a_fa[0], t__a_fa[1])
         fa = complex(param_values[1], param_values[2])
-        t__h_inside, t__h_numiter, z = mycalc.Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, zwpixel, maxiter)
+        if UseLLVM:
+            arr = np.zeros(1, dtype=dtype_i8i8f8f8)
+            cfunc2_Cubic_Mandelbrot_1(arr.ctypes.data, fa.real, fa.imag, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+            a1,a2,a3,a4 = arr[0]['foo'], arr[0]['foo1'], arr[0]['bar1'], arr[0]['bar']
+            a1 = a1 + len(arr) - len(arr)
+
+            t__h_inside, t__h_numiter, z = a1, a2, complex(a3, a4)
+        else:
+            t__h_inside, t__h_numiter, z = mycalc.Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, zwpixel, maxiter)
 
     iter_ = t__h_numiter
     if t__h_inside == 0:
@@ -368,7 +415,7 @@ ii_spec = [
 ]
 del tem33
 
-@jitclass(ii_spec)
+@myjitclass(ii_spec)
 class im_info(object):
     def __init__(self, im):
         self.im = im
@@ -404,7 +451,7 @@ class im_info(object):
     def set_pixel(self, pixel):
         self.pixel = pixel
 
-@jit(nopython=True, nogil=True)
+@myjit
 def recolor(selfii, cmap):
     dist = selfii.index
     fate = selfii.fate
@@ -419,7 +466,7 @@ def recolor(selfii, cmap):
     pixel = lookup_with_transfer(cmap, dist, solid)
     selfii.set_pixel(pixel)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def GetPos_delta(im, params):
     xtotalsize = im.totalXres()
     ytotalsize = im.totalYres()
@@ -449,7 +496,7 @@ def GetPos_delta(im, params):
 
     return self_deltax, self_deltay, topleft
 
-@jit(nopython=True, nogil=True)
+@myjit
 def draw_8(stfw):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
 
@@ -468,14 +515,14 @@ def draw_8(stfw):
         box_row(stfw,w,y,rsize)
         y += rsize
 
-@jit(nopython=True, nogil=True)
+@myjit
 def lookup_with_transfer(cmap_items, index, solid):
     black = np.array([0,0,0,255], dtype=np.uint8)
     if solid:
         return black
     return lookup(cmap_items, index)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def lookup(cmap_items, input_index):
     self_items = cmap_items
     self_ncolors = len(cmap_items)
@@ -553,7 +600,7 @@ def lookup_with_dca(solid, colors):
     a = int(255.0 * colors[3]) % 256
     return np.array([r,g,b,a], dtype=np.uint8)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def rgb_to_hsv(r,g,b):
     min_ = min(r,g,b)
     max_ = max(r,g,b)
@@ -572,12 +619,12 @@ def rgb_to_hsv(r,g,b):
     if h < 0:
         h += 6.0
     return (h, s, v)
-@jit(nopython=True, nogil=True)
+@myjit
 def gimp_rgb_to_hsv(r,g,b):
     (h,s,v) = rgb_to_hsv(r,g,b)
     return (h / 6.0, s, v)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def hsv_to_rgb(h,s,v):
     if s == 0:
         return (v,v,v)
@@ -605,32 +652,32 @@ def hsv_to_rgb(h,s,v):
     else:
         #assert False
         return (0, 0, 0)
-@jit(nopython=True, nogil=True)
+@myjit
 def gimp_hsv_to_rgb(h,s,v):
     return hsv_to_rgb(h * 6.0, s, v)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def calc_sphere_decreasing_factor(middle, pos):
     pos = calc_linear_factor(middle, pos)
     return 1.0 - math.sqrt(1.0 - pos * pos)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def calc_sphere_increasing_factor(middle, pos):
     pos = calc_linear_factor(middle, pos) - 1.0
     return math.sqrt(1.0 - pos * pos)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def calc_sine_factor(middle, pos):
     pos = calc_linear_factor(middle, pos)
     return (math.sin((-math.pi / 2.0) + math.pi * pos) + 1.0) / 2.0
 
-@jit(nopython=True, nogil=True)
+@myjit
 def calc_curved_factor(middle, pos):
     EPSILON = 1e-10
     middle = max(middle, EPSILON)
     return math.pow(pos, math.log(0.5)) / math.log(middle)
 
-@jit(nopython=True, nogil=True)
+@myjit
 def calc_linear_factor(middle, pos):
     EPSILON = 1e-10
     if pos <= middle:
@@ -644,7 +691,7 @@ def calc_linear_factor(middle, pos):
             return 1.0
         return 0.5 + 0.5 * pos / middle
 
-@jit(nopython=True, nogil=True)
+@myjit
 def grad_find(index, items, ncolors):
 
     i = ncolors - ncolors
@@ -659,7 +706,7 @@ def grad_find(index, items, ncolors):
 
     return -1
 
-@jit(nopython=True, nogil=True)
+@myjit
 def rotXY(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -668,7 +715,7 @@ def rotXY(theta, one, zero):
         zero, zero, one, zero,
         zero, zero, zero, one], dtype=np.float64) #.reshape((4,4))
 
-@jit(nopython=True, nogil=True)
+@myjit
 def rotXZ(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -676,7 +723,7 @@ def rotXZ(theta, one, zero):
         zero, one, zero, zero,
         -s, zero, c, zero,
         zero, zero, zero, one], dtype=np.float64) #.reshape((4,4))
-@jit(nopython=True, nogil=True)
+@myjit
 def rotXW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -684,7 +731,7 @@ def rotXW(theta, one, zero):
         zero, one, zero, zero,
         zero, zero, one, zero,
         -s, zero, zero, c], dtype=np.float64) #.reshape((4,4))
-@jit(nopython=True, nogil=True)
+@myjit
 def rotYZ(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -692,7 +739,7 @@ def rotYZ(theta, one, zero):
         zero, c, -s, zero,
         zero, s, c, zero,
         zero, zero, zero, one], dtype=np.float64) #.reshape((4,4))
-@jit(nopython=True, nogil=True)
+@myjit
 def rotYW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -700,7 +747,7 @@ def rotYW(theta, one, zero):
         zero, c, zero, s,
         zero, zero, one, zero,
         zero, -s, zero, c], dtype=np.float64) #.reshape((4,4))
-@jit(nopython=True, nogil=True)
+@myjit
 def rotZW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -709,7 +756,7 @@ def rotZW(theta, one, zero):
         zero, zero, c, -s,
         zero, zero, s, c], dtype=np.float64) #.reshape((4,4))
 
-@jit(nopython=True, nogil=True)
+@myjit
 def matmult(a,b):
     return np.array([a[0]*b[0]+a[1]*b[4]+a[2]*b[8]+a[3]*b[12],
                      a[0]*b[1]+a[1]*b[5]+a[2]*b[9]+a[3]*b[13],
@@ -732,7 +779,7 @@ def matmult(a,b):
                      a[12]*b[3]+a[13]*b[7]+a[14]*b[11]+a[15]*b[15],
                      ])
 
-@jit(nopython=True, nogil=True)
+@myjit
 def rotated_matrix(params):
     id = (np.identity(4) * params[MAGNITUDE]).reshape(16)
     m12 = rotXY(params[XYANGLE], 1.0, 0.0)
