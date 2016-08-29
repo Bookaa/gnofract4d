@@ -310,10 +310,8 @@ def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
 import tryllvm
 from ctypes import byref
 
-the = tryllvm.ST1(0,0,tryllvm.ST2(0.0,0.0))
-g_ref_the = byref(the)
 
-dtype_i8i8f8f8 = np.dtype([('foo', 'i8'),('foo1', 'i8'),('bar1', 'f8'),('bar', 'f8')])
+dtype_i8i8f8f8 = np.dtype([('i1', 'i8'),('i2', 'i8'),('i3', 'f8'),('i4', 'f8')])
 
 cfunc2_Mandelbrot_1 = tryllvm.cfunc2_Mandelbrot_1
 cfunc2_CGNewton3_1 = tryllvm.cfunc2_CGNewton3_1
@@ -331,7 +329,7 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         if UseLLVM:
             arr = np.zeros(1, dtype=dtype_i8i8f8f8)
             cfunc2_Mandelbrot_1(arr.ctypes.data, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-            a1,a2,a3,a4 = arr[0]['foo'], arr[0]['foo1'], arr[0]['bar1'], arr[0]['bar']
+            a1,a2,a3,a4 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4']
             a1 = a1 + len(arr) - len(arr)
 
             # a1,a2,a3,a4 = tryllvm.cfunc_Mandelbrot_1(g_ref_the, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
@@ -353,7 +351,7 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         if UseLLVM:
             arr = np.zeros(1, dtype=dtype_i8i8f8f8)
             cfunc2_CGNewton3_1(arr.ctypes.data, p1.real, p1.imag, pixel.real, pixel.imag, maxiter)
-            a1,a2,a3,a4 = arr[0]['foo'], arr[0]['foo1'], arr[0]['bar1'], arr[0]['bar']
+            a1,a2,a3,a4 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4']
             a1 = a1 + len(arr) - len(arr)
 
             # a1,a2,a3,a4 = tryllvm.cfunc_Mandelbrot_1(g_ref_the, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
@@ -368,7 +366,7 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         if UseLLVM:
             arr = np.zeros(1, dtype=dtype_i8i8f8f8)
             cfunc2_Cubic_Mandelbrot_1(arr.ctypes.data, fa.real, fa.imag, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-            a1,a2,a3,a4 = arr[0]['foo'], arr[0]['foo1'], arr[0]['bar1'], arr[0]['bar']
+            a1,a2,a3,a4 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4']
             a1 = a1 + len(arr) - len(arr)
 
             t__h_inside, t__h_numiter, z = a1, a2, complex(a3, a4)

@@ -1,18 +1,6 @@
 import numpy as np
-import numba
-from numba import jitclass, int64, complex128, float64
-if False:
-    from numba import ctypes_support as ctypes
-    from numba.ctypes_support import CFUNCTYPE, c_int, c_long, c_double, c_void_p, POINTER
-else:
-    import ctypes
-    from ctypes import CFUNCTYPE, c_int, c_long, c_double, c_void_p, POINTER
-from numba import jit, njit
-
-import numba.typing.ctypes_utils
-
-#import ctypes
-#from ctypes import CFUNCTYPE, c_int, c_long, c_double, POINTER
+from numba import njit
+from ctypes import CFUNCTYPE, c_int, c_long, c_double, c_void_p
 import llvmlite.binding as llvm
 
 def create_execution_engine():
@@ -42,35 +30,31 @@ def compile_ir(engine, llvm_ir):
     engine.finalize_object()
     return mod
 
-def Compile_to_funcptr(ir_src, func_name):
-    # All these initializations are required for code generation!
-    llvm.initialize()
-    llvm.initialize_native_target()
-    llvm.initialize_native_asmprinter() # yes, even this one
-    llvm_ir = """
-        ; ModuleID = "examples/ir_fpadd.py"
-        target triple = "unknown-unknown-unknown"
-        target datalayout = ""
-        define double @"fpadd"(double %".1", double %".2")
-        {
-        entry:
-        %"res" = fadd double %".1", %".2"
-        ret double %"res"
-        }
-        """
-    llvm_ir = ir_src
-    engine = create_execution_engine()
-    mod = compile_ir(engine, llvm_ir)
+class OneModule:
+    def __init__(self, ir_src):
+        llvm_ir = """
+            ; ModuleID = "examples/ir_fpadd.py"
+            target triple = "unknown-unknown-unknown"
+            target datalayout = ""
+            define double @"fpadd"(double %".1", double %".2")
+            {
+            entry:
+            %"res" = fadd double %".1", %".2"
+            ret double %"res"
+            }
+            """
+        llvm_ir = ir_src
 
-    #print 'mod', mod
-    # Look up the function pointer (a Python int)
-    func_ptr = engine.get_function_address(func_name)
-    #print 'func_ptr', func_ptr
-    return engine, func_ptr
-    # Run the function via ctypes
-    #cfunc = CFUNCTYPE(c_double, c_double, c_double)(func_ptr)
-    #res = cfunc(1.0, 3.5)
-    #print "fpadd(...) =", res
+        llvm.initialize()
+        llvm.initialize_native_target()
+        llvm.initialize_native_asmprinter() # yes, even this one
+        self.engine = create_execution_engine()
+
+        compile_ir(self.engine, llvm_ir)
+
+    def GetFuncPtr(self, func_name):
+        func_ptr = self.engine.get_function_address(func_name)
+        return func_ptr
 
 src_Mandelbrot_1 = '''
 target datalayout = ""
@@ -318,40 +302,19 @@ B111:                                             ; preds = %B27, %B75
 
 '''
 
-class ST2(ctypes.Structure):
-    _fields_ = [
-        ("z_real", c_double),
-        ("z_image", c_double)]
+g_Module = OneModule(src_Mandelbrot_1)
 
-class ST1(ctypes.Structure):
-    _fields_ = [
-        ("t__h_inside", c_long),
-        ("t__h_numiter", c_long),
-        ("z", ST2)]
-
-
-engine, Mandelbrot_1_ptr = Compile_to_funcptr(src_Mandelbrot_1, "__main__.Mandelbrot_1$4.float64.complex128.complex128.int64")
-cfunc_Mandelbrot_1 = CFUNCTYPE(c_int, POINTER(ST1), c_double, c_double, c_double, c_double, c_double, c_long)(Mandelbrot_1_ptr)
+Mandelbrot_1_ptr = g_Module.GetFuncPtr("__main__.Mandelbrot_1$4.float64.complex128.complex128.int64")
 cfunc2_Mandelbrot_1 = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_double, c_long)(Mandelbrot_1_ptr)
 
-engine2, CGNewton3_1_ptr = Compile_to_funcptr(src_Mandelbrot_1, '__main__.CGNewton3_1$5.complex128.complex128.int64')
+CGNewton3_1_ptr = g_Module.GetFuncPtr('__main__.CGNewton3_1$5.complex128.complex128.int64')
 cfunc2_CGNewton3_1 = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_long)(CGNewton3_1_ptr)
 
-engine3, Cubic_Mandelbrot_1_ptr = Compile_to_funcptr(src_Mandelbrot_1, '__main__.Cubic_Mandelbrot_1$7.complex128.float64.complex128.complex128.int64')
+Cubic_Mandelbrot_1_ptr = g_Module.GetFuncPtr('__main__.Cubic_Mandelbrot_1$7.complex128.float64.complex128.complex128.int64')
 cfunc2_Cubic_Mandelbrot_1 = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_double, c_double, c_double, c_long)(Cubic_Mandelbrot_1_ptr)
 
 
-
-def test1():
-    t__a_fbailout, pixel, zwpixel, maxiter = 4.0, (-0.805474821772-0.180754042393j), 0j, 2008
-
-    the = ST1(0,0,ST2(0.0,0.0))
-    res = cfunc_Mandelbrot_1(ctypes.byref(the), t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-    print 'get res', res
-    print the.t__h_inside, the.t__h_numiter, the.z.z_real + the.z.z_image * 1j
-
-
-dtype_i8i8f8f8 = np.dtype([('foo', 'i8'),('foo1', 'i8'),('bar1', 'f8'),('bar', 'f8')])
+dtype_i8i8f8f8 = np.dtype([('i1', 'i8'),('i2', 'i8'),('i3', 'f8'),('i4', 'f8')])
 #dtype_i8i8f8f8 = np.dtype([('foo', np.int64),('foo1', np.int64),('bar1', np.float64),('bar', np.float64)])
 
 @njit
@@ -360,7 +323,7 @@ def test33():
     #arr = np.array([(0,0,0,0)], dtype=dtype_i8i8f8f8)
     arr = np.zeros(1, dtype=dtype_i8i8f8f8)
     print cfunc2_Mandelbrot_1(arr.ctypes.data, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-    a1,a2,a3,a4 = arr[0]['foo'], arr[0]['foo1'], arr[0]['bar1'], arr[0]['bar']
+    a1,a2,a3,a4 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4']
     a1 = a1 + len(arr) - len(arr)
     return a1,a2,a3,a4
 
@@ -368,9 +331,7 @@ def test33():
 if __name__ == '__main__':
     a1,a2,a3,a4 = test33()
 
-    print 'la', a1,a2,a3,a4
-
-    test1()
+    print 'test:', a1,a2,a3,a4
 
     t__a_fbailout, pixel, zwpixel, maxiter = 4.0, (-0.805474821772-0.180754042393j), 0j, 2008
 
