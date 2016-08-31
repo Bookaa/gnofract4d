@@ -7,10 +7,7 @@ import myfract4dc
 
 class T:
     def __init__(self,xsize,ysize,txsize=-1,tysize=-1):
-        if myfract4dc.Flag_My:
-            self._img = myfract4dc.image_create(xsize, ysize, txsize, tysize)
-            return
-        self._img = fract4dc.image_create(xsize, ysize, txsize, tysize)
+        self._img = myfract4dc.image_create(xsize, ysize, txsize, tysize)
 
     def save(self,name):
         from skimage.io import imsave # scikit-image (0.12.3)
@@ -23,26 +20,16 @@ class T:
         except IOError, err:
             raise IOError("Unable to save image to '%s' : %s" % (name,err.strerror))
 
-        if myfract4dc.Flag_My:
-            myfract4dc.image_save_all(self._img, fp)
-        else:
-            fract4dc.image_save_all(self._img, fp)
+        myfract4dc.image_save_all(self._img, fp)
 
         fp.close()
 
     def get_tile_list(self):
-        if myfract4dc.Flag_My:
-            dims = myfract4dc.image_dims(self._img)
-            xsize = dims[myfract4dc.IMAGE_WIDTH]
-            ysize = dims[myfract4dc.IMAGE_HEIGHT]
-            total_xsize = dims[myfract4dc.IMAGE_TOTAL_WIDTH]
-            total_ysize = dims[myfract4dc.IMAGE_TOTAL_HEIGHT]
-        else:
-            dims = fract4dc.image_dims(self._img)
-            xsize = dims[fract4dc.IMAGE_WIDTH]
-            ysize = dims[fract4dc.IMAGE_HEIGHT]
-            total_xsize = dims[fract4dc.IMAGE_TOTAL_WIDTH]
-            total_ysize = dims[fract4dc.IMAGE_TOTAL_HEIGHT]
+        dims = myfract4dc.image_dims(self._img)
+        xsize = dims[myfract4dc.IMAGE_WIDTH]
+        ysize = dims[myfract4dc.IMAGE_HEIGHT]
+        total_xsize = dims[myfract4dc.IMAGE_TOTAL_WIDTH]
+        total_ysize = dims[myfract4dc.IMAGE_TOTAL_HEIGHT]
         x = 0
         y = 0
         base_xres = xsize

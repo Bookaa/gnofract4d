@@ -832,40 +832,19 @@ def parse_params_to_dict(params):
     cf0cf1 = (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset)
     return (cf0cf1, values)
 
-Flag_My = True
-
-if not Flag_My:
-    try:
-        import fract4dcgmp as fract4dc
-    except ImportError, err:
-        import fract4dc
-
-
 def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
-    if Flag_My:
+    if formuName == 'Mandelbrot':
+        formuNameNo = 1
+    elif formuName == 'CGNewton3':
+        formuNameNo = 2
+    else: # if formuName == 'Cubic Mandelbrot':
+        formuNameNo = 3
 
-        if formuName == 'Mandelbrot':
-            formuNameNo = 1
-        elif formuName == 'CGNewton3':
-            formuNameNo = 2
-        else: # if formuName == 'Cubic Mandelbrot':
-            formuNameNo = 3
+    pfo_p = parse_params_to_dict(initparams)
+    cmap = cmap_from_pyobject(segs)
+    _img = image._img
 
-        pfo_p = parse_params_to_dict(initparams)
-        cmap = cmap_from_pyobject(segs)
-        _img = image._img
-
-        pfcls = (formuNameNo, params, pfo_p, cmap, maxiter, _img)
-
-        for (xoff,yoff,xres,yres) in image.get_tile_list():
-            calc_7(pfcls, xoff, yoff, xres, yres)
-        return
-
-    pfunc = fract4dc.pf_load_and_create(outputfile, formuName)
-
-    fract4dc.pf_init(pfunc,params,initparams)
-
-    fract4dc.pf_init2(pfunc, segs, maxiter, image._img)
+    pfcls = (formuNameNo, params, pfo_p, cmap, maxiter, _img)
 
     for (xoff,yoff,xres,yres) in image.get_tile_list():
-        fract4dc.calc(pfo=pfunc, xoff=xoff, yoff=yoff, xres=xres, yres=yres)
+        calc_7(pfcls, xoff, yoff, xres, yres)

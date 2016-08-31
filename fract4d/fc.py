@@ -237,33 +237,6 @@ class Compiler:
         raise IOError("Can't find formula file %s in formula search path" % \
                       filename)
 
-    def compile_one(self,formula):
-        assert False
-
-    def compile_all(self,formula,cf0,cf1,transforms,options={}):
-        assert False
-
-    def compile_all_desc(self,formula,cf0,cf1,transforms,options,desc):
-        hash = self.hashcode(desc)
-        def makefilename(name, ext):
-            dir = os.path.expanduser("~/.gnofract4d-cache/")
-            return os.path.join(dir, "fract4d_%s%s" % (name, ext))
-
-        outputfile = makefilename(hash,".so")
-        #outputfile = self.cache.makefilename(hash,".so")
-        #if os.path.exists(outputfile):
-        #    # skip compilation - we already have this code
-        #    return outputfile
-
-        # print desc
-
-        Call_subprocess_compile(hash, desc)
-
-        if os.path.exists(outputfile):
-            return outputfile
-        print 'compile error'
-        assert False
-
     def find_file(self,filename,type):
         if os.path.exists(filename):
             dir = os.path.dirname(filename)
@@ -475,21 +448,6 @@ class Compiler:
 g_compile_cmds = '../gnofract4d.compiler/main_compile.py'
 if not os.path.isfile(g_compile_cmds):
     g_compile_cmds = '../' + g_compile_cmds
-
-def Call_subprocess_compile(hash, desc):
-    # open('33.txt','w').write(desc)
-    from subprocess import PIPE, Popen
-    p = Popen(["python", g_compile_cmds, '1'], stdin=PIPE, stdout=PIPE)
-    print >>p.stdin, hash
-    print >>p.stdin, desc
-    p.stdin.close()
-    p.stdin = None
-    while True:
-        s = p.stdout.readline().strip()
-        if s == 'func1_will_return':
-            break
-        print s
-    p.communicate("\n")[0]
 
 def ParseFormulaFileRemote(s):
     # open('22.txt','w').write(s)

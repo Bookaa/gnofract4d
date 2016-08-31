@@ -214,19 +214,7 @@ class T(fctutils.T):
             formula.symbols.set_std_func(func,fname)
 
     def compile(self):
-        if self.forms[0].formula == None:
-            raise ValueError("no formula")
-
-        desc = self.serialize_formula()
-
-        outputfile = self.compiler.compile_all_desc(
-            self.forms[0].formula,
-            self.forms[1].formula,
-            self.forms[2].formula,
-            [x.formula for x in self.transforms],
-            self.compiler_options, desc)
-
-        return outputfile
+        assert False
 
     def all_params(self):
         p = []
@@ -348,8 +336,6 @@ if __name__ == '__main__':
         file = open(arg)
         f.loadFctFile(file)
         outputfile = None # f.compile()
-        if not myfract4dc.Flag_My:
-            outputfile = f.compile()
         im = image.T(640,480)
         from datetime import datetime
         t1 = datetime.now()
