@@ -1,0 +1,81 @@
+// LiuD syntax define
+// LiuTaoTao github.com/Bookaa/LiuD
+
+.name_prefix GnoFrac
+.set_linecomment ';'
+
+.syntax crlf
+Module : funcdef ENDMARKER$
+
+funcdef : NAME '{' init_blk loop_blk bailout_blk default_blk? '}'
+
+init_blk : 'init:' stmt*
+loop_blk : 'loop:' stmt*
+bailout_blk : 'bailout:' value
+default_blk : 'default:' def_item*
+
+def_item :: float_param | complex_param | float_func
+float_param : 'float' 'param' NAME 'default' '=' Number00 'endparam'
+complex_param : 'complex' 'param' NAME 'default' '=' '(' Number00 ',' Number00 ')' 'endparam'
+float_func : 'float' 'func' NAME 'default' '=' NAME 'endfunc'
+
+stmt :: assign
+
+assign : NAME '=' value
+
+Number : NUMBER_DOUBLE
+NegNumber : '-' NUMBER_DOUBLE
+Number00 :: Number | NegNumber
+value0 :: Name1 | Name2 | Name0 | Number00
+value1 :: funccall | value0 | EnclosedValue | AbsSigned
+value : value1 ^- (('*'|'/') ('+'|'-') ('>'|'<'))
+
+EnclosedValue : '(' value ')'
+AbsSigned : '|' value '|'
+
+funccall : value0 '(' value ')'
+Name0 : NAME
+Name1 : '#' - NAME
+Name2 : '@' - NAME
+
+Output Rules {
+    Module : x
+    funcdef : x '{' NL x NL x NL x NL x? NL '}'
+    Name1 : '#' - x
+    Name2 : '@' - x
+    init_blk : 'init:' NL x*
+    loop_blk : 'loop:' NL x*
+    bailout_blk : 'bailout:' NL x
+    default_blk : 'default:' NL x*
+    assign : x '=' x
+    value : x x x
+    Name0 : x
+    Number : x
+    NegNumber : '-' - x
+    funccall : x '(' x ')'
+    float_param : 'float param' x NL 'default =' x NL 'endparam'
+    complex_param : 'complex param' x NL 'default = (' x ',' x ')' NL 'endparam'
+    float_func : 'float func' x NL 'default =' x NL 'endfunc'
+    EnclosedValue : '(' x ')'
+    AbsSigned : '|' x '|'
+}
+
+Sample Text = $liud$
+
+Mandelbrot {
+init:
+    z = #zwpixel
+loop:
+    z = z * z + #pixel
+bailout:
+    @bailfunc(z) < @bailout
+default:
+float param bailout
+    default = 4.0
+endparam
+float func bailfunc
+    default = cmag
+endfunc
+}
+
+$duil$

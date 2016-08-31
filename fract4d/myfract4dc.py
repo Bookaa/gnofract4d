@@ -307,18 +307,27 @@ def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
 
     return Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuNameNo, cmap)
 
-import tryllvm
-from ctypes import byref
-
 
 dtype_i8i8f8f8 = np.dtype([('i1', 'i8'),('i2', 'i8'),('i3', 'f8'),('i4', 'f8')])
 
-cfunc2_Mandelbrot_1 = tryllvm.cfunc2_Mandelbrot_1
-cfunc2_CGNewton3_1 = tryllvm.cfunc2_CGNewton3_1
-cfunc2_Cubic_Mandelbrot_1 = tryllvm.cfunc2_Cubic_Mandelbrot_1
-cfunc2_LiudMandelbrot = tryllvm.cfunc2_LiudMandelbrot
-cfunc2_CubicMandelbrot = tryllvm.cfunc2_CubicMandelbrot
-cfunc2_CGNewton3 = tryllvm.cfunc2_CGNewton3
+#cfunc2_Mandelbrot_1 = tryllvm.cfunc2_Mandelbrot_1
+#cfunc2_CGNewton3_1 = tryllvm.cfunc2_CGNewton3_1
+#cfunc2_Cubic_Mandelbrot_1 = tryllvm.cfunc2_Cubic_Mandelbrot_1
+#cfunc2_LiudMandelbrot = tryllvm.cfunc2_LiudMandelbrot
+#cfunc2_CubicMandelbrot = tryllvm.cfunc2_CubicMandelbrot
+#cfunc2_CGNewton3 = tryllvm.cfunc2_CGNewton3
+
+from LiuD import GenLLVM_GnoFrac
+theliud = GenLLVM_GnoFrac.LLVM_liud(GenLLVM_GnoFrac.s_sample_GnoFrac, 'Mandelbrot')
+cfunc2_LiudMandelbrot = theliud.cfuncptr
+
+
+theliud2 = GenLLVM_GnoFrac.LLVM_liud(GenLLVM_GnoFrac.s_sample_GnoFrac_2, 'CubicMandelbrot')
+cfunc2_CubicMandelbrot = theliud2.cfuncptr
+
+theliud3 = GenLLVM_GnoFrac.LLVM_liud(GenLLVM_GnoFrac.s_sample_GnoFrac_3, 'CGNewton3')
+cfunc2_CGNewton3 = theliud3.cfuncptr
+
 
 @myjit
 def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap):
