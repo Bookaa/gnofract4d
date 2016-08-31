@@ -107,6 +107,47 @@ B117:                                             ; preds = %B27, %B81
   ret i32 0
 }
 
+define i32 @"LiudMandelbrot"({i64, i64, double, double}* %"retp", double %"pixel.0", double %"pixel.1", double %"zwpixel.0", double %"zwpixel.1", i64 %"maxiter")
+{
+entry:
+  br label %"body"
+body:
+  %"z.0" = phi double [%"zwpixel.0", %"entry"], [%"z.0.2", %"label1"]
+  %"z.1" = phi double [%"zwpixel.1", %"entry"], [%"z.1.2", %"label1"]
+  %"numiter" = phi i64 [0, %"entry"], [%".22", %"label1"]
+  %".9" = fmul double %"z.0", %"z.0"
+  %".10" = fmul double %"z.1", %"z.1"
+  %".11" = fsub double %".9", %".10"
+  %".12" = fmul double %"z.0", %"z.1"
+  %".13" = fmul double %"z.1", %"z.0"
+  %".14" = fadd double %".12", %".13"
+  %".15" = fadd double %".11", %"pixel.0"
+  %".16" = fadd double %".14", %"pixel.1"
+  %".17" = fmul double %".15", %".15"
+  %".18" = fmul double %".16", %".16"
+  %".19" = fadd double %".17", %".18"
+  %".20" = fcmp ult double %".19", 0x4010000000000000
+  br i1 %".20", label %"label1", label %"exit"
+label1:
+  %"z.0.2" = phi double [%".15", %"body"]
+  %"z.1.2" = phi double [%".16", %"body"]
+  %"numiter.2" = phi i64 [%"numiter", %"body"]
+  %".22" = add i64 %"numiter.2", 1
+  %".23" = icmp sge i64 %".22", %"maxiter"
+  br i1 %".23", label %"exit", label %"body"
+exit:
+  %"z.0.1" = phi double [%".15", %"body"], [%"z.0.2", %"label1"]
+  %"z.1.1" = phi double [%".16", %"body"], [%"z.1.2", %"label1"]
+  %"inside" = phi i64 [0, %"body"], [1, %"label1"]
+  %"numiter.1" = phi i64 [%"numiter", %"body"], [%".22", %"label1"]
+  %".25" = insertvalue {i64, i64, double, double} undef, i64 %"inside", 0
+  %".26" = insertvalue {i64, i64, double, double} %".25", i64 %"numiter.1", 1
+  %".27" = insertvalue {i64, i64, double, double} %".26", double %"z.0.1", 2
+  %".28" = insertvalue {i64, i64, double, double} %".27", double %"z.1.1", 3
+  store {i64, i64, double, double} %".28", {i64, i64, double, double}* %"retp"
+  ret i32 0
+}
+
 define i32 @"__main__.CGNewton3_1$5.complex128.complex128.int64"(
     { i64, i64, { double, double } }* noalias nocapture %retptr,
     ; { i8*, i32 }** noalias nocapture %excinfo,
@@ -237,6 +278,77 @@ declare double @llvm.fabs.f64(double) #1
 
 !0 = !{!"branch_weights", i32 1, i32 99}
 
+define i32 @"CGNewton3"({i64, i64, double, double}* %"retp", double %"pixel.0", double %"pixel.1", double %"zwpixel.0", double %"zwpixel.1", i64 %"maxiter")
+{
+entry:
+  br label %"body"
+body:
+  %"z.0" = phi double [0x3ff0000000000000, %"entry"], [%"z.0.2", %"label1"]
+  %"z.1" = phi double [0x3ff0000000000000, %"entry"], [%"z.1.2", %"label1"]
+  %"numiter" = phi i64 [0, %"entry"], [%".52", %"label1"]
+  %".9" = fmul double %"z.0", %"z.0"
+  %".10" = fmul double %"z.1", %"z.1"
+  %".11" = fsub double %".9", %".10"
+  %".12" = fmul double %"z.0", %"z.1"
+  %".13" = fmul double %"z.1", %"z.0"
+  %".14" = fadd double %".12", %".13"
+  %".15" = fmul double %"z.0", %".11"
+  %".16" = fmul double %"z.1", %".14"
+  %".17" = fsub double %".15", %".16"
+  %".18" = fmul double %"z.0", %".14"
+  %".19" = fmul double %"z.1", %".11"
+  %".20" = fadd double %".18", %".19"
+  %".21" = fsub double %".17", %"pixel.0"
+  %".22" = fsub double %".20", %"pixel.1"
+  %".23" = fmul double 0x3fe53375da1ab247, %".21"
+  %".24" = fmul double 0xbfcc7736615c9a2a, %".22"
+  %".25" = fsub double %".23", %".24"
+  %".26" = fmul double 0x3fe53375da1ab247, %".22"
+  %".27" = fmul double 0xbfcc7736615c9a2a, %".21"
+  %".28" = fadd double %".26", %".27"
+  %".29" = fmul double %".11", 0x4008000000000000
+  %".30" = fmul double %".14", 0x4008000000000000
+  %".31" = fsub double 0x0, %".30"
+  %".32" = fmul double %".25", %".29"
+  %".33" = fmul double %".28", %".31"
+  %".34" = fsub double %".32", %".33"
+  %".35" = fmul double %".25", %".31"
+  %".36" = fmul double %".28", %".29"
+  %".37" = fadd double %".35", %".36"
+  %".38" = fmul double %".29", %".29"
+  %".39" = fmul double %".30", %".30"
+  %".40" = fadd double %".38", %".39"
+  %".41" = fdiv double %".34", %".40"
+  %".42" = fdiv double %".37", %".40"
+  %".43" = fsub double %"z.0", %".41"
+  %".44" = fsub double %"z.1", %".42"
+  %".45" = fsub double %".17", %"pixel.0"
+  %".46" = fsub double %".20", %"pixel.1"
+  %".47" = fmul double %".45", %".45"
+  %".48" = fmul double %".46", %".46"
+  %".49" = fadd double %".47", %".48"
+  %".50" = fcmp ult double 0x3f1a36e2eb1c432d, %".49"
+  br i1 %".50", label %"label1", label %"exit"
+label1:
+  %"z.0.2" = phi double [%".43", %"body"]
+  %"z.1.2" = phi double [%".44", %"body"]
+  %"numiter.2" = phi i64 [%"numiter", %"body"]
+  %".52" = add i64 %"numiter.2", 1
+  %".53" = icmp sge i64 %".52", %"maxiter"
+  br i1 %".53", label %"exit", label %"body"
+exit:
+  %"z.0.1" = phi double [%".43", %"body"], [%"z.0.2", %"label1"]
+  %"z.1.1" = phi double [%".44", %"body"], [%"z.1.2", %"label1"]
+  %"inside" = phi i64 [0, %"body"], [1, %"label1"]
+  %"numiter.1" = phi i64 [%"numiter", %"body"], [%".52", %"label1"]
+  %".55" = insertvalue {i64, i64, double, double} undef, i64 %"inside", 0
+  %".56" = insertvalue {i64, i64, double, double} %".55", i64 %"numiter.1", 1
+  %".57" = insertvalue {i64, i64, double, double} %".56", double %"z.0.1", 2
+  %".58" = insertvalue {i64, i64, double, double} %".57", double %"z.1.1", 3
+  store {i64, i64, double, double} %".58", {i64, i64, double, double}* %"retp"
+  ret i32 0
+}
+
 define i32 @"__main__.Cubic_Mandelbrot_1$7.complex128.float64.complex128.complex128.int64"(
     { i64, i64, { double, double } }* noalias nocapture %retptr,
     ; { i8*, i32 }** noalias nocapture readnone %excinfo,
@@ -300,9 +412,69 @@ B111:                                             ; preds = %B27, %B75
   ret i32 0
 }
 
+define i32 @"CubicMandelbrot"({i64, i64, double, double}* %"retp", double %"pixel.0", double %"pixel.1", double %"zwpixel.0", double %"zwpixel.1", i64 %"maxiter")
+{
+entry:
+  br label %"body"
+body:
+  %"z.0" = phi double [%"zwpixel.0", %"entry"], [%"z.0.2", %"label1"]
+  %"z.1" = phi double [%"zwpixel.1", %"entry"], [%"z.1.2", %"label1"]
+  %"numiter" = phi i64 [0, %"entry"], [%".32", %"label1"]
+  %".9" = fmul double %"z.0", %"z.0"
+  %".10" = fmul double %"z.1", %"z.1"
+  %".11" = fsub double %".9", %".10"
+  %".12" = fmul double %"z.0", %"z.1"
+  %".13" = fmul double %"z.1", %"z.0"
+  %".14" = fadd double %".12", %".13"
+  %".15" = fmul double              0x0, 0x4008000000000000
+  %".16" = fmul double              0x0, 0x4008000000000000
+  %".17" = fsub double %"z.0", %".15"
+  %".18" = fsub double %"z.1", %".16"
+  %".19" = fmul double %".11", %".17"
+  %".20" = fmul double %".14", %".18"
+  %".21" = fsub double %".19", %".20"
+  %".22" = fmul double %".11", %".18"
+  %".23" = fmul double %".14", %".17"
+  %".24" = fadd double %".22", %".23"
+  %".25" = fadd double %".21", %"pixel.0"
+  %".26" = fadd double %".24", %"pixel.1"
+  %".27" = fmul double %".25", %".25"
+  %".28" = fmul double %".26", %".26"
+  %".29" = fadd double %".27", %".28"
+  %".30" = fcmp ult double %".29", 0x4010000000000000
+  br i1 %".30", label %"label1", label %"exit"
+label1:
+  %"z.0.2" = phi double [%".25", %"body"]
+  %"z.1.2" = phi double [%".26", %"body"]
+  %"numiter.2" = phi i64 [%"numiter", %"body"]
+  %".32" = add i64 %"numiter.2", 1
+  %".33" = icmp sge i64 %".32", %"maxiter"
+  br i1 %".33", label %"exit", label %"body"
+exit:
+  %"z.0.1" = phi double [%".25", %"body"], [%"z.0.2", %"label1"]
+  %"z.1.1" = phi double [%".26", %"body"], [%"z.1.2", %"label1"]
+  %"inside" = phi i64 [0, %"body"], [1, %"label1"]
+  %"numiter.1" = phi i64 [%"numiter", %"body"], [%".32", %"label1"]
+  %".35" = insertvalue {i64, i64, double, double} undef, i64 %"inside", 0
+  %".36" = insertvalue {i64, i64, double, double} %".35", i64 %"numiter.1", 1
+  %".37" = insertvalue {i64, i64, double, double} %".36", double %"z.0.1", 2
+  %".38" = insertvalue {i64, i64, double, double} %".37", double %"z.1.1", 3
+  store {i64, i64, double, double} %".38", {i64, i64, double, double}* %"retp"
+  ret i32 0
+}
+
 '''
 
 g_Module = OneModule(src_Mandelbrot_1)
+
+LiudMandelbrot_ptr = g_Module.GetFuncPtr("LiudMandelbrot")
+cfunc2_LiudMandelbrot = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_long)(LiudMandelbrot_ptr)
+
+CubicMandelbrot_ptr = g_Module.GetFuncPtr('CubicMandelbrot')
+cfunc2_CubicMandelbrot = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_long)(CubicMandelbrot_ptr)
+
+CGNewton3_ptr = g_Module.GetFuncPtr('CGNewton3')
+cfunc2_CGNewton3 = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_long)(CGNewton3_ptr)
 
 Mandelbrot_1_ptr = g_Module.GetFuncPtr("__main__.Mandelbrot_1$4.float64.complex128.complex128.int64")
 cfunc2_Mandelbrot_1 = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_double, c_long)(Mandelbrot_1_ptr)

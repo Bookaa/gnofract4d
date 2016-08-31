@@ -316,6 +316,9 @@ dtype_i8i8f8f8 = np.dtype([('i1', 'i8'),('i2', 'i8'),('i3', 'f8'),('i4', 'f8')])
 cfunc2_Mandelbrot_1 = tryllvm.cfunc2_Mandelbrot_1
 cfunc2_CGNewton3_1 = tryllvm.cfunc2_CGNewton3_1
 cfunc2_Cubic_Mandelbrot_1 = tryllvm.cfunc2_Cubic_Mandelbrot_1
+cfunc2_LiudMandelbrot = tryllvm.cfunc2_LiudMandelbrot
+cfunc2_CubicMandelbrot = tryllvm.cfunc2_CubicMandelbrot
+cfunc2_CGNewton3 = tryllvm.cfunc2_CGNewton3
 
 @myjit
 def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap):
@@ -328,7 +331,8 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         t__a_fbailout = param_values[0]
         if UseLLVM:
             arr = np.zeros(1, dtype=dtype_i8i8f8f8)
-            cfunc2_Mandelbrot_1(arr.ctypes.data, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+            #cfunc2_Mandelbrot_1(arr.ctypes.data, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+            cfunc2_LiudMandelbrot(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
             a1,a2,a3,a4 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4']
             a1 = a1 + len(arr) - len(arr)
 
@@ -350,7 +354,8 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         p1 = complex(param_values[0], param_values[1])
         if UseLLVM:
             arr = np.zeros(1, dtype=dtype_i8i8f8f8)
-            cfunc2_CGNewton3_1(arr.ctypes.data, p1.real, p1.imag, pixel.real, pixel.imag, maxiter)
+            #cfunc2_CGNewton3_1(arr.ctypes.data, p1.real, p1.imag, pixel.real, pixel.imag, maxiter)
+            cfunc2_CGNewton3(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
             a1,a2,a3,a4 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4']
             a1 = a1 + len(arr) - len(arr)
 
@@ -365,7 +370,8 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         fa = complex(param_values[1], param_values[2])
         if UseLLVM:
             arr = np.zeros(1, dtype=dtype_i8i8f8f8)
-            cfunc2_Cubic_Mandelbrot_1(arr.ctypes.data, fa.real, fa.imag, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+            #cfunc2_Cubic_Mandelbrot_1(arr.ctypes.data, fa.real, fa.imag, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+            cfunc2_CubicMandelbrot(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
             a1,a2,a3,a4 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4']
             a1 = a1 + len(arr) - len(arr)
 
