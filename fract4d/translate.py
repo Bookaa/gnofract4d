@@ -1260,6 +1260,7 @@ class ColorFunc(TBase):
         TBase.final(self,transfer)
 
     def main(self,f):
+        return
         if f.children[0].type == "error":
             self.error(f.children[0].leaf)
             return

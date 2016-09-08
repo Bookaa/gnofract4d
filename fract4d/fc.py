@@ -253,40 +253,12 @@ class Compiler:
 
         return self.last_chance(filename)
 
-    def parse_file(self,s):
+    def parse_file(self, s):
         # print 'input', type(s), len(s)
-        if True:
-            dict_ = ParseFormulaFileRemote(s)
+        dict_ = ParseFormulaFileRemote(s)
 
-            result = absyn.Node(0,0)
-            result.SerialIn(dict_)
-        else:
-            import fractparser
-            import fractlexer
-            import preprocessor
-            self_parser = fractparser.parser
-            self_lexer = fractlexer.lexer
-            self_lexer.lineno = 1
-            result = None
-            try:
-                pp = preprocessor.T(s)
-                result = self_parser.parse(pp.out())
-            except preprocessor.Error, err:
-                # create an Error formula listing the problem
-                result = self_parser.parse('error {\n}\n')
-
-                result.children[0].children[0] = \
-                    absyn.PreprocessorError(str(err), -1)
-                #print result.pretty()
-
-            self.add_endlines(result,self_lexer.lineno)
-
-        if False:
-            sJson = result.SerialOut()
-            import json
-            dict_ = json.loads(sJson)
-            node1 = absyn.Node(0,0)
-            node1.SerialIn(dict_)
+        result = absyn.Node(0,0)
+        result.SerialIn(dict_)
 
         formulas = {}
         for formula in result.children:
@@ -449,8 +421,16 @@ g_compile_cmds = '../gnofract4d.compiler/main_compile.py'
 if not os.path.isfile(g_compile_cmds):
     g_compile_cmds = '../' + g_compile_cmds
 
+from LiuD import ParseFormFile
 def ParseFormulaFileRemote(s):
-    # open('22.txt','w').write(s)
+    if True :
+        dict2_ = ParseFormFile.ParseFormuFile(s, False)
+        if len(dict2_['children']) == 1: # only 1 formula
+            dict3_ = ParseFormFile.ParseFormuFile(s, True)
+            return dict3_
+        return dict2_
+
+    #open('22.txt','w').write(s)
     #print 'length1', len(s)
     import json
     sFile = json.dumps(s)
@@ -465,7 +445,53 @@ def ParseFormulaFileRemote(s):
         print s1
     sJson = p.communicate("\n")[0]
     dict_ = json.loads(sJson)
+    #print sJson
+    #t = compare_dict([], dict_, dict2_)
+    #print 'compare', t
     return dict_
+
+def compare_dict(lst, dic1, dic2):
+    # flg = 0 is ok, 1 is error now, 2 is already error
+    if 'last_line' in dic1 and 'last_line' not in dic2:
+        dic2['last_line'] = dic1['last_line']
+    if len(dic1) != len(dic2):
+        lst2 = ['dic length not equ',
+                dic1.keys(),
+                dic2.keys()]
+        prterr(lst, lst2)
+        return False
+    for a in dic1:
+        if a in ('pos', 'children', 'text'):
+            continue
+        if dic1[a] != dic2[a]:
+            lst2 = ['item not match: %s' % a,
+                    dic1[a],
+                    dic2[a]]
+            prterr(lst, lst2)
+            return False
+    a = 'children'
+    if len(dic1[a]) != len(dic2[a]):
+        lst2 = ['children length not equ',
+                len(dic1[a]),
+                len(dic2[a])]
+        prterr(lst, lst2)
+        return False
+    for i in range(len(dic1['children'])):
+        a1 = dic1['children'][i]
+        a2 = dic2['children'][i]
+        if not compare_dict(lst + [dic1], a1, a2):
+            return False
+    return True
+
+def prterr(lst, lst2):
+    for a in lst:
+        for k1,k2 in a.items():
+            if k1 != 'children':
+                print '%s : %s' % (k1,k2),
+        print
+    print 'error:'
+    for a in lst2:
+        print '\t', a
 
 instance = Compiler()
 instance.update_from_prefs(fractconfig.instance)

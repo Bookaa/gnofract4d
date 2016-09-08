@@ -303,10 +303,11 @@ class Parser00:
 
 
 class OutPrt:
-    def __init__(self):
+    def __init__(self, outlst = None):
         self.lst = []
         self.identn = 0
         self.flink = False
+        self.outlst = outlst
     def identin(self):
         self.newline()
         self.identn += 1
@@ -318,7 +319,7 @@ class OutPrt:
     def puts(self, s):
         if isinstance(s, int):
             s = str(s)
-        assert isinstance(s, str)
+        assert isinstance(s, (str, unicode))
         if self.flink:
             self.flink = False
             if self.lst:
@@ -332,7 +333,10 @@ class OutPrt:
         if not self.lst:
             return
         s1 = '    ' * self.identn + ' '.join(self.lst)
-        print s1
+        if self.outlst is None:
+            print s1
+        else:
+            self.outlst.append(s1)
         self.lst = []
 
 def PythonString(s):
