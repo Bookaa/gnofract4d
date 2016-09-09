@@ -1260,7 +1260,17 @@ class ColorFunc(TBase):
         TBase.final(self,transfer)
 
     def main(self,f):
-        return
+        if not f.children:
+            text = f.text
+            from LiuD import ParseFormFile
+            dict3_ = ParseFormFile.ParseFormuFile(text, True)
+            lst = dict3_['children'][0]['children']
+            for dict1 in lst:
+                m = Node(0,0)
+                m.SerialIn(dict1)
+                f.children.append(m)
+
+
         if f.children[0].type == "error":
             self.error(f.children[0].leaf)
             return

@@ -260,12 +260,13 @@ def getdt(s):
     return 0
 
 class myprt(Ast_GFF.GFF_out_visitor_01):
-    def visit_AssignDT(self, node):
-        self.outp.puts(node.s)
-    def visit_value2(self, node):
-        node.v1.walkabout(self)
-        self.outp.puts(node.s)
-        node.v3.walkabout(self)
+    pass
+    #def visit_AssignDT(self, node):
+    #    self.outp.puts(node.s)
+    #def visit_value2(self, node):
+    #    node.v1.walkabout(self)
+    #    self.outp.puts(node.s)
+    #    node.v3.walkabout(self)
 
 def PrtOneNode(node):
     outlst = []

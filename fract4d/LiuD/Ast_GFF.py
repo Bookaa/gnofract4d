@@ -908,7 +908,7 @@ class GFF_out_visitor_01:
     def visit_stmt(self, node):
         node.v.walkabout(self)
     def visit_AssignDT(self, node):
-        self.outp.putss(node.s)
+        self.outp.puts(node.s)
     def visit_assign(self, node):
         if node.vq is not None:
             node.vq.walkabout(self)
@@ -994,13 +994,13 @@ class GFF_out_visitor_01:
         node.v4.walkabout(self)
         self.outp.puts(')')
     def visit_bool_value(self, node):
-        self.outp.putss(node.s)
+        self.outp.puts(node.s)
     def visit_not_value(self, node):
         self.outp.puts('!')
         node.v.walkabout(self)
     def visit_value2(self, node):
         node.v1.walkabout(self)
-        self.outp.putss(node.s)
+        self.outp.puts(node.s)
         node.v3.walkabout(self)
     def visit_neg_value(self, node):
         self.outp.puts('-')

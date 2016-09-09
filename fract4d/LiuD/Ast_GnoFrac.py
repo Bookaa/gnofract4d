@@ -313,7 +313,7 @@ class GnoFrac_out_visitor_01:
         self.outp.puts(node.f)
     def visit_value(self, node):
         node.v1.walkabout(self)
-        self.outp.putss(node.s)
+        self.outp.puts(node.s)
         node.v3.walkabout(self)
     def visit_EnclosedValue(self, node):
         self.outp.puts('(')
