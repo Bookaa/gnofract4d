@@ -51,12 +51,11 @@ class mywalk(GFF_sample_visitor_01):
         return lst
     def _sub_blk(self, vlst, name):
         lst = []
-        dict_ = {'datatype' : None, 'pos' : 0, 'leaf' : name, 'children' : lst, 'type' : 'stmlist'}
         for v in vlst:
             sb = v.walkabout(self)
             if sb:
                 lst.append(sb)
-        return dict_
+        return new_dict(leaf=name, type='stmlist', children=lst)
     def visit_init_blk(self, node):
         return self._sub_blk(node.vlst, 'init')
     def visit_loop_blk(self, node):
@@ -71,6 +70,11 @@ class mywalk(GFF_sample_visitor_01):
         return self._sub_blk(node.vlst, 'final')
     def visit_stmt(self, node):
         return node.v.walkabout(self)
+    def visit_declare(self, node):
+        dt = getdt(node.v1.s)
+        a2 = node.v2.walkabout(self)
+        name = a2['leaf']
+        return new_dict(type='decl', leaf=name, datatype=dt)
     def visit_assign(self, node):
 
         assert len(node.vlst) == 1
@@ -133,7 +137,7 @@ class mywalk(GFF_sample_visitor_01):
         dict_ = {'datatype' : None, 'pos' : 0, 'leaf' : name, 'children' : [], 'type' : 'id'}
         return dict_
     def visit_String(self, node):
-        return new_dict(datatype=5, leaf=node.s, type="string")
+        return new_dict(datatype=5, leaf=node.s[0], type="string")
     def visit_value2(self, node):
         a1 = node.v1.walkabout(self)
         a2 = node.v3.walkabout(self)
@@ -150,18 +154,24 @@ class mywalk(GFF_sample_visitor_01):
                 lst.append(a)
         dict_ = {'datatype' : None, 'pos' : 0, 'leaf' : name, 'children' : lst, 'type' : 'funcall'}
         return dict_
+    def visit_general_param(self, node):
+        name = node.n
+        lst = []
+        for v in node.vlst:
+            a = v.walkabout(self)
+            lst.append(a)
+        return new_dict(leaf=name, children=lst, type='param')
     def visit_dt_param(self, node):
         dt = getdt(node.v1.s)
         name = node.v2.n
         lst = []
-        dict_ = {'datatype' : dt, 'pos' : 0, 'leaf' : name, 'children' : lst, 'type' : 'param'}
         for v in node.vlst:
             a = v.walkabout(self)
             if a is None:
                 a = v.walkabout(self)
 
             lst.append(a)
-        return dict_
+        return new_dict(leaf=name, children=lst, type='param', datatype=dt)
     def visit_df_default(self, node):
         dict1 = {'datatype' : None, 'pos' : 0, 'leaf' : 'default', 'children' : [], 'type' : 'id'}
         dict2 = node.v.walkabout(self)
@@ -187,7 +197,7 @@ class mywalk(GFF_sample_visitor_01):
     def visit_df_enum(self, node):
         lst = []
         for s in node.slst:
-            lst.append(new_dict(datatype=5, leaf=s, type="string"))
+            lst.append(new_dict(datatype=5, leaf=s[0], type="string"))
         first = lst.pop(0)
         first['children'] = lst
 
@@ -214,6 +224,36 @@ class mywalk(GFF_sample_visitor_01):
         a1 = new_dict(type='id', leaf='argtype')
         a2 = new_dict(type='empty', leaf='')
         return new_dict(datatype=dt, type='set', children=[a1,a2])
+    def visit_if_stmt(self, node):
+        condi = node.v1.walkabout(self)
+        stmt_1 = node.v2.walkabout(self)
+        stmt = new_dict(leaf='', type='stmlist', children=stmt_1)
+        lst = []
+        elseblk = new_dict(type='stmlist', leaf='', children=lst)
+        if0 = new_dict(type='if', leaf='', children=[condi, stmt, elseblk])
+        if True:
+            for tem1 in node.vlst:
+                condi2, stmt2 = tem1.walkabout(self)
+                lst2 = []
+                elseblk2 = new_dict(type='stmlist', leaf='', children=lst2)
+                if2 = new_dict(type='if', leaf='', children=[condi2, stmt2, elseblk2])
+                lst.append(if2)
+                lst = lst2
+            if node.vq is not None:
+                elselst = node.vq.walkabout(self)
+                lst.extend(elselst)
+        if not lst:
+            lst.append(new_dict(type='empty',leaf=''))
+        return if0
+    def visit_elseifblk(self, node):
+        condi = node.v1.walkabout(self)
+        stmt_1 = node.v2.walkabout(self)
+        stmt = new_dict(leaf='', type='stmlist', children=stmt_1)
+        return condi, stmt
+    def visit_elseblk(self, node):
+        stmt_1 = node.v.walkabout(self)
+        return stmt_1 # new_dict(leaf='', type='stmlist', children=stmt_1)
+
 
 def new_dict(**ww):
     if ww.has_key('children'):
@@ -281,12 +321,60 @@ def func1(deepin):
         fname = 'formulas/gf4d.frm'
         fname = 'formulas/fractint-g4.frm'
         sfile = open(fname).read()
-        sfile = '''CGNewton3  {
-z=(1,1):
-z2=z*z
-z3=z*z2
-z=z-p1*(z3-pixel)/(3.0*z2)
-0.0001 < |z3-pixel|
+        sfile = '''Angles {
+; delta total, total, min, delta min, max, delta max, avg, delta avg
+; iter @ min, iter @ max, iter @ delta min, iter @ delta max
+init:
+float angle = 0.0
+complex lastz = (0,0)
+float temp_angle
+int itermin = 0
+int itermax = 0
+if @angle_type == "delta min" || @angle_type == "min" || @angle_type == "iter @ min"
+    angle = #pi
+endif
+loop:
+if @angle_type == "delta total"
+    angle = angle + abs(atan2(z-lastz))
+elseif @angle_type == "delta max"
+    temp_angle = abs(atan2(z-lastz))
+    if temp_angle > angle
+	angle = temp_angle
+    endif
+elseif @angle_type == "delta min"
+    temp_angle = abs(atan2(z-lastz))
+    if temp_angle < angle
+	angle = temp_angle
+    endif
+elseif @angle_type == "min" || @angle_type == "iter @ min"
+    temp_angle = abs(atan2(z))
+    if temp_angle < angle
+	angle = temp_angle
+	itermin = #numiter
+    endif
+elseif @angle_type == "max" || @angle_type == "iter @ max"
+    temp_angle = abs(atan2(z))
+    if temp_angle > angle
+	angle = temp_angle
+	itermax = #numiter
+    endif
+elseif @angle_type == "total"
+    angle = angle + abs(atan2(z))
+endif
+lastz = z
+final:
+if @angle_type == "iter @ min"
+    #index = itermin/256.0
+elseif @angle_type == "iter @ max"
+    #index = itermax/256.0
+else
+    #index = angle/#pi
+endif
+default:
+param angle_type
+	default = 0
+	enum = "delta total" "delta max" "delta min" "min" "max" "total" "iter @ min" "iter @ max"
+endparam
 }
         '''
         if deepin:

@@ -423,11 +423,19 @@ if not os.path.isfile(g_compile_cmds):
 
 from LiuD import ParseFormFile
 def ParseFormulaFileRemote(s):
-    if True :
+    print 'here', len(s)
+    flg = False
+    if len(s) == 1840:
+        flg = True
+        print s
+    if True:
         dict2_ = ParseFormFile.ParseFormuFile(s, False)
         if len(dict2_['children']) == 1: # only 1 formula
             dict3_ = ParseFormFile.ParseFormuFile(s, True)
-            return dict3_
+            if flg:
+                printit(dict3_)
+            if not flg:
+                return dict3_
         return dict2_
 
     #open('22.txt','w').write(s)
@@ -446,52 +454,41 @@ def ParseFormulaFileRemote(s):
     sJson = p.communicate("\n")[0]
     dict_ = json.loads(sJson)
     #print sJson
-    #t = compare_dict([], dict_, dict2_)
-    #print 'compare', t
+    if flg:
+        printit(dict_)
     return dict_
 
-def compare_dict(lst, dic1, dic2):
-    # flg = 0 is ok, 1 is error now, 2 is already error
-    if 'last_line' in dic1 and 'last_line' not in dic2:
-        dic2['last_line'] = dic1['last_line']
-    if len(dic1) != len(dic2):
-        lst2 = ['dic length not equ',
-                dic1.keys(),
-                dic2.keys()]
-        prterr(lst, lst2)
-        return False
-    for a in dic1:
-        if a in ('pos', 'children', 'text'):
-            continue
-        if dic1[a] != dic2[a]:
-            lst2 = ['item not match: %s' % a,
-                    dic1[a],
-                    dic2[a]]
-            prterr(lst, lst2)
-            return False
+def printit(dict_, n=0):
+    if n == 0:
+        print '---' * 10
+    sident = '    ' * n
+    if isinstance(dict_, str):
+        print 'why string:', dict_
+        return
+    keys = dict_.keys()
+    keys.remove('pos')
+    if 'text' in keys:
+        keys.remove('text')
+    keys.remove('children')
+    if dict_['datatype'] is None:
+        keys.remove('datatype')
+    print sident,
+    a = 'type';
+    if a in keys: keys.remove(a); print '%s : %s' % (a, dict_[a]),
+    a = 'leaf';
+    if a in keys: keys.remove(a); print '%s : %s' % (a, dict_[a]),
+    for a in keys:
+        print '%s : %s' % (a, dict_[a]),
     a = 'children'
-    if len(dic1[a]) != len(dic2[a]):
-        lst2 = ['children length not equ',
-                len(dic1[a]),
-                len(dic2[a])]
-        prterr(lst, lst2)
-        return False
-    for i in range(len(dic1['children'])):
-        a1 = dic1['children'][i]
-        a2 = dic2['children'][i]
-        if not compare_dict(lst + [dic1], a1, a2):
-            return False
-    return True
-
-def prterr(lst, lst2):
-    for a in lst:
-        for k1,k2 in a.items():
-            if k1 != 'children':
-                print '%s : %s' % (k1,k2),
-        print
-    print 'error:'
-    for a in lst2:
-        print '\t', a
+    if dict_[a] == []:
+        print '%s : []' % (a, )
+    else:
+        print '%s : [' % (a, )
+        for v in dict_[a]:
+            printit(v, n+1)
+        print sident + ']'
+    if n == 0:
+        print '---' * 10
 
 instance = Compiler()
 instance.update_from_prefs(fractconfig.instance)

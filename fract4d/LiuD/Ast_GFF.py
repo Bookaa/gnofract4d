@@ -800,29 +800,36 @@ class GFF_out_visitor_01:
         self.outp.puts(')')
     def visit_init_blk(self, node):
         self.outp.puts('init:')
-        self.outp.newline()
+        self.outp.identin()
         for tem1 in node.vlst:
             tem1.walkabout(self)
+            self.outp.newline()
+        self.outp.identout()
     def visit_loop_blk(self, node):
         self.outp.puts('loop:')
-        self.outp.newline()
+        self.outp.identin()
         for tem1 in node.vlst:
             tem1.walkabout(self)
+            self.outp.newline()
+        self.outp.identout()
     def visit_bailout_blk(self, node):
         self.outp.puts('bailout:')
         self.outp.newline()
         node.v.walkabout(self)
     def visit_default_blk(self, node):
         self.outp.puts('default:')
-        self.outp.newline()
+        self.outp.identin()
         for tem1 in node.vlst:
             tem1.walkabout(self)
             self.outp.newline()
+        self.outp.identout()
     def visit_final_blk(self, node):
         self.outp.puts('final:')
-        self.outp.newline()
+        self.outp.identin()
         for tem1 in node.vlst:
             tem1.walkabout(self)
+            self.outp.newline()
+        self.outp.identout()
     def visit_anotherfmt(self, node):
         node.v1.walkabout(self)
         self.outp.puts(':')
@@ -834,9 +841,11 @@ class GFF_out_visitor_01:
         self.outp.puts('param')
         node.v2.walkabout(self)
         self.outp.newline()
+        self.outp.identin()
         for tem1 in node.vlst:
             tem1.walkabout(self)
             self.outp.newline()
+        self.outp.identout()
         self.outp.puts('endparam')
     def visit_dt_func(self, node):
         node.v.walkabout(self)
@@ -856,8 +865,11 @@ class GFF_out_visitor_01:
     def visit_general_param(self, node):
         self.outp.puts('param')
         self.outp.puts(node.n)
+        self.outp.identin()
         for tem1 in node.vlst:
             tem1.walkabout(self)
+            self.outp.newline()
+        self.outp.identout()
         self.outp.puts('endparam')
     def visit_xcenter(self, node):
         self.outp.puts('xcenter =')
@@ -888,20 +900,20 @@ class GFF_out_visitor_01:
         self.outp.puts(node.i)
     def visit_df_title(self, node):
         self.outp.puts('title =')
-        self.outp.putss(node.s)
+        self.outp.puts(node.s[1])
     def visit_df_caption(self, node):
         self.outp.puts('caption =')
-        self.outp.putss(node.s)
+        self.outp.puts(node.s[1])
     def visit_df_default(self, node):
         self.outp.puts('default =')
         node.v.walkabout(self)
     def visit_df_hint(self, node):
         self.outp.puts('hint =')
-        self.outp.putss(node.s)
+        self.outp.puts(node.s[1])
     def visit_df_enum(self, node):
         self.outp.puts('enum =')
         for tem1 in node.slst:
-            self.outp.puts(tem1)
+            self.outp.puts(tem1[1])
     def visit_df_argtype(self, node):
         self.outp.puts('argtype =')
         node.v.walkabout(self)
@@ -936,8 +948,9 @@ class GFF_out_visitor_01:
     def visit_if_stmt(self, node):
         self.outp.puts('if')
         node.v1.walkabout(self)
-        self.outp.newline()
+        self.outp.identin()
         node.v2.walkabout(self)
+        self.outp.identout()
         for tem1 in node.vlst:
             tem1.walkabout(self)
         if node.vq is not None:
@@ -953,18 +966,20 @@ class GFF_out_visitor_01:
     def visit_elseifblk(self, node):
         self.outp.puts('elseif')
         node.v1.walkabout(self)
-        self.outp.newline()
+        self.outp.identin()
         node.v2.walkabout(self)
+        self.outp.identout()
     def visit_elseblk(self, node):
         self.outp.puts('else')
-        self.outp.newline()
+        self.outp.identin()
         node.v.walkabout(self)
+        self.outp.identout()
     def visit_stmtblk(self, node):
         for tem1 in node.vlst:
             tem1.walkabout(self)
             self.outp.newline()
     def visit_String(self, node):
-        self.outp.putss(node.s)
+        self.outp.puts(node.s[1])
     def visit_Numi(self, node):
         self.outp.puts(node.i)
     def visit_NegNumi(self, node):
@@ -1051,7 +1066,7 @@ class Parser(Parser00):
         self.lex_ANYNAME = HowRe(r'[^({\n]+')
         self.lex_NUMBER_INT = HowRe(r'0|[1-9]\d*')
         self.lex_NUM_DOUBLE = HowRe(r'\d*\.\d+(e(-)?\d+)?|\d+\.')
-        self.lex_STR = HowRe(r'"(.|\n)*?"')
+        self.lex_STR = HowRe(r'"((?:.|\n)*?)"')
     
     def handle_ANYLINE(self, s = None):
         return self.handle_Lex(self.lex_ANYLINE, s)
@@ -2481,32 +2496,62 @@ def Test_Out_GFF(mod):
     mod.walkabout(the)
     outp.newline()
 
-s_sample_GFF = r'''
+s_sample_GFF = '''
 
-Barnsley Type 3 {
-; From Michael Barnsley's book Fractals Everywhere, via Fractint
+Angles {
+; delta total, total, min, delta min, max, delta max, avg, delta avg
+; iter @ min, iter @ max, iter @ delta min, iter @ delta max
 init:
-	z = #zwpixel
+float angle = 0.0
+complex lastz = (0,0)
+float temp_angle
+int itermin = 0
+int itermax = 0
+if @angle_type == "delta min" || @angle_type == "min" || @angle_type == "iter @ min"
+    angle = #pi
+endif
 loop:
-	float x2 = real(z) * real(z)
-	float y2 = imag(z) * imag(z)
-	float xy = real(z) * imag(z)
-
-	if(real(z) > 0)
-		z = (x2 - y2 - 1.0, xy * 2.0)
-	else
-		z = (x2 - y2 - 1.0 + real(#pixel) * real(z), \
-		     xy * 2.0 + imag(#pixel) * real(z))
-	endif
-bailout:
-	@bailfunc(z) < @bailout
+if @angle_type == "delta total"
+    angle = angle + abs(atan2(z-lastz))
+elseif @angle_type == "delta max"
+    temp_angle = abs(atan2(z-lastz))
+    if temp_angle > angle
+	angle = temp_angle
+    endif
+elseif @angle_type == "delta min"
+    temp_angle = abs(atan2(z-lastz))
+    if temp_angle < angle
+	angle = temp_angle
+    endif
+elseif @angle_type == "min" || @angle_type == "iter @ min"
+    temp_angle = abs(atan2(z))
+    if temp_angle < angle
+	angle = temp_angle
+	itermin = #numiter
+    endif
+elseif @angle_type == "max" || @angle_type == "iter @ max"
+    temp_angle = abs(atan2(z))
+    if temp_angle > angle
+	angle = temp_angle
+	itermax = #numiter
+    endif
+elseif @angle_type == "total"
+    angle = angle + abs(atan2(z))
+endif
+lastz = z
+final:
+if @angle_type == "iter @ min"
+    #index = itermin/256.0
+elseif @angle_type == "iter @ max"
+    #index = itermax/256.0
+else
+    #index = angle/#pi
+endif
 default:
-float param bailout
-	default = 4.0
+param angle_type
+	default = 0
+	enum = "delta total" "delta max" "delta min" "min" "max" "total" "iter @ min" "iter @ max"
 endparam
-float func bailfunc
-	default = cmag
-endfunc
 }
 
 '''

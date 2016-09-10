@@ -38,12 +38,13 @@ class HowRe:
     def howmatch_str(self, textsrc, pos):
         m = self.compiled.match(textsrc, pos)
         if m:
+            text = m.group()
             groups = m.groups()
             if groups:
                 content = groups[0]
             else:
-                content = m.group()
-            return (content, m.end())
+                content = text
+            return (content, text, m.end())
         return None
 
 class IgnoreCls:
@@ -137,9 +138,9 @@ class Parser00:
         #import pdb; pdb.set_trace()
         b = lex.howmatch_str(self.srctxt, self.pos[0])
         if b is not None:
-            (value, m_end) = b
+            (value, text, m_end) = b
             self.pos[0] = m_end; self.updatelast()
-            return value
+            return value, text
         return None
 
     def Skip(self, n):
