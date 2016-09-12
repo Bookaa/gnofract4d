@@ -317,17 +317,14 @@ dtype_i8i8f8f8 = np.dtype([('i1', 'i8'),('i2', 'i8'),('i3', 'f8'),('i4', 'f8')])
 #cfunc2_CubicMandelbrot = tryllvm.cfunc2_CubicMandelbrot
 #cfunc2_CGNewton3 = tryllvm.cfunc2_CGNewton3
 
-from LiuD import GenLLVM_GnoFrac
-theliud = GenLLVM_GnoFrac.LLVM_liud(GenLLVM_GnoFrac.s_sample_GnoFrac, 'Mandelbrot')
-cfunc2_LiudMandelbrot = theliud.cfuncptr
+from LiuD import GenLLVM_GFF
+cfunc3_ptr = None
 
-
-theliud2 = GenLLVM_GnoFrac.LLVM_liud(GenLLVM_GnoFrac.s_sample_GnoFrac_2, 'CubicMandelbrot')
-cfunc2_CubicMandelbrot = theliud2.cfuncptr
-
-theliud3 = GenLLVM_GnoFrac.LLVM_liud(GenLLVM_GnoFrac.s_sample_GnoFrac_3, 'CGNewton3')
-cfunc2_CGNewton3 = theliud3.cfuncptr
-
+def CompileLLVM(form0_mod, form1_mod, form2_mod):
+    global cfunc3_ptr
+    theliud3 = GenLLVM_GFF.LLVM_liud(form0_mod, form1_mod, form2_mod)
+    cfunc3_ptr = theliud3.cfuncptr
+    cfunc3_ptr.savme = theliud3
 
 @myjit
 def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap):
@@ -341,7 +338,7 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         if UseLLVM:
             arr = np.zeros(1, dtype=dtype_i8i8f8f8)
             #cfunc2_Mandelbrot_1(arr.ctypes.data, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-            cfunc2_LiudMandelbrot(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+            cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
             a1,a2,a3,a4 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4']
             a1 = a1 + len(arr) - len(arr)
 
@@ -364,7 +361,7 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         if UseLLVM:
             arr = np.zeros(1, dtype=dtype_i8i8f8f8)
             #cfunc2_CGNewton3_1(arr.ctypes.data, p1.real, p1.imag, pixel.real, pixel.imag, maxiter)
-            cfunc2_CGNewton3(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+            cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
             a1,a2,a3,a4 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4']
             a1 = a1 + len(arr) - len(arr)
 
@@ -380,7 +377,7 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         if UseLLVM:
             arr = np.zeros(1, dtype=dtype_i8i8f8f8)
             #cfunc2_Cubic_Mandelbrot_1(arr.ctypes.data, fa.real, fa.imag, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-            cfunc2_CubicMandelbrot(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+            cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
             a1,a2,a3,a4 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4']
             a1 = a1 + len(arr) - len(arr)
 
@@ -393,6 +390,17 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         t__cf03 = abs2(z) + 0.000000001
         t__cf06 = t__h_numiter + t__a_cf0bailout / t__cf03
         t__h_index = t__a_cf0_density * t__cf06 / 256.0 + t__a_cf0_offset
+        '''
+        continuous_potential {
+final:
+float ed = @bailout/(|z| + 1.0e-9)
+#index = (#numiter + ed) / 256.0
+default:
+float param bailout
+	default = 4.0
+endparam
+}
+        '''
     else:
         t__h_index = t__a_cf1_offset
     fate = FATE_INSIDE if t__h_inside != 0 else 0

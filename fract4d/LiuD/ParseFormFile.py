@@ -33,7 +33,7 @@ class mywalk(GFF_sample_visitor_01):
             sb = v.walkabout(self)
             if sb:
                 lst.append(sb)
-        return new_dict(leaf=leaf, children=lst, type='formula', text=text, symmetry=symm)
+        return new_dict(leaf=leaf, children=lst, type='formula', text=text, symmetry=symm, deepmod=node)
 
     def visit_formu(self, node):
         leaf = node.n.strip()
@@ -402,6 +402,25 @@ def ParseFormuFile(s_formufile, deepin):
     if deepin:
         parser = Ast_GFF.Parser(s_formufile)
         mod = parser.handle_formu_deep()
+        if mod.n.strip() == 'CGNewton3':
+            # replace with I support format
+            src = '''CGNewton3 {
+    init:
+        z = (1.0, 1.0)
+    loop:
+        z2 = z * z
+        z3 = z * z2
+        z = z - @p1 * (z3 - #pixel) / (3.0 * z2)
+    bailout:
+        0.0001 < |z3 - #pixel|
+
+    default:
+    complex param p1
+        default = (0.66253178213589414, -0.22238807443609804)
+    endparam
+    }'''
+            parser = Ast_GFF.Parser(src)
+            mod = parser.handle_formu_deep()
     else:
         mod = Ast_GFF.Test_Parse_GFF(s_formufile)
     if not mod :

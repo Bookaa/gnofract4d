@@ -97,6 +97,8 @@ class Node:
             self.last_line = dict_['last_line']
         if 'text' in dict_:
             self.text = dict_['text']
+        if 'deepmod' in dict_:
+            self.deepmod = dict_['deepmod']
         lst = dict_['children']
         if lst:
             for dict1 in lst:

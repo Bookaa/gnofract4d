@@ -240,6 +240,15 @@ class T(fctutils.T):
         formuName = self.forms[0].funcName
         initparams = self.all_params()
         segs = self.get_gradient().segments
+
+        form0_mod = self.forms[0].formula.basef.deepmod
+        form1_mod = self.forms[1].formula.basef.deepmod
+        form2_mod = self.forms[2].formula.basef.deepmod
+        form0_text = self.forms[0].formula.basef.text; form0_leaf = self.forms[0].formula.basef.leaf
+        form1_text = self.forms[1].formula.basef.text; form1_leaf = self.forms[1].formula.basef.leaf   # continuous_potential
+        form2_text = self.forms[2].formula.basef.text; form2_leaf = self.forms[2].formula.basef.leaf   # Angel
+        # myfract4dc.CompileLLVM(form0_text, form0_leaf, form1_text, form1_leaf, form2_text, form2_leaf)
+        myfract4dc.CompileLLVM(form0_mod, form1_mod, form2_mod)
         myfract4dc.draw(image, outputfile, formuName, initparams, self.params, segs, self.maxiter)
         return
 

@@ -1269,7 +1269,7 @@ class ColorFunc(TBase):
                 m = Node(0,0)
                 m.SerialIn(dict1)
                 f.children.append(m)
-
+            f.deepmod = dict3_['children'][0]['deepmod']
 
         if f.children[0].type == "error":
             self.error(f.children[0].leaf)
