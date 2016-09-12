@@ -36,44 +36,59 @@ def abs4(i,r):
 #pro_abs4 = CFUNCTYPE(c_double,c_double,c_double)(abs4)
 pro_abs4 = abs4.ctypes
 
-@myjit(types.Tuple((int64,int64,complex128))(float64, complex128, complex128, int64))
+import math
+
+@myjit(types.Tuple((int64,int64,complex128,float64,int64))(float64, complex128, complex128, int64))
 def Mandelbrot_1(fbailout, pixel, zwpixel, maxiter):
     '''
-    Mandelbrot {
-    init:
-        z = #zwpixel
-    loop:
-        z = sqr(z) + #pixel
-    bailout:
-        @bailfunc(z) < @bailout
-    default:
-    float param bailout
-        default = 4.0
-    endparam
-    float func bailfunc
-        default = cmag
-    endfunc
-    }
+    Mandelbrot with inside = Angles
     '''
 
-    #print str(type(fbailout)), str(type(pixel)), str(type(zwpixel)), str(type(maxiter))
     t__h_numiter = 0
     z = zwpixel
     t__h_inside = 0
+    if True:
+        angle = math.pi
     while True:
         z = z*z + pixel
-        #if pro_abs4(z.real, z.imag) >= fbailout:
         if z.real * z.real + z.imag * z.imag >= fbailout:
-            #if abs2(z) >= fbailout:
-            #if si.quad(abs3, z) >= fbailout:
             break
+        if True:
+            temp_angle = math.fabs(math.atan2(z.imag, z.real))
+            if temp_angle < angle:
+                angle = temp_angle
         t__h_numiter += 1
         if t__h_numiter >= maxiter:
             t__h_inside = 1
             break
-    return t__h_inside, t__h_numiter, z
 
-@myjit(types.Tuple((int64,int64,complex128))(complex128, complex128, int64))
+    solid = 0
+    if t__h_inside == 0:
+        t__a_cf0bailout = 4.0
+        t__cf03 = abs2(z) + 0.000000001
+        t__cf06 = t__h_numiter + t__a_cf0bailout / t__cf03
+        idex = t__cf06 / 256.0 # t__a_cf0_density * t__cf06 / 256.0 + t__a_cf0_offset
+        '''
+        continuous_potential {
+final:
+float ed = @bailout/(|z| + 1.0e-9)
+#index = (#numiter + ed) / 256.0
+default:
+float param bailout
+	default = 4.0
+endparam
+}
+        '''
+    else:
+        if True: # for zero
+            idex = 0 #t__a_cf1_offset
+            solid = 1
+        else: # for angel
+            idex = angle / math.pi
+
+    return t__h_inside, t__h_numiter, z, idex, solid
+
+@myjit(types.Tuple((int64,int64,complex128,float64,int64))(complex128, complex128, int64))
 def CGNewton3_1(p1, pixel, maxiter):
     '''
     CGNewton3 {
@@ -101,10 +116,20 @@ def CGNewton3_1(p1, pixel, maxiter):
             t__h_inside = 1
             break
 
-    return t__h_inside, t__h_numiter, z
+    solid = 0
+    if t__h_inside == 0:
+        t__a_cf0bailout = 4.06664633010422705
+        t__cf03 = abs2(z) + 0.000000001
+        t__cf06 = t__h_numiter + t__a_cf0bailout / t__cf03
+        idex = t__cf06 / 256.0 # t__a_cf0_density * t__cf06 / 256.0 + t__a_cf0_offset
+    else:
+        idex = 0 #t__a_cf1_offset
+        solid = 1
+
+    return t__h_inside, t__h_numiter, z, idex, solid
 
 
-@myjit(types.Tuple((int64,int64,complex128))(complex128, float64, complex128, complex128, int64))
+@myjit(types.Tuple((int64,int64,complex128,float64,int64))(complex128, float64, complex128, complex128, int64))
 def Cubic_Mandelbrot_1(fa, fbailout, pixel, zwpixel, maxiter):
     '''
     Cubic Mandelbrot {
@@ -141,7 +166,18 @@ def Cubic_Mandelbrot_1(fa, fbailout, pixel, zwpixel, maxiter):
         if t__h_numiter >= maxiter:
             t__h_inside = 1
             break
-    return t__h_inside, t__h_numiter, z
+
+    solid = 0
+    if t__h_inside == 0:
+        t__a_cf0bailout = 4.0
+        t__cf03 = abs2(z) + 0.000000001
+        t__cf06 = t__h_numiter + t__a_cf0bailout / t__cf03
+        idex = t__cf06 / 256.0 # t__a_cf0_density * t__cf06 / 256.0 + t__a_cf0_offset
+    else:
+        idex = 0 #t__a_cf1_offset
+        solid = 1
+
+    return t__h_inside, t__h_numiter, z, idex, solid
 
 if __name__ == '__main__':
 

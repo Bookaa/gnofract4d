@@ -325,6 +325,8 @@ def CompileLLVM(form0_mod, form1_mod, form2_mod):
     theliud3 = GenLLVM_GFF.LLVM_liud(form0_mod, form1_mod, form2_mod)
     cfunc3_ptr = theliud3.cfuncptr
     cfunc3_ptr.savme = theliud3
+    # form1 usually continuous_potential
+    # form2 usually zero
 
 @myjit
 def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap):
@@ -348,9 +350,7 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
             #print the.t__h_inside, the.t__h_numiter, the.z.z_real + the.z.z_image * 1j
             #t__h_inside, t__h_numiter, z = the.t__h_inside, the.t__h_numiter, complex(the.z.z_real, the.z.z_image)
         else:
-            #print 'input', t__a_fbailout, pixel, zwpixel, maxiter
-            t__h_inside, t__h_numiter, z = mycalc.Mandelbrot_1(t__a_fbailout, pixel, zwpixel, maxiter)
-            #print 'output', t__h_inside, t__h_numiter, z
+            t__h_inside, t__h_numiter, z, indx, solid = mycalc.Mandelbrot_1(t__a_fbailout, pixel, zwpixel, maxiter)
 
 
     elif formuNameNo == 2: # 'CGNewton3':
@@ -368,7 +368,7 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
             # a1,a2,a3,a4 = tryllvm.cfunc_Mandelbrot_1(g_ref_the, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
             t__h_inside, t__h_numiter, z = a1, a2, complex(a3, a4)
         else:
-            t__h_inside, t__h_numiter, z = mycalc.CGNewton3_1(p1, pixel, maxiter)
+            t__h_inside, t__h_numiter, z, indx, solid = mycalc.CGNewton3_1(p1, pixel, maxiter)
     else: # if formuNameNo == 3: # 'Cubic Mandelbrot':
         t__a_fbailout = param_values[0]
         #t__a_fa = param_values[1]
@@ -383,36 +383,23 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
 
             t__h_inside, t__h_numiter, z = a1, a2, complex(a3, a4)
         else:
-            t__h_inside, t__h_numiter, z = mycalc.Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, zwpixel, maxiter)
+            t__h_inside, t__h_numiter, z, indx, solid = mycalc.Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, zwpixel, maxiter)
+
+    if t__h_inside == 0:
+        t__h_index = t__a_cf0_density * indx + t__a_cf0_offset
+    else:
+        t__h_index = t__a_cf1_density * indx + t__a_cf1_offset
+
 
     iter_ = t__h_numiter
-    if t__h_inside == 0:
-        t__cf03 = abs2(z) + 0.000000001
-        t__cf06 = t__h_numiter + t__a_cf0bailout / t__cf03
-        t__h_index = t__a_cf0_density * t__cf06 / 256.0 + t__a_cf0_offset
-        '''
-        continuous_potential {
-final:
-float ed = @bailout/(|z| + 1.0e-9)
-#index = (#numiter + ed) / 256.0
-default:
-float param bailout
-	default = 4.0
-endparam
-}
-        '''
-    else:
-        t__h_index = t__a_cf1_offset
     fate = FATE_INSIDE if t__h_inside != 0 else 0
     dist = t__h_index
-    solid = t__h_inside
     if solid:
         fate |= FATE_SOLID
     if fUseColors:
         fate |= FATE_DIRECT
     if fate & FATE_INSIDE:
         iter_ = -1
-    # return fUseColors, colors, solid, dist, iter_, fate
     if fUseColors:
         pixel_ = lookup_with_dca(solid, colors)
     else:
