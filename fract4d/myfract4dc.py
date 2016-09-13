@@ -308,14 +308,7 @@ def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
     return Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuNameNo, cmap)
 
 
-dtype_i8i8f8f8 = np.dtype([('i1', 'i8'),('i2', 'i8'),('i3', 'f8'),('i4', 'f8')])
-
-#cfunc2_Mandelbrot_1 = tryllvm.cfunc2_Mandelbrot_1
-#cfunc2_CGNewton3_1 = tryllvm.cfunc2_CGNewton3_1
-#cfunc2_Cubic_Mandelbrot_1 = tryllvm.cfunc2_Cubic_Mandelbrot_1
-#cfunc2_LiudMandelbrot = tryllvm.cfunc2_LiudMandelbrot
-#cfunc2_CubicMandelbrot = tryllvm.cfunc2_CubicMandelbrot
-#cfunc2_CGNewton3 = tryllvm.cfunc2_CGNewton3
+dtype_i8i8f8f8 = np.dtype([('i1', 'i8'),('i2', 'i8'),('i3', 'f8'),('i4', 'f8'),('i5', 'f8'),('i6', 'i8')])
 
 from LiuD import GenLLVM_GFF
 cfunc3_ptr = None
@@ -341,14 +334,10 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
             arr = np.zeros(1, dtype=dtype_i8i8f8f8)
             #cfunc2_Mandelbrot_1(arr.ctypes.data, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
             cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-            a1,a2,a3,a4 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4']
+            a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
             a1 = a1 + len(arr) - len(arr)
 
-            # a1,a2,a3,a4 = tryllvm.cfunc_Mandelbrot_1(g_ref_the, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-            t__h_inside, t__h_numiter, z = a1, a2, complex(a3, a4)
-            #print 'get res', res
-            #print the.t__h_inside, the.t__h_numiter, the.z.z_real + the.z.z_image * 1j
-            #t__h_inside, t__h_numiter, z = the.t__h_inside, the.t__h_numiter, complex(the.z.z_real, the.z.z_image)
+            t__h_inside, t__h_numiter, z, indx, solid = a1, a2, complex(a3, a4), a5, a6
         else:
             t__h_inside, t__h_numiter, z, indx, solid = mycalc.Mandelbrot_1(t__a_fbailout, pixel, zwpixel, maxiter)
 
@@ -362,11 +351,10 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
             arr = np.zeros(1, dtype=dtype_i8i8f8f8)
             #cfunc2_CGNewton3_1(arr.ctypes.data, p1.real, p1.imag, pixel.real, pixel.imag, maxiter)
             cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-            a1,a2,a3,a4 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4']
+            a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
             a1 = a1 + len(arr) - len(arr)
 
-            # a1,a2,a3,a4 = tryllvm.cfunc_Mandelbrot_1(g_ref_the, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-            t__h_inside, t__h_numiter, z = a1, a2, complex(a3, a4)
+            t__h_inside, t__h_numiter, z, indx, solid = a1, a2, complex(a3, a4), a5, a6
         else:
             t__h_inside, t__h_numiter, z, indx, solid = mycalc.CGNewton3_1(p1, pixel, maxiter)
     else: # if formuNameNo == 3: # 'Cubic Mandelbrot':
@@ -376,12 +364,11 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
         fa = complex(param_values[1], param_values[2])
         if UseLLVM:
             arr = np.zeros(1, dtype=dtype_i8i8f8f8)
-            #cfunc2_Cubic_Mandelbrot_1(arr.ctypes.data, fa.real, fa.imag, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
             cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-            a1,a2,a3,a4 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4']
+            a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
             a1 = a1 + len(arr) - len(arr)
 
-            t__h_inside, t__h_numiter, z = a1, a2, complex(a3, a4)
+            t__h_inside, t__h_numiter, z, indx, solid = a1, a2, complex(a3, a4), a5, a6
         else:
             t__h_inside, t__h_numiter, z, indx, solid = mycalc.Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, zwpixel, maxiter)
 

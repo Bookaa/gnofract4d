@@ -12,7 +12,7 @@ type_complex = 3
 type_int = 1
 
 class mywalk(GFF_sample_visitor_01):
-    def init(self):
+    def init(self, mod1, mod2):
         module = ir.Module()
 
         self.module = module
@@ -20,12 +20,11 @@ class mywalk(GFF_sample_visitor_01):
         self.vardict = {}
         self.temno = 0
 
+        self.mod1 = mod1
+        self.mod2 = mod2
+
     def visit_formu_deep(self, node):
         funcname = node.n.strip().replace(' ','_')
-        #if node.vq is not None:
-        #    node.vq.walkabout(self)
-        #for v in node.vlst:
-        #    v.walkabout(self)
         init_blk = None
         loop_blk = None
         bailout_blk = None
@@ -53,7 +52,7 @@ class mywalk(GFF_sample_visitor_01):
         module = self.module
 
         # main (and only) function
-        rettype = ir.LiteralStructType((ir.IntType(64), ir.IntType(64), ir.DoubleType(), ir.DoubleType()))
+        rettype = ir.LiteralStructType((ir.IntType(64), ir.IntType(64), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.IntType(64)))
 
         func_t = ir.FunctionType(ir.IntType(32),
                                  [rettype.as_pointer(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.IntType(64)])
@@ -78,16 +77,89 @@ class mywalk(GFF_sample_visitor_01):
         loop_blk.walkabout(self)
         bailout_blk.walkabout(self)
 
+        self.do_final()
+
+        value_indx = self.vardict['idex']
+        value_solid = self.vardict['solid']
+
         tem1 = rettype(ir.Undefined)
         tem2 = self.irbuilder.insert_value(tem1, self.vardict['inside'][1], (0,))
         tem3 = self.irbuilder.insert_value(tem2, self.vardict['numiter'][1], (1,))
         tem4 = self.irbuilder.insert_value(tem3, self.vardict['z'][1][0], (2,))
         tem5 = self.irbuilder.insert_value(tem4, self.vardict['z'][1][1], (3,))
+        tem6 = self.irbuilder.insert_value(tem5, value_indx[1], (4,))
+        tem7 = self.irbuilder.insert_value(tem6, value_solid[1], (5,))
 
-        self.irbuilder.store(tem5, func.args[0])
+        self.irbuilder.store(tem7, func.args[0])
         self.irbuilder.ret(ir.Constant(ir.IntType(32), 0))
 
         return funcname
+
+    def do_final(self):
+        if False:
+            self.vardict['solid'] = (type_int, ir.Constant(ir.IntType(64), 0))
+            self.vardict['idex'] = (type_double, ir.Constant(ir.DoubleType(), 0.000000001))
+            return
+        # solid = 0
+        # if t__h_inside == 0:
+        zero = ir.Constant(ir.IntType(64), 0)
+        val_inside = self.vardict['inside'][1]
+        condi = self.irbuilder.icmp_signed("==", val_inside, zero)
+
+        label_ifblk = self.irbuilder.append_basic_block("if_inside")
+        label_elseblk = self.irbuilder.append_basic_block("not_inside")
+        label_endifblk = self.irbuilder.append_basic_block("endif")
+
+        self.irbuilder.cbranch(condi, label_ifblk, label_elseblk)
+
+        self.irbuilder.position_at_end(label_ifblk)
+        if_entry = self.irbuilder.block
+
+        # in ifblk
+        # t__a_cf0bailout = 4.0
+        # t__cf03 = abs2(z) + 0.000000001
+        # t__cf06 = t__h_numiter + t__a_cf0bailout / t__cf03
+        # idex = t__cf06 / 256.0
+        if True:
+            zero = ir.Constant(ir.IntType(64), 0)
+            self.vardict['solid'] = type_int, zero
+
+            t__a_cf0bailout = ir.Constant(ir.DoubleType(), 4.0)
+            z0,z1 = self.vardict['z'][1]
+            tem1 = self.irbuilder.fmul(z0, z0)
+            tem2 = self.irbuilder.fmul(z1, z1)
+            tem3 = self.irbuilder.fadd(tem1, tem2)
+            cf03 = self.irbuilder.fadd(tem3, ir.Constant(ir.DoubleType(), 0.000000001))
+            tem4 = self.irbuilder.fdiv(t__a_cf0bailout, cf03)
+            todouble = self.irbuilder.sitofp(self.vardict['numiter'][1], ir.DoubleType())
+            cf06 = self.irbuilder.fadd(todouble, tem4)
+            idex = self.irbuilder.fdiv(cf06, ir.Constant(ir.DoubleType(), 256.0))
+
+            with self.irbuilder.goto_block(label_endifblk):     # to endif
+                endif_idex = self.irbuilder.phi(ir.DoubleType(), "idex")
+                endif_idex.add_incoming(idex, if_entry)
+                endif_solid = self.irbuilder.phi(ir.IntType(64), "solid")
+                endif_solid.add_incoming(self.vardict['solid'][1], if_entry)
+
+        self.irbuilder.branch(label_endifblk)
+
+        self.irbuilder.position_at_end(label_elseblk)
+        else_entry = self.irbuilder.block
+
+        if True:
+            idex = ir.Constant(ir.DoubleType(), 0.0)
+            self.vardict['solid'] = type_int, ir.Constant(ir.IntType(64), 1)
+
+            with self.irbuilder.goto_block(label_endifblk):     # to endif
+                endif_idex.add_incoming(idex, else_entry)
+                endif_solid.add_incoming(self.vardict['solid'][1], else_entry)
+
+        self.vardict['solid'] = (type_int, endif_solid)
+        self.vardict['idex'] = (type_double, endif_idex)
+
+        self.irbuilder.branch(label_endifblk)
+
+        self.irbuilder.position_at_end(label_endifblk)
 
     def visit_loop_blk(self, node):
         # now is entry
@@ -399,7 +471,7 @@ class LLVM_liud:
     def __init__(self, mod0, mod1, mod2):
         # funcname = mod.n.strip()
         the = mywalk()
-        the.init()
+        the.init(mod1, mod2)
         funcname = mod0.walkabout(the)
         ir_src = str(the.module)
 
