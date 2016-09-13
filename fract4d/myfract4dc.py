@@ -328,47 +328,33 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
 
     (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = cf0cf1
 
+    if UseLLVM:
+        arr = np.zeros(1, dtype=dtype_i8i8f8f8)
+        cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+        a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
+        a1 = a1 + len(arr) - len(arr)
+
+        t__h_inside, t__h_numiter, z, indx, solid = a1, a2, complex(a3, a4), a5, a6
+
     if formuNameNo == 1: # 'Mandelbrot':
         t__a_fbailout = param_values[0]
         if UseLLVM:
-            arr = np.zeros(1, dtype=dtype_i8i8f8f8)
-            #cfunc2_Mandelbrot_1(arr.ctypes.data, t__a_fbailout, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-            cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-            a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
-            a1 = a1 + len(arr) - len(arr)
-
-            t__h_inside, t__h_numiter, z, indx, solid = a1, a2, complex(a3, a4), a5, a6
+            pass
         else:
             t__h_inside, t__h_numiter, z, indx, solid = mycalc.Mandelbrot_1(t__a_fbailout, pixel, zwpixel, maxiter)
 
 
     elif formuNameNo == 2: # 'CGNewton3':
-
-        #p1_tuple = param_values[0]
-        #p1 = complex(p1_tuple[0], p1_tuple[1])
         p1 = complex(param_values[0], param_values[1])
         if UseLLVM:
-            arr = np.zeros(1, dtype=dtype_i8i8f8f8)
-            #cfunc2_CGNewton3_1(arr.ctypes.data, p1.real, p1.imag, pixel.real, pixel.imag, maxiter)
-            cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-            a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
-            a1 = a1 + len(arr) - len(arr)
-
-            t__h_inside, t__h_numiter, z, indx, solid = a1, a2, complex(a3, a4), a5, a6
+            pass
         else:
             t__h_inside, t__h_numiter, z, indx, solid = mycalc.CGNewton3_1(p1, pixel, maxiter)
     else: # if formuNameNo == 3: # 'Cubic Mandelbrot':
         t__a_fbailout = param_values[0]
-        #t__a_fa = param_values[1]
-        #fa = complex(t__a_fa[0], t__a_fa[1])
         fa = complex(param_values[1], param_values[2])
         if UseLLVM:
-            arr = np.zeros(1, dtype=dtype_i8i8f8f8)
-            cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-            a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
-            a1 = a1 + len(arr) - len(arr)
-
-            t__h_inside, t__h_numiter, z, indx, solid = a1, a2, complex(a3, a4), a5, a6
+            pass
         else:
             t__h_inside, t__h_numiter, z, indx, solid = mycalc.Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, zwpixel, maxiter)
 
@@ -691,8 +677,6 @@ def grad_find(index, items, ncolors):
 
     i = ncolors - ncolors
 
-    #for i in range(ncolors):
-
     while i < ncolors:
         (left, right, mid, bmode, cmode, leftc, rightc) = items[i]
         if index <= right:
@@ -804,7 +788,6 @@ def parse_params_to_dict(params):
         elif name == 't__a__gradient':
             pass
         else:
-            #names.append(name)
             if var.type == 3:
                 values.append(param[0])
                 values.append(param[1])

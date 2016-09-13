@@ -18,9 +18,6 @@ def myjit(*args, **kws):
 def myjitclass(spec):
     return numba.jitclass(spec)
 
-#import scipy.integrate as si
-from ctypes import CFUNCTYPE, c_double
-
 @myjit(float64(complex128))
 def abs2(c):
     return c.imag * c.imag + c.real * c.real
