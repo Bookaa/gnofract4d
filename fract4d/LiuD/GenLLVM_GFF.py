@@ -6,10 +6,13 @@ import llvmlite.ir as ir
 import llvmlite.binding as llvm
 
 from ctypes import CFUNCTYPE, c_int, c_long, c_double, c_void_p
+import math
 
 type_double = 2
 type_complex = 3
 type_int = 1
+
+inner_use_Angels = False
 
 class mywalk(GFF_sample_visitor_01):
     def init(self, mod1, mod2):
@@ -74,6 +77,9 @@ class mywalk(GFF_sample_visitor_01):
         self.irbuilder = ir.IRBuilder(bb_entry)
 
         init_blk.walkabout(self)
+        if inner_use_Angels:
+            #float angle = #pi
+            self.vardict['angle'] = type_double, ir.Constant(ir.DoubleType(), math.pi)
         loop_blk.walkabout(self)
         bailout_blk.walkabout(self)
 
@@ -161,6 +167,19 @@ class mywalk(GFF_sample_visitor_01):
 
         self.irbuilder.position_at_end(label_endifblk)
 
+        '''
+        init:
+        float angle = #pi
+
+        loop:
+            temp_angle = abs(atan2(z))
+            if temp_angle < angle
+                angle = temp_angle
+            endif
+
+        final:
+            #index = angle/#pi
+        '''
     def visit_loop_blk(self, node):
         # now is entry
         loop_entry = self.irbuilder.block
@@ -182,6 +201,13 @@ class mywalk(GFF_sample_visitor_01):
             value_numiter.add_incoming(ir.Constant(ir.IntType(64), 0), loop_entry)
             self.vardict['numiter'] = (type_int, value_numiter)
 
+            if inner_use_Angels:
+                val3 = self.vardict['angle'][1]
+                loop_angel = self.irbuilder.phi(ir.DoubleType(), "angle")
+                loop_angel.add_incoming(val3, loop_entry)
+                self.vardict['angle'] = type_double, loop_angel
+                self.angel_in_body = loop_angel
+
         self.savall_body = self.vardict['z'], self.vardict['numiter']
 
         # now is body
@@ -190,6 +216,43 @@ class mywalk(GFF_sample_visitor_01):
 
         for v in node.vlst:
             v.walkabout(self)
+
+    def inner_loop(self):
+        '''
+        temp_angle = abs(atan2(z))
+        if temp_angle < angle
+            angle = temp_angle
+        endif'''
+        func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ir.DoubleType()])
+        func_atan2 = ir.Function(self.module, func_t, 'atan2')
+        func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ])
+        func_fabs = ir.Function(self.module, func_t, 'fabs')
+
+        val1,val2 = self.vardict['z'][1]
+
+        tem1 = self.irbuilder.call(func_atan2,(val2,val1))
+        tem2 = self.irbuilder.call(func_fabs, (tem1,))
+        condi = self.irbuilder.fcmp_ordered('<', tem2, self.vardict['angle'][1])
+
+        label_1 = self.irbuilder.append_basic_block("label_1")
+        label_2 = self.irbuilder.append_basic_block("label_2")
+
+        context_current = self.irbuilder.block
+
+        self.irbuilder.cbranch(condi, label_1, label_2)
+
+        self.irbuilder.position_at_end(label_1)
+        context_label_1 = self.irbuilder.block
+
+        with self.irbuilder.goto_block(label_2):     # to label2
+            angel_3 = self.irbuilder.phi(ir.DoubleType(), "angel")
+            angel_3.add_incoming(tem2, context_label_1)
+            angel_3.add_incoming(self.vardict['angle'][1], context_current)
+            self.vardict['angle'] = type_double, angel_3
+
+        self.irbuilder.branch(label_2)
+        self.irbuilder.position_at_end(label_2)
+
     def visit_bailout_blk(self, node):
         # now is body
         loop_entry = self.irbuilder.block
@@ -213,23 +276,17 @@ class mywalk(GFF_sample_visitor_01):
             value_numiter.add_incoming(self.vardict['numiter'][1], loop_entry)
             valuetuple_exit_numiter = (type_int, value_numiter)
 
-
-        with self.irbuilder.goto_block(self.label1):    # body -> label1
-            val1,val2 = self.vardict['z'][1]
-            loop_z0_body = self.irbuilder.phi(ir.DoubleType(), "z.0")
-            loop_z0_body.add_incoming(val1, loop_entry)
-            loop_z1_body = self.irbuilder.phi(ir.DoubleType(), "z.1")
-            loop_z1_body.add_incoming(val2, loop_entry)
-            valuetuple_label1_z = type_complex, (loop_z0_body, loop_z1_body)
-
-            value_numiter = self.irbuilder.phi(ir.IntType(64), "numiter")
-            value_numiter.add_incoming(self.vardict['numiter'][1], loop_entry)
-            valuetuple_label1_numiter = (type_int, value_numiter)
+            if inner_use_Angels:
+                angel_6 = self.irbuilder.phi(ir.DoubleType(), "angel_6")
+                angel_6.add_incoming(self.vardict['angle'][1], loop_entry)
 
         # now is label 1
         self.irbuilder.position_at_end(self.label1)
-        self.vardict['z'] = valuetuple_label1_z
-        self.vardict['numiter'] = type_int, self.irbuilder.add(valuetuple_label1_numiter[1], ir.Constant(ir.IntType(64), 1))
+
+        if inner_use_Angels:
+            self.inner_loop()
+
+        self.vardict['numiter'] = type_int, self.irbuilder.add(self.vardict['numiter'][1], ir.Constant(ir.IntType(64), 1))
 
         loop_entry = self.irbuilder.block
         value_comp = self.irbuilder.icmp_signed('>=', self.vardict['numiter'][1], self.vardict['maxiter'][1])
@@ -248,6 +305,9 @@ class mywalk(GFF_sample_visitor_01):
             tuple_z[1][0].add_incoming(val1, loop_entry)
             tuple_z[1][1].add_incoming(val2, loop_entry)
             tuple_numiter[1].add_incoming(self.vardict['numiter'][1], loop_entry)
+
+            if inner_use_Angels:
+                self.angel_in_body.add_incoming(self.vardict['angle'][1], loop_entry)
 
         # now is exit
 
@@ -485,3 +545,24 @@ class LLVM_liud:
 
 if __name__ == '__main__':
     pass
+
+'''
+entry:
+    t__h_numiter = 0
+    z = zwpixel
+body:
+    pass numiter,z
+    while True:
+        z = z*z + pixel
+        if z.real * z.real + z.imag * z.imag >= fbailout:
+            t__h_inside = 0
+            break
+label1:
+        t__h_numiter += 1
+        if t__h_numiter >= maxiter:
+            t__h_inside = 1
+            break
+exit:
+    pass numiter,inside,z
+    return t__h_inside, t__h_numiter, z
+'''
