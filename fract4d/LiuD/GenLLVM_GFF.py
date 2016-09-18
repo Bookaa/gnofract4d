@@ -56,12 +56,7 @@ class mywalk(GFF_sample_visitor_01):
         for v1 in v.vlst:
             v1.walkabout(self)
         self.cur_dict = self.vardict
-        return
-        name = mod.n.strip()
-        if name == 'Angles': # 1
-            #float angle = #pi
-            dict_['angle'] = type_double, ir.Constant(ir.DoubleType(), math.pi)
-            return
+
     def ColorInOut_EntryToLoop(self, dict_, mod, cur_entry):
         keys = dict_.keys()
         if not keys:
@@ -74,15 +69,7 @@ class mywalk(GFF_sample_visitor_01):
             dict_[kname] = typ, v
             dic_loop[kname] = v
         dict_['loop'] = dic_loop
-        return
-        name = mod.n.strip()
-        if name == 'Angles': # 2
-            val3 = dict_['angle'][1]
-            v_angle = self.irbuilder.phi(ir.DoubleType(), "angle")
-            v_angle.add_incoming(val3, cur_entry)
-            dict_['angle'] = type_double, v_angle
-            dict_['loop'] = {'angle' : v_angle}
-            return
+
     def ColorInOut_LoopToExit(self, dict_, mod, cur_entry):
         keys = getLocalVars(dict_)
         if not keys:
@@ -94,16 +81,8 @@ class mywalk(GFF_sample_visitor_01):
             v.add_incoming(val, cur_entry)
             dic_exit[kname] = v
         dict_['exit'] = dic_exit
-        return
-        name = mod.n.strip()
-        if name == 'Angles': # 3
-            v_angle = self.irbuilder.phi(ir.DoubleType(), "angle")
-            v_angle.add_incoming(dict_['angle'][1], cur_entry)
-            dict_['exit'] = {'angle' : v_angle}
-            return
 
     def ColorInOut_Loop(self, dict_, mod):
-
         for v in mod.vlst:
             if isinstance(v, Ast_GFF.GFF_loop_blk):
                 break
@@ -116,46 +95,7 @@ class mywalk(GFF_sample_visitor_01):
             self.cur_dict = self.vardict
             return
 
-        name = mod.n.strip()
-        if name == 'Angles': # 4
-            '''
-            float temp_angle = abs(atan2(z))
-            if temp_angle < angle
-                angle = temp_angle
-            endif'''
-            func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ir.DoubleType()])
-            func_atan2 = ir.Function(self.module, func_t, 'atan2')
-            func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ])
-            func_fabs = ir.Function(self.module, func_t, 'fabs')
-
-            val1,val2 = self.vardict['z'][1]
-
-            tem1 = self.irbuilder.call(func_atan2,(val2,val1))
-            tem2 = self.irbuilder.call(func_fabs, (tem1,))
-            condi = self.irbuilder.fcmp_ordered('<', tem2, dict_['angle'][1])
-
-            cur_entry = self.irbuilder.block
-
-            label_if = self.irbuilder.append_basic_block("label_if")
-            label_endif = self.irbuilder.append_basic_block("label_endif")
-
-            self.irbuilder.cbranch(condi, label_if, label_endif)
-
-            self.irbuilder.position_at_end(label_if)
-            if_entry = self.irbuilder.block
-
-            with self.irbuilder.goto_block(label_endif):     # to label_endif
-                v_angle = self.irbuilder.phi(ir.DoubleType(), "angle")
-                v_angle.add_incoming(tem2, if_entry)
-                v_angle.add_incoming(dict_['angle'][1], cur_entry)
-                dict_['angle'] = type_double, v_angle
-
-            self.irbuilder.branch(label_endif)
-            self.irbuilder.position_at_end(label_endif)
-            return
-
     def visit_if_stmt(self, node):
-
         if node.vlst or node.vq:
             assert False # do not support yet
         condi = node.v1.walkabout(self)
@@ -188,27 +128,13 @@ class mywalk(GFF_sample_visitor_01):
 
         self.irbuilder.branch(label_endif)
         self.irbuilder.position_at_end(label_endif)
-        return
-        assert False
-        node.v1.walkabout(self)
-        node.v2.walkabout(self)
-        for v in node.vlst:
-            v.walkabout(self)
-        if node.vq is not None:
-            node.vq.walkabout(self)
 
     def ColorInOut_Label1ToExit(self, dict_, mod, cur_entry):
-        #keys = getLocalVars(dict_)
-        #for kname in keys:
         if 'exit' not in dict_:
             return
         dic = dict_['exit']
         for kname in dic:
             dic[kname].add_incoming(dict_[kname][1], cur_entry)
-        return
-        name = mod.n.strip()
-        if name == 'Angles': # 5
-            dict_['exit']['angle'].add_incoming(dict_['angle'][1], cur_entry)
 
     def ColorInOut_Label1ToLoop(self, dict_, mod, cur_entry):
         if 'loop' not in dict_:
@@ -216,10 +142,6 @@ class mywalk(GFF_sample_visitor_01):
         dic = dict_['loop']
         for kname in dic:
             dic[kname].add_incoming(dict_[kname][1], cur_entry)
-        return
-        name = mod.n.strip()
-        if name == 'Angles': # 6
-            dict_['loop']['angle'].add_incoming(dict_['angle'][1], cur_entry)
 
     def DeepIn_default(self, mod):
         sav = self.default_blk
@@ -256,59 +178,6 @@ class mywalk(GFF_sample_visitor_01):
                 v.add_incoming(dict_['solid'][1], cur_entry)
                 self.vardict['solid'] = type_int, v
 
-            return
-
-        self.endif_idex = self.endif_phis['idex']
-        self.endif_solid = self.endif_phis['solid']
-        if name == 'continuous_potential':
-            # t__a_cf0bailout = 4.0
-            # t__cf03 = abs2(z) + 0.000000001
-            # t__cf06 = t__h_numiter + t__a_cf0bailout / t__cf03
-            # idex = t__cf06 / 256.0
-            zero = ir.Constant(ir.IntType(64), 0)
-            self.vardict['solid'] = type_int, zero
-
-            t__a_cf0bailout = ir.Constant(ir.DoubleType(), 4.0)
-            z0,z1 = self.vardict['z'][1]
-            tem1 = self.irbuilder.fmul(z0, z0)
-            tem2 = self.irbuilder.fmul(z1, z1)
-            tem3 = self.irbuilder.fadd(tem1, tem2)
-            cf03 = self.irbuilder.fadd(tem3, ir.Constant(ir.DoubleType(), 0.000000001))
-            tem4 = self.irbuilder.fdiv(t__a_cf0bailout, cf03)
-            todouble = self.irbuilder.sitofp(self.vardict['numiter'][1], ir.DoubleType())
-            cf06 = self.irbuilder.fadd(todouble, tem4)
-            idex = self.irbuilder.fdiv(cf06, ir.Constant(ir.DoubleType(), 256.0))
-
-            with self.irbuilder.goto_block(label_endifblk):     # to endif
-                #self.endif_idex = self.irbuilder.phi(ir.DoubleType(), "idex")
-                self.endif_idex.add_incoming(idex, cur_entry)
-                #self.endif_solid = self.irbuilder.phi(ir.IntType(64), "solid")
-                self.endif_solid.add_incoming(self.vardict['solid'][1], cur_entry)
-            self.vardict['solid'] = type_int, self.endif_solid
-            self.vardict['idex'] = type_double, self.endif_idex
-            return
-        if name == 'Angles': # 7
-            pi = ir.Constant(ir.DoubleType(), math.pi)
-            v_idex = self.irbuilder.fdiv(dict_['angle'][1], pi)
-            v_solid = ir.Constant(ir.IntType(64), 0)
-
-            with self.irbuilder.goto_block(label_endifblk):     # to endif
-                self.endif_idex.add_incoming(v_idex, cur_entry)
-                self.endif_solid.add_incoming(v_solid, cur_entry)
-            self.vardict['solid'] = type_int, self.endif_solid
-            self.vardict['idex'] = type_double, self.endif_idex
-            return
-        if name == 'zero':
-            v_idex = ir.Constant(ir.DoubleType(), 0.0)
-            v_solid = ir.Constant(ir.IntType(64), 1)
-
-            with self.irbuilder.goto_block(label_endifblk):     # to endif
-                self.endif_idex.add_incoming(v_idex, cur_entry)
-                self.endif_solid.add_incoming(v_solid, cur_entry)
-            self.vardict['solid'] = type_int, self.endif_solid
-            self.vardict['idex'] = type_double, self.endif_idex
-            return
-        pass
     def visit_formu_deep(self, node):
         funcname = node.n.strip().replace(' ','_')
         init_blk = None
@@ -746,17 +615,6 @@ class mywalk(GFF_sample_visitor_01):
                     assert False
             else:
                 assert False
-        if False:
-            if isinstance(itm, Ast_GnoFrac.GnoFrac_float_param):
-                if name == itm.n:
-                    return type_double, ir.Constant(ir.DoubleType(), float(itm.v.f))
-            if isinstance(itm, Ast_GnoFrac.GnoFrac_complex_param):
-                if name == itm.n:
-                    value_real = itm.v2.walkabout(self)
-                    value_imag = itm.v3.walkabout(self)
-                    return type_complex, (value_real[1], value_imag[1])
-            if isinstance(itm, Ast_GnoFrac.GnoFrac_float_func):
-                pass
 
         assert False, name
     def get_param_func_name(self, funcname):
