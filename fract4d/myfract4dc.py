@@ -205,7 +205,6 @@ def image_dims(_img):
 
 @myjit
 def qbox_row(stfw, w, y, rsize, drawsize):
-    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     x = 0
     while x < w-rsize:
         do_pixel(stfw,x,y,drawsize,drawsize)
@@ -223,7 +222,10 @@ def do_pixel(stfw, x, y, w, h):
     if ii.fate == FATE_UNKNOWN:
         (ff_topleft, ff_deltax, ff_deltay, ff_maxiter) = ff
         pos = ff_topleft + ff_deltax * x + ff_deltay * y
-        (pixel, fate, index, iter_) = calc_pf(self_pfo_p, self_cmap, self_formuNameNo, pos, ff_maxiter)
+        if UseLLVM:
+            (pixel, fate, index, iter_) = calc_pf_UseLLVM(self_cmap, pos, ff_maxiter)
+        else:
+            (pixel, fate, index, iter_) = calc_pf(self_pfo_p, self_cmap, self_formuNameNo, pos, ff_maxiter)
         ii2 = im_info(im)
         ii2.pixel = pixel; ii2.fate = fate; ii2.index = index; ii2.iter = iter_
         ii2.writeback(x,y)
@@ -253,7 +255,7 @@ def RGB2INT(im,x,y):
 
 @myjit
 def do_box(stfw, x, y, rsize):
-    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+    (_, _, im, self_formuNameNo, ff) = stfw
     bFlat = True
     iter = im.getIter(x,y)
     pcol = RGB2INT(im,x,y)
@@ -297,6 +299,13 @@ def Pixel2INT(pixel):
     return (r << 16) | (g << 8) | b
 
 @myjit
+def calc_pf_UseLLVM(cmap, params, nIters):
+    pixel = complex(params[0], params[1])
+    zwpixel = complex(params[2], params[3])
+
+    return Mandelbrot_calc_UseLLVM(pixel, zwpixel, nIters, cmap)
+
+@myjit
 def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
     cf0cf1, values = pfo_p
     pixel = complex(params[0], params[1])
@@ -304,19 +313,67 @@ def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
 
     return Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuNameNo, cmap)
 
-
 dtype_i8i8f8f8 = np.dtype([('i1', 'i8'),('i2', 'i8'),('i3', 'f8'),('i4', 'f8'),('i5', 'f8'),('i6', 'i8')])
 
 from LiuD import GenLLVM_GFF
 cfunc3_ptr = None
+g_color_params = None
 
 def CompileLLVM(form0_mod, form1_mod, form2_mod, param0, param1, param2):
+    (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = (0.0, 0.0, 0.0, 0.0, 0.0)
+
+    for name1, typ1, val1, enum in param1:
+        if name1 == '_offset': t__a_cf0_offset = val1
+        if name1 == '_density': t__a_cf0_density = val1
+        if name1 == 'bailout': t__a_cf0bailout = val1
+    for name1, typ1, val1, enum in param2:
+        if name1 == '_offset': t__a_cf1_offset = val1
+        if name1 == '_density': t__a_cf1_density = val1
+
+    global g_color_params
+    g_color_params = (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset)
+
     global cfunc3_ptr
     theliud3 = GenLLVM_GFF.LLVM_liud(form0_mod, form1_mod, form2_mod, param0, param1, param2)
     cfunc3_ptr = theliud3.cfuncptr
     cfunc3_ptr.savme = theliud3
     # form1 usually continuous_potential
     # form2 usually zero
+
+@myjit
+def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap):
+    fUseColors = 0
+    colors = [0.0, 0.0, 0.0, 0.0]
+
+    (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = g_color_params
+
+    assert UseLLVM
+    arr = np.zeros(1, dtype=dtype_i8i8f8f8)
+    cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+    a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
+    a1 = a1 + len(arr) - len(arr)
+
+    t__h_inside, t__h_numiter, z, indx, solid = a1, a2, complex(a3, a4), a5, a6
+
+    if t__h_inside == 0:
+        t__h_index = t__a_cf0_density * indx + t__a_cf0_offset
+    else:
+        t__h_index = t__a_cf1_density * indx + t__a_cf1_offset
+
+    iter_ = t__h_numiter
+    fate = FATE_INSIDE if t__h_inside != 0 else 0
+    dist = t__h_index
+    if solid:
+        fate |= FATE_SOLID
+    if fUseColors:
+        fate |= FATE_DIRECT
+    if fate & FATE_INSIDE:
+        iter_ = -1
+    if fUseColors:
+        pixel_ = lookup_with_dca(solid, colors)
+    else:
+        pixel_ = lookup_with_transfer(cmap, dist, solid)
+    return (pixel_, fate, dist, iter_)
 
 @myjit
 def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap):
@@ -476,7 +533,7 @@ def GetPos_delta(im, params):
 
 @myjit
 def draw_8(stfw):
-    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+    (self_pfo_p, _, im, self_formuNameNo, ff) = stfw
 
     rsize = 16; drawsize = 16
     xsize = im.Xres(); ysize = im.Yres()
@@ -792,19 +849,20 @@ def parse_params_to_dict(params):
                 values.append(param)
 
     cf0cf1 = (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset)
-    while len(values) < 5:
-        values.append(0)    # jit nopython need this
     return (cf0cf1, tuple(values))
 
 def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
-    if formuName == 'Mandelbrot':
-        formuNameNo = 1
-    elif formuName == 'CGNewton3':
-        formuNameNo = 2
-    else: # if formuName == 'Cubic Mandelbrot':
-        formuNameNo = 3
-
-    pfo_p = parse_params_to_dict(initparams)
+    if UseLLVM:
+        pfo_p = ((0.0,0.0,0.0,0.0,0.0), (0.0,0.0,0.0,0.0,0.0)) # no use
+        formuNameNo = 0 # no use
+    else:
+        if formuName == 'Mandelbrot':
+            formuNameNo = 1
+        elif formuName == 'CGNewton3':
+            formuNameNo = 2
+        else: # if formuName == 'Cubic Mandelbrot':
+            formuNameNo = 3
+        pfo_p = parse_params_to_dict(initparams)
     cmap = cmap_from_pyobject(segs)
     _img = image._img
 
