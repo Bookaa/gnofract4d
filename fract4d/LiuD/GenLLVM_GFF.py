@@ -107,9 +107,17 @@ class mywalk(GFF_sample_visitor_01):
         self.cur_color = self.color0
 
     def visit_if_stmt(self, node):
-        if node.vlst or node.vq:
-            assert False # do not support yet
-        condi = node.v1.walkabout(self)
+        if_to_lst = [(node.v1, node.v2)]
+        for v in node.vlst:
+            if_to_lst.append((v.v1, v.v2))
+        if node.vq:
+            if_to_lst.append((None, node.vq))
+        return self.visit_if(if_to_lst)
+    def visit_if(self, if_to_lst):
+        if len(if_to_lst) > 1:
+            return self.visit_if2(if_to_lst)
+        v1, v2 = if_to_lst[0]
+        condi = v1.walkabout(self)
 
         cur_entry = self.irbuilder.block
 
@@ -126,7 +134,7 @@ class mywalk(GFF_sample_visitor_01):
         sav_val = {kname : dict_[kname][1] for kname in keys}
 
         # if body
-        node.v2.walkabout(self)
+        v2.walkabout(self)
 
         with self.irbuilder.goto_block(label_endif):     # to label_endif
             for kname in keys:
@@ -138,6 +146,56 @@ class mywalk(GFF_sample_visitor_01):
                 dict_[kname] = typ, v
 
         self.irbuilder.branch(label_endif)
+        self.irbuilder.position_at_end(label_endif)
+    def visit_if2(self, if_to_lst):
+        v1, v2 = if_to_lst.pop(0)
+        condi = v1.walkabout(self)
+
+        label_if = self.irbuilder.append_basic_block("label_if")
+        label_else = self.irbuilder.append_basic_block("label_else")
+        label_endif = self.irbuilder.append_basic_block("label_endif")
+
+        self.irbuilder.cbranch(condi[1], label_if, label_else)
+
+        dict_, _, _ = self.cur_color
+        keys = getLocalVars(dict_)
+        savall = dict_.copy()
+
+        self.irbuilder.position_at_end(label_if)
+
+        # if body
+        v2.walkabout(self)
+        endif_dict = {}
+        if_entry = self.irbuilder.block
+        with self.irbuilder.goto_block(label_endif):     # to label_endif
+            for kname in keys:
+                typ, val = dict_[kname]
+                v = self.new_phi(typ, kname)
+                v.add_incoming(val, if_entry)
+                endif_dict[kname] = v
+
+        self.irbuilder.branch(label_endif)
+        self.irbuilder.position_at_end(label_else)
+
+        for key,val in savall.items():
+            dict_[key] = val
+        # else body
+        if if_to_lst[0][0] is not None:
+            self.visit_if2(if_to_lst)
+        else:
+            v = if_to_lst[0][1]
+            v.walkabout(self)
+
+        else_entry = self.irbuilder.block
+        with self.irbuilder.goto_block(label_endif):     # to label_endif
+            for kname in keys:
+                typ, val = dict_[kname]
+                v = endif_dict[kname]
+                v.add_incoming(val, else_entry)
+                dict_[kname] = typ, v
+
+        self.irbuilder.branch(label_endif)
+
         self.irbuilder.position_at_end(label_endif)
 
     def ColorInOut_Label1ToExit(self, color, cur_entry):
@@ -170,7 +228,6 @@ class mywalk(GFF_sample_visitor_01):
                 break
         else:
             return
-        cur_entry = self.irbuilder.block
         name = mod.n.strip()
 
         if True:
@@ -183,6 +240,7 @@ class mywalk(GFF_sample_visitor_01):
             self.default_blk = savdb
             self.cur_color = self.color0
 
+            cur_entry = self.irbuilder.block
             with self.irbuilder.goto_block(label_endifblk):     # to endif
                 v = self.endif_phis['idex']
                 v.add_incoming(dict_['index'][1], cur_entry)
@@ -451,6 +509,8 @@ class mywalk(GFF_sample_visitor_01):
         dt = getdt(node.vq.s)
         if dt == 2 and typ == type_double:
             return sub_func1()
+        if dt == 1 and typ == type_int:
+            return sub_func1()
         assert False
     def visit_Name0(self, node):
         dict_, _, _ = self.cur_color
@@ -506,6 +566,9 @@ class mywalk(GFF_sample_visitor_01):
             return typ1, val3
         if node.s == '/' and typ1 == typ2 == type_double:
             return typ1, self.irbuilder.fdiv(val1, val2)
+        if node.s == '/' and (typ1, typ2) == (type_int, type_double):
+            todouble = self.irbuilder.sitofp(val1, ir.DoubleType())
+            return typ2, self.irbuilder.fdiv(todouble, val2)
 
         if node.s == '+' and typ1 == typ2 == type_complex:
             #print 'complex add'
