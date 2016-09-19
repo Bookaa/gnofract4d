@@ -246,10 +246,8 @@ def box_row(stfw, w, y, rsize):
         x += rsize - 1
     for y2 in range(y, y+rsize):
         row(stfw,x,y2,w-x)
-
 @myjit
-def RGB2INT(stfw,x,y):
-    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+def RGB2INT(im,x,y):
     pixel = im.get(x,y)
     return Pixel2INT(pixel)
 
@@ -258,17 +256,17 @@ def do_box(stfw, x, y, rsize):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
     bFlat = True
     iter = im.getIter(x,y)
-    pcol = RGB2INT(stfw,x,y)
+    pcol = RGB2INT(im,x,y)
     for x2 in range(x, x+rsize):
         do_pixel(stfw,x2,y,1,1)
-        bFlat = isTheSame(stfw,bFlat,iter,pcol,x2,y)
+        bFlat = isTheSame(im,bFlat,iter,pcol,x2,y)
         do_pixel(stfw,x2,y+rsize-1,1,1)
-        bFlat = isTheSame(stfw,bFlat,iter,pcol,x2,y+rsize-1)
+        bFlat = isTheSame(im,bFlat,iter,pcol,x2,y+rsize-1)
     for y2 in range(y, y+rsize):
         do_pixel(stfw,x,y2,1,1)
-        bFlat = isTheSame(stfw,bFlat,iter,pcol,x,y2)
+        bFlat = isTheSame(im,bFlat,iter,pcol,x,y2)
         do_pixel(stfw,x+rsize-1,y2,1,1)
-        bFlat = isTheSame(stfw,bFlat,iter,pcol,x+rsize-1,y2)
+        bFlat = isTheSame(im,bFlat,iter,pcol,x+rsize-1,y2)
     if bFlat:
         ii = im_info(im); ii.init(x,y)
         ii.rectangle_with_iter(x+1,y+1,rsize-2,rsize-2)
@@ -284,13 +282,12 @@ def do_box(stfw, x, y, rsize):
                 row(stfw,x+1,y2,rsize-2)
 
 @myjit
-def isTheSame(stfw, bFlat, targetIter, targetCol, x, y):
-    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+def isTheSame(im, bFlat, targetIter, targetCol, x, y):
     if not bFlat:
         return False
     if im.getIter(x,y) != targetIter:
         return False
-    if RGB2INT(stfw,x,y) != targetCol:
+    if RGB2INT(im,x,y) != targetCol:
         return False
     return True
 
@@ -313,9 +310,9 @@ dtype_i8i8f8f8 = np.dtype([('i1', 'i8'),('i2', 'i8'),('i3', 'f8'),('i4', 'f8'),(
 from LiuD import GenLLVM_GFF
 cfunc3_ptr = None
 
-def CompileLLVM(form0_mod, form1_mod, form2_mod):
+def CompileLLVM(form0_mod, form1_mod, form2_mod, param0, param1, param2):
     global cfunc3_ptr
-    theliud3 = GenLLVM_GFF.LLVM_liud(form0_mod, form1_mod, form2_mod)
+    theliud3 = GenLLVM_GFF.LLVM_liud(form0_mod, form1_mod, form2_mod, param0, param1, param2)
     cfunc3_ptr = theliud3.cfuncptr
     cfunc3_ptr.savme = theliud3
     # form1 usually continuous_potential
@@ -795,7 +792,9 @@ def parse_params_to_dict(params):
                 values.append(param)
 
     cf0cf1 = (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset)
-    return (cf0cf1, values)
+    while len(values) < 5:
+        values.append(0)    # jit nopython need this
+    return (cf0cf1, tuple(values))
 
 def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
     if formuName == 'Mandelbrot':

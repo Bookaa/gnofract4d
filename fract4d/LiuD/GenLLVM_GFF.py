@@ -8,9 +8,11 @@ import llvmlite.binding as llvm
 from ctypes import CFUNCTYPE, c_int, c_long, c_double, c_void_p
 import math
 
+type_int = 1
 type_double = 2
 type_complex = 3
-type_int = 1
+type_bool = 4
+type_enum_string = 5
 
 def getLocalVars(dict_):
     keys = []
@@ -21,7 +23,7 @@ def getLocalVars(dict_):
     return keys
 
 class mywalk(GFF_sample_visitor_01):
-    def init(self, mod1, mod2):
+    def init(self, mod0, mod1, mod2, param0, param1, param2):
         module = ir.Module()
 
         self.module = module
@@ -29,11 +31,18 @@ class mywalk(GFF_sample_visitor_01):
         self.vardict = {}
         self.temno = 0
 
+        self.mod0 = mod0
         self.mod1 = mod1
         self.mod2 = mod2
+        self.param0 = param0
+        self.param1 = param1
+        self.param2 = param2
         self.dict1 = {}
         self.dict2 = {}
-        self.cur_dict = self.vardict
+        self.color0 = (self.vardict, self.param0, self.mod0)
+        self.color1 = (self.dict1, self.param1, self.mod1)
+        self.color2 = (self.dict2, self.param2, self.mod2)
+        self.cur_color = self.color0
 
     def new_phi(self, typ, kname):
         if typ == type_double:
@@ -46,18 +55,20 @@ class mywalk(GFF_sample_visitor_01):
             return (v1, v2)
         assert False
 
-    def InitColorInOut(self, dict_, mod):
+    def InitColorInOut(self, color):
+        dict_, param, mod = color
         for v in mod.vlst:
             if isinstance(v, Ast_GFF.GFF_init_blk):
                 break
         else:
             return
-        self.cur_dict = dict_
+        self.cur_color = color
         for v1 in v.vlst:
             v1.walkabout(self)
-        self.cur_dict = self.vardict
+        self.cur_color = self.color0
 
-    def ColorInOut_EntryToLoop(self, dict_, mod, cur_entry):
+    def ColorInOut_EntryToLoop(self, color, cur_entry):
+        dict_, param, mod = color
         keys = dict_.keys()
         if not keys:
             return
@@ -70,7 +81,8 @@ class mywalk(GFF_sample_visitor_01):
             dic_loop[kname] = v
         dict_['loop'] = dic_loop
 
-    def ColorInOut_LoopToExit(self, dict_, mod, cur_entry):
+    def ColorInOut_LoopToExit(self, color, cur_entry):
+        dict_, param, mod = color
         keys = getLocalVars(dict_)
         if not keys:
             return
@@ -82,18 +94,17 @@ class mywalk(GFF_sample_visitor_01):
             dic_exit[kname] = v
         dict_['exit'] = dic_exit
 
-    def ColorInOut_Loop(self, dict_, mod):
+    def ColorInOut_Loop(self, color):
+        dict_, param, mod = color
         for v in mod.vlst:
             if isinstance(v, Ast_GFF.GFF_loop_blk):
                 break
         else:
             return
-        if True:
-            self.cur_dict = dict_
-            for v1 in v.vlst:
-                v1.walkabout(self)
-            self.cur_dict = self.vardict
-            return
+        self.cur_color = color
+        for v1 in v.vlst:
+            v1.walkabout(self)
+        self.cur_color = self.color0
 
     def visit_if_stmt(self, node):
         if node.vlst or node.vq:
@@ -110,7 +121,7 @@ class mywalk(GFF_sample_visitor_01):
         self.irbuilder.position_at_end(label_if)
         if_entry = self.irbuilder.block
 
-        dict_ = self.cur_dict
+        dict_, _, _ = self.cur_color
         keys = getLocalVars(dict_)
         sav_val = {kname : dict_[kname][1] for kname in keys}
 
@@ -129,14 +140,16 @@ class mywalk(GFF_sample_visitor_01):
         self.irbuilder.branch(label_endif)
         self.irbuilder.position_at_end(label_endif)
 
-    def ColorInOut_Label1ToExit(self, dict_, mod, cur_entry):
+    def ColorInOut_Label1ToExit(self, color, cur_entry):
+        dict_, param, mod = color
         if 'exit' not in dict_:
             return
         dic = dict_['exit']
         for kname in dic:
             dic[kname].add_incoming(dict_[kname][1], cur_entry)
 
-    def ColorInOut_Label1ToLoop(self, dict_, mod, cur_entry):
+    def ColorInOut_Label1ToLoop(self, color, cur_entry):
+        dict_, param, mod = color
         if 'loop' not in dict_:
             return
         dic = dict_['loop']
@@ -150,7 +163,8 @@ class mywalk(GFF_sample_visitor_01):
                 self.default_blk = v
                 break
         return sav
-    def ColorInOut_final(self, dict_, mod, label_endifblk):
+    def ColorInOut_final(self, color, label_endifblk):
+        dict_, param, mod = color
         for v in mod.vlst:
             if isinstance(v, Ast_GFF.GFF_final_blk):
                 break
@@ -162,12 +176,12 @@ class mywalk(GFF_sample_visitor_01):
         if True:
             dict_['index'] = type_double, ir.Constant(ir.DoubleType(), 0.0)
             dict_['solid'] = type_int, ir.Constant(ir.IntType(64), 0)
-            self.cur_dict = dict_
+            self.cur_color = color
             savdb = self.DeepIn_default(mod)
             for v1 in v.vlst:
                 v1.walkabout(self)
             self.default_blk = savdb
-            self.cur_dict = self.vardict
+            self.cur_color = self.color0
 
             with self.irbuilder.goto_block(label_endifblk):     # to endif
                 v = self.endif_phis['idex']
@@ -230,8 +244,8 @@ class mywalk(GFF_sample_visitor_01):
 
         init_blk.walkabout(self)
 
-        self.InitColorInOut(self.dict1, self.mod1)
-        self.InitColorInOut(self.dict2, self.mod2)
+        self.InitColorInOut(self.color1)
+        self.InitColorInOut(self.color2)
 
         loop_blk.walkabout(self)
         bailout_blk.walkabout(self)
@@ -281,7 +295,7 @@ class mywalk(GFF_sample_visitor_01):
                        'solid' : self.new_phi(type_int, 'solid')}
 
         # in ifblk
-        self.ColorInOut_final(self.dict1, self.mod1, label_endifblk)
+        self.ColorInOut_final(self.color1, label_endifblk)
 
         self.irbuilder.branch(label_endifblk)
 
@@ -290,7 +304,7 @@ class mywalk(GFF_sample_visitor_01):
         self.irbuilder.position_at_end(label_elseblk)
         #else_entry = self.irbuilder.block
 
-        self.ColorInOut_final(self.dict2, self.mod2, label_endifblk)
+        self.ColorInOut_final(self.color2, label_endifblk)
 
         #self.vardict['solid'] = (type_int, self.endif_solid)
         #self.vardict['idex'] = (type_double, self.endif_idex)
@@ -333,8 +347,8 @@ class mywalk(GFF_sample_visitor_01):
             value_numiter.add_incoming(ir.Constant(ir.IntType(64), 0), entry1)
             self.vardict['numiter'] = (type_int, value_numiter)
 
-            self.ColorInOut_EntryToLoop(self.dict1, self.mod1, entry1)
-            self.ColorInOut_EntryToLoop(self.dict2, self.mod2, entry1)
+            self.ColorInOut_EntryToLoop(self.color1, entry1)
+            self.ColorInOut_EntryToLoop(self.color2, entry1)
 
         self.savall_body = self.vardict['z'], self.vardict['numiter']
 
@@ -368,14 +382,14 @@ class mywalk(GFF_sample_visitor_01):
             value_numiter.add_incoming(self.vardict['numiter'][1], entry2)
             valuetuple_exit_numiter = (type_int, value_numiter)
 
-            self.ColorInOut_LoopToExit(self.dict1, self.mod1, entry2)
-            self.ColorInOut_LoopToExit(self.dict2, self.mod2, entry2)
+            self.ColorInOut_LoopToExit(self.color1, entry2)
+            self.ColorInOut_LoopToExit(self.color2, entry2)
 
         # now is label 1
         self.irbuilder.position_at_end(self.label1)
 
-        self.ColorInOut_Loop(self.dict1, self.mod1)
-        self.ColorInOut_Loop(self.dict2, self.mod2)
+        self.ColorInOut_Loop(self.color1)
+        self.ColorInOut_Loop(self.color2)
 
         self.vardict['numiter'] = type_int, self.irbuilder.add(self.vardict['numiter'][1], ir.Constant(ir.IntType(64), 1))
 
@@ -389,8 +403,8 @@ class mywalk(GFF_sample_visitor_01):
             valuetuple_exit_inside[1].add_incoming(ir.Constant(ir.IntType(64), 1), entry3)
             valuetuple_exit_numiter[1].add_incoming(self.vardict['numiter'][1], entry3)
 
-            self.ColorInOut_Label1ToExit(self.dict1, self.mod1, entry3)
-            self.ColorInOut_Label1ToExit(self.dict2, self.mod2, entry3)
+            self.ColorInOut_Label1ToExit(self.color1, entry3)
+            self.ColorInOut_Label1ToExit(self.color2, entry3)
 
         with self.irbuilder.goto_block(self.loop_body):    # label1 -> body
             tuple_z, tuple_numiter = self.savall_body
@@ -400,8 +414,8 @@ class mywalk(GFF_sample_visitor_01):
             tuple_z[1][1].add_incoming(val2, entry3)
             tuple_numiter[1].add_incoming(self.vardict['numiter'][1], entry3)
 
-            self.ColorInOut_Label1ToLoop(self.dict1, self.mod1, entry3)
-            self.ColorInOut_Label1ToLoop(self.dict2, self.mod2, entry3)
+            self.ColorInOut_Label1ToLoop(self.color1, entry3)
+            self.ColorInOut_Label1ToLoop(self.color2, entry3)
 
         # now is exit
 
@@ -421,13 +435,14 @@ class mywalk(GFF_sample_visitor_01):
         def sub_func1():
             if len(node.vlst) == 1:
                 dest = node.vlst[0]
+                dict_, _, _ = self.cur_color
                 if isinstance(dest, Ast_GFF.GFF_nameq) and isinstance(dest.v, Ast_GFF.GFF_Name0):
                     destname = dest.v.n
-                    self.cur_dict[destname] = typ, val
+                    dict_[destname] = typ, val
                     return
                 if isinstance(dest, Ast_GFF.GFF_nameq) and isinstance(dest.v, Ast_GFF.GFF_Name1):
                     destname = dest.v.n
-                    self.cur_dict[destname] = typ, val
+                    dict_[destname] = typ, val
                     return
             assert False
 
@@ -438,8 +453,9 @@ class mywalk(GFF_sample_visitor_01):
             return sub_func1()
         assert False
     def visit_Name0(self, node):
+        dict_, _, _ = self.cur_color
         name = node.n
-        return self.cur_dict.get(name, None) or self.vardict[name]
+        return dict_.get(name, None) or self.vardict[name]
     def visit_Name1(self, node):
         name = node.n
         if name == 'pi':
@@ -465,6 +481,13 @@ class mywalk(GFF_sample_visitor_01):
 
     def visit_value2(self, node):
         typ1, val1 = node.v1.walkabout(self)
+        if node.s == '==' and typ1 == type_enum_string:
+            assert isinstance(node.v3, Ast_GFF.GFF_String)
+            v3_str = node.v3.s[0]
+            if val1[1] == v3_str:
+                # now is True
+                return type_bool, ir.Constant(ir.IntType(1), 1)
+            return type_bool, ir.Constant(ir.IntType(1), 0)
         typ2_val2 = node.v3.walkabout(self)
         if typ2_val2 is None:
             typ2_val2 = node.v3.walkabout(self)
@@ -505,6 +528,9 @@ class mywalk(GFF_sample_visitor_01):
             #print 'yes double compare'
             tem1 = self.irbuilder.fcmp_unordered(node.s, val1, val2)
             return type_int, tem1
+        if node.s == '||':
+            assert typ1 == typ2 == type_bool
+            return typ1, self.irbuilder.or_(val1, val2)
         print 'node.s ', node.s, typ1, typ2
         assert False
     def visit_EnclosedValue(self, node):
@@ -582,6 +608,14 @@ class mywalk(GFF_sample_visitor_01):
         tem7 = self.irbuilder.fdiv(tem2, tem5)
         return (tem6, tem7)
     def get_param_value(self, name):
+        dict_, param, mod = self.cur_color
+        for name1, typ, val, enum in param:
+            if name1 == name:
+                if typ == 1 and enum:
+                    return type_enum_string, (val, enum[val])
+                if typ == 2:
+                    return type_double, ir.Constant(ir.DoubleType(), val)
+                # return
         assert self.default_blk
         for itm in self.default_blk.vlst:
             if isinstance(itm, Ast_GFF.GFF_dt_param):
@@ -639,10 +673,10 @@ def llvm_func(ir_src):
     return engine
 
 class LLVM_liud:
-    def __init__(self, mod0, mod1, mod2):
+    def __init__(self, mod0, mod1, mod2, param0, param1, param2):
         # funcname = mod.n.strip()
         the = mywalk()
-        the.init(mod1, mod2)
+        the.init(mod0, mod1, mod2, param0, param1, param2)
         funcname = mod0.walkabout(the)
         ir_src = str(the.module)
 

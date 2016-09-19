@@ -247,10 +247,58 @@ class T(fctutils.T):
         form0_text = self.forms[0].formula.basef.text; form0_leaf = self.forms[0].formula.basef.leaf
         form1_text = self.forms[1].formula.basef.text; form1_leaf = self.forms[1].formula.basef.leaf   # continuous_potential
         form2_text = self.forms[2].formula.basef.text; form2_leaf = self.forms[2].formula.basef.leaf   # Angel
-        # myfract4dc.CompileLLVM(form0_text, form0_leaf, form1_text, form1_leaf, form2_text, form2_leaf)
-        myfract4dc.CompileLLVM(form0_mod, form1_mod, form2_mod)
+
+        param0 = self.bookaa_GetParam(self.forms[0])
+        param1 = self.bookaa_GetParam(self.forms[1])
+        param2 = self.bookaa_GetParam(self.forms[2])
+        myfract4dc.CompileLLVM(form0_mod, form1_mod, form2_mod, param0, param1, param2)
         myfract4dc.draw(image, outputfile, formuName, initparams, self.params, segs, self.maxiter)
         return
+
+    def bookaa_GetParam(self, theform):
+        params = theform.params
+        paramtypes = theform.paramtypes
+        var_params = theform.formula.symbols.var_params
+        assert len(params) == len(paramtypes)
+        n1 = len(var_params)
+        n2 = len(params)
+        n0 = 0
+        for i in range(n1):
+            var_ = var_params[i]
+            if var_.type == 3: # complex
+                n0 += 1
+        assert n1 + n0 == n2
+        lst = []
+        n0 = 0
+        for i in range(n1):
+            var_ = var_params[i]
+            name = var_.cname
+            if theform.formula.symbols.prefix == 'f':
+                if name.startswith('t__a_f'):
+                    name = name[6:]
+            elif theform.formula.symbols.prefix == 'cf0':
+                if name.startswith('t__a_cf0'):
+                    name = name[8:]
+            elif theform.formula.symbols.prefix == 'cf1':
+                if name.startswith('t__a_cf1'):
+                    name = name[8:]
+
+            if name.startswith('t__a_'):
+                name = name[5:]
+
+            try:
+                enum = var_.enum.value
+            except:
+                enum = None
+            if var_.type == 3: # complex
+                value = (params[i+n0], params[i+n0+1])
+                n0 += 1
+                lst.append((name,3,value,enum))
+            else:
+                value = params[i+n0]
+                typ = paramtypes[i+n0]
+                lst.append((name,typ,value,enum))
+        return lst # params,paramtypes,var_params
 
     def set_param(self,n,val):
         val = float(val)
