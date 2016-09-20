@@ -44,6 +44,8 @@ class mywalk(GFF_sample_visitor_01):
         self.color2 = (self.dict2, self.param2, self.mod2)
         self.cur_color = self.color0
 
+        self.globalfuncs = {}
+
     def new_phi(self, typ, kname):
         if typ == type_double:
             return self.irbuilder.phi(ir.DoubleType(), kname)
@@ -76,7 +78,11 @@ class mywalk(GFF_sample_visitor_01):
         for kname in keys:
             typ, val = dict_[kname]
             v = self.new_phi(typ, kname)
-            v.add_incoming(val, cur_entry)
+            if typ == type_complex:
+                v[0].add_incoming(val[0], cur_entry)
+                v[1].add_incoming(val[1], cur_entry)
+            else:
+                v.add_incoming(val, cur_entry)
             dict_[kname] = typ, v
             dic_loop[kname] = v
         dict_['loop'] = dic_loop
@@ -90,7 +96,11 @@ class mywalk(GFF_sample_visitor_01):
         for kname in keys:
             typ, val = dict_[kname]
             v = self.new_phi(typ, kname)
-            v.add_incoming(val, cur_entry)
+            if typ == type_complex:
+                v[0].add_incoming(val[0], cur_entry)
+                v[1].add_incoming(val[1], cur_entry)
+            else:
+                v.add_incoming(val, cur_entry)
             dic_exit[kname] = v
         dict_['exit'] = dic_exit
 
@@ -127,7 +137,6 @@ class mywalk(GFF_sample_visitor_01):
         self.irbuilder.cbranch(condi[1], label_if, label_endif)
 
         self.irbuilder.position_at_end(label_if)
-        if_entry = self.irbuilder.block
 
         dict_, _, _ = self.cur_color
         keys = getLocalVars(dict_)
@@ -136,13 +145,20 @@ class mywalk(GFF_sample_visitor_01):
         # if body
         v2.walkabout(self)
 
+        if_entry = self.irbuilder.block
         with self.irbuilder.goto_block(label_endif):     # to label_endif
             for kname in keys:
                 typ, val = dict_[kname]
                 val2 = sav_val[kname]
                 v = self.new_phi(typ, kname)
-                v.add_incoming(val, if_entry)
-                v.add_incoming(val2, cur_entry)
+                if typ == type_complex:
+                    v[0].add_incoming(val[0], if_entry)
+                    v[1].add_incoming(val[1], if_entry)
+                    v[0].add_incoming(val2[0], cur_entry)
+                    v[1].add_incoming(val2[1], cur_entry)
+                else:
+                    v.add_incoming(val, if_entry)
+                    v.add_incoming(val2, cur_entry)
                 dict_[kname] = typ, v
 
         self.irbuilder.branch(label_endif)
@@ -171,7 +187,11 @@ class mywalk(GFF_sample_visitor_01):
             for kname in keys:
                 typ, val = dict_[kname]
                 v = self.new_phi(typ, kname)
-                v.add_incoming(val, if_entry)
+                if typ == type_complex:
+                    v[0].add_incoming(val[0], if_entry)
+                    v[1].add_incoming(val[1], if_entry)
+                else:
+                    v.add_incoming(val, if_entry)
                 endif_dict[kname] = v
 
         self.irbuilder.branch(label_endif)
@@ -181,7 +201,7 @@ class mywalk(GFF_sample_visitor_01):
             dict_[key] = val
         # else body
         if if_to_lst[0][0] is not None:
-            self.visit_if2(if_to_lst)
+            self.visit_if(if_to_lst)
         else:
             v = if_to_lst[0][1]
             v.walkabout(self)
@@ -191,7 +211,11 @@ class mywalk(GFF_sample_visitor_01):
             for kname in keys:
                 typ, val = dict_[kname]
                 v = endif_dict[kname]
-                v.add_incoming(val, else_entry)
+                if typ == type_complex:
+                    v[0].add_incoming(val[0], else_entry)
+                    v[1].add_incoming(val[1], else_entry)
+                else:
+                    v.add_incoming(val, else_entry)
                 dict_[kname] = typ, v
 
         self.irbuilder.branch(label_endif)
@@ -204,7 +228,12 @@ class mywalk(GFF_sample_visitor_01):
             return
         dic = dict_['exit']
         for kname in dic:
-            dic[kname].add_incoming(dict_[kname][1], cur_entry)
+            typ,val = dict_[kname]
+            if typ == type_complex:
+                dic[kname][0].add_incoming(val[0], cur_entry)
+                dic[kname][1].add_incoming(val[1], cur_entry)
+            else:
+                dic[kname].add_incoming(val, cur_entry)
 
     def ColorInOut_Label1ToLoop(self, color, cur_entry):
         dict_, param, mod = color
@@ -212,7 +241,12 @@ class mywalk(GFF_sample_visitor_01):
             return
         dic = dict_['loop']
         for kname in dic:
-            dic[kname].add_incoming(dict_[kname][1], cur_entry)
+            typ,val = dict_[kname]
+            if typ == type_complex:
+                dic[kname][0].add_incoming(val[0], cur_entry)
+                dic[kname][1].add_incoming(val[1], cur_entry)
+            else:
+                dic[kname].add_incoming(val, cur_entry)
 
     def DeepIn_default(self, mod):
         sav = self.default_blk
@@ -482,6 +516,23 @@ class mywalk(GFF_sample_visitor_01):
         self.vardict['numiter'] = valuetuple_exit_numiter
         self.vardict['z'] = valuetuple_exit_z
 
+    def visit_declare(self, node):
+        dt = getdt(node.v1.s)
+        if isinstance(node.v2, Ast_GFF.GFF_Name0):
+            name = node.v2.n
+        elif isinstance(node.v2, Ast_GFF.GFF_Name1):
+            name = node.v2.n
+        else:
+            assert False
+        dict_, _, _ = self.cur_color
+        if dt == 1:
+            typ, val = type_int, ir.Constant(ir.IntType(64), 0)
+        elif dt == 2:
+            typ, val = type_double, ir.Constant(ir.DoubleType(), 0.0)
+        else:
+            assert False
+        dict_[name] = typ, val
+
     def visit_assign(self, node):
         #assign : AssignDT? nameq+ value
         #    nameq : (Name0|Name1) '='
@@ -507,9 +558,11 @@ class mywalk(GFF_sample_visitor_01):
         if node.vq is None:
             return sub_func1()
         dt = getdt(node.vq.s)
+        if dt == 1 and typ == type_int:
+            return sub_func1()
         if dt == 2 and typ == type_double:
             return sub_func1()
-        if dt == 1 and typ == type_int:
+        if dt == 3 and typ == type_complex:
             return sub_func1()
         assert False
     def visit_Name0(self, node):
@@ -535,9 +588,13 @@ class mywalk(GFF_sample_visitor_01):
         return type_int, ir.Constant(ir.IntType(64), 0)
 
     def visit_Num_Complex(self, node):
-        v_real = node.v1.walkabout(self)
-        v_imag = node.v2.walkabout(self)
-        return type_complex, (v_real[1], v_imag[1])
+        typ1, v_real = node.v1.walkabout(self)
+        typ2, v_imag = node.v2.walkabout(self)
+        if typ1 == type_int:
+            v_real = self.irbuilder.sitofp(v_real, ir.DoubleType())
+        if typ2 == type_int:
+            v_imag = self.irbuilder.sitofp(v_imag, ir.DoubleType())
+        return type_complex, (v_real, v_imag)
 
     def visit_value2(self, node):
         typ1, val1 = node.v1.walkabout(self)
@@ -587,9 +644,8 @@ class mywalk(GFF_sample_visitor_01):
             tem2 = self.irbuilder.fsub(val1[1], val2[1])
             return typ1, (tem1, tem2)
 
-        if node.s == '<' and typ1 == typ2 == type_double:
-            #print 'yes double compare'
-            tem1 = self.irbuilder.fcmp_unordered(node.s, val1, val2)
+        if node.s in ('<','>') and typ1 == typ2 == type_double:
+            tem1 = self.irbuilder.fcmp_ordered(node.s, val1, val2)
             return type_int, tem1
         if node.s == '||':
             assert typ1 == typ2 == type_bool
@@ -633,18 +689,25 @@ class mywalk(GFF_sample_visitor_01):
                 val3 = self.complex_mul(val, val)
                 return type_complex, val3
         if funcname == 'atan2':
-            func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ir.DoubleType()])
-            func_atan2 = ir.Function(self.module, func_t, 'atan2')
+            func_p = self.globalfuncs.get(funcname)
+            if not func_p:
+                func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ir.DoubleType()])
+                func_p = ir.Function(self.module, func_t, funcname)
+                self.globalfuncs[funcname] = func_p
 
             val1,val2 = val
 
-            tem1 = self.irbuilder.call(func_atan2,(val2,val1))
+            tem1 = self.irbuilder.call(func_p,(val2,val1))
             return type_double, tem1
         if funcname == 'abs':
-            func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ])
-            func_fabs = ir.Function(self.module, func_t, 'fabs')
+            funcname = 'fabs'
+            func_p = self.globalfuncs.get(funcname)
+            if not func_p:
+                func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ])
+                func_p = ir.Function(self.module, func_t, funcname)
+                self.globalfuncs[funcname] = func_p
 
-            tem2 = self.irbuilder.call(func_fabs, (val,))
+            tem2 = self.irbuilder.call(func_p, (val,))
             return type_double, tem2
 
         print dir(node)
