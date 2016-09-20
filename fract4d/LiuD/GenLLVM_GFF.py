@@ -329,6 +329,7 @@ class mywalk(GFF_sample_visitor_01):
         self.vardict['pixel'] = (type_complex, (func.args[1], func.args[2]))
         self.vardict['zwpixel'] = (type_complex, (func.args[3], func.args[4]))
         self.vardict['maxiter'] = (type_int, func.args[5])
+        self.vardict['fate'] = (type_int, ir.Constant(ir.IntType(64), 0))
 
         # entry point of func
         bb_entry = func.append_basic_block('entry')
@@ -570,10 +571,11 @@ class mywalk(GFF_sample_visitor_01):
         name = node.n
         return dict_.get(name, None) or self.vardict[name]
     def visit_Name1(self, node):
+        dict_, _, _ = self.cur_color
         name = node.n
         if name == 'pi':
             return type_double, ir.Constant(ir.DoubleType(), math.pi)
-        return self.vardict[name]
+        return dict_.get(name, None) or self.vardict[name]
     def visit_Name2(self, node):
         name = node.n
         typ, val = self.get_param_value(name)
@@ -617,6 +619,9 @@ class mywalk(GFF_sample_visitor_01):
         if node.s == '*' and typ1 == typ2 == type_complex:
             val3 = self.complex_mul(val1, val2)
             return typ1, val3
+        if node.s == '*' and (typ1, typ2) == (type_int, type_double):
+            todouble = self.irbuilder.sitofp(val1, ir.DoubleType())
+            return typ2, self.irbuilder.fmul(todouble, val2)
 
         if node.s == '/' and typ1 == typ2 == type_complex:
             val3 = self.complex_div(val1, val2)
@@ -626,12 +631,18 @@ class mywalk(GFF_sample_visitor_01):
         if node.s == '/' and (typ1, typ2) == (type_int, type_double):
             todouble = self.irbuilder.sitofp(val1, ir.DoubleType())
             return typ2, self.irbuilder.fdiv(todouble, val2)
+        if node.s == '/' and (typ1, typ2) == (type_double, type_int):
+            todouble = self.irbuilder.sitofp(val2, ir.DoubleType())
+            return typ1, self.irbuilder.fdiv(val1, todouble)
 
         if node.s == '+' and typ1 == typ2 == type_complex:
             #print 'complex add'
             tem1 = self.irbuilder.fadd(val1[0], val2[0])
             tem2 = self.irbuilder.fadd(val1[1], val2[1])
             return typ1, (tem1, tem2)
+        if node.s == '+' and (typ1, typ2) == (type_double, type_int):
+            todouble = self.irbuilder.sitofp(val2, ir.DoubleType())
+            return typ1, self.irbuilder.fadd(val1, todouble)
 
         if node.s == '+' and typ1 == typ2 == type_double:
             return typ1, self.irbuilder.fadd(val1, val2)
@@ -650,6 +661,13 @@ class mywalk(GFF_sample_visitor_01):
         if node.s == '||':
             assert typ1 == typ2 == type_bool
             return typ1, self.irbuilder.or_(val1, val2)
+
+        if node.s == '%' and (typ1, typ2) == (type_double, type_int):
+            #toint = self.irbuilder.fptosi(val1, ir.IntType(64))
+            #return typ2, self.irbuilder.srem(toint, val2)
+            todouble = self.irbuilder.sitofp(val2, ir.DoubleType())
+            return typ1, self.irbuilder.frem(val1, todouble)
+
         print 'node.s ', node.s, typ1, typ2
         assert False
     def visit_EnclosedValue(self, node):
@@ -737,8 +755,10 @@ class mywalk(GFF_sample_visitor_01):
         dict_, param, mod = self.cur_color
         for name1, typ, val, enum in param:
             if name1 == name:
-                if typ == 1 and enum:
-                    return type_enum_string, (val, enum[val])
+                if typ == 1:
+                    if enum:
+                        return type_enum_string, (val, enum[val])
+                    return type_int, ir.Constant(ir.IntType(64), val)
                 if typ == 2:
                     return type_double, ir.Constant(ir.DoubleType(), val)
                 # return

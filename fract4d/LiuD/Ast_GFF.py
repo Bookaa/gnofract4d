@@ -2292,7 +2292,7 @@ class Parser(Parser00):
         v1 = self.step2_value2(v1)
         sav0 = self.getpos()
         self.Skip(0)
-        op = self.GetOpInLst(['+', '-'])
+        op = self.handle_OpChar('%')
         if op is None:
             self.setpos(sav0)
             return v1
@@ -2309,7 +2309,7 @@ class Parser(Parser00):
         v1 = self.step3_value2(v1)
         sav0 = self.getpos()
         self.Skip(0)
-        op = self.handle_OpChar('%')
+        op = self.GetOpInLst(['+', '-'])
         if op is None:
             self.setpos(sav0)
             return v1

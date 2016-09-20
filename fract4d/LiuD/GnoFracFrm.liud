@@ -94,7 +94,7 @@ bool_value : ('false' | 'true')$
 not_value : '!' value1
 value0 :: bool_value | Name1 | Name2 | Name0 | Number00 | Number01 | String | Num_Complex | Num_Hyper | not_value
 value1 :: funccall | value0 | EnclosedValue | AbsSigned
-value2 : value1 ^- ('^' ('*'|'/') ('+'|'-') '%' ('>='|'>'|'<='|'<'|'==') ('||'|'&&'))
+value2 : value1 ^- ('^' ('*'|'/') '%' ('+'|'-') ('>='|'>'|'<='|'<'|'==') ('||'|'&&'))
 
 value :: neg_value | value2
 
