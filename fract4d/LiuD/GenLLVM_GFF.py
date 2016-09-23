@@ -8,6 +8,8 @@ import llvmlite.binding as llvm
 from ctypes import CFUNCTYPE, c_int, c_long, c_double, c_void_p
 import math
 
+g_tolerance = True
+
 type_int = 1
 type_double = 2
 type_complex = 3
@@ -28,7 +30,7 @@ class mywalk(GFF_sample_visitor_01):
 
         self.module = module
         self.funcprotos = {}
-        self.vardict = {}
+        self.vardict = {'_keys_':set()}
         self.temno = 0
 
         self.mod0 = mod0
@@ -37,8 +39,8 @@ class mywalk(GFF_sample_visitor_01):
         self.param0 = param0
         self.param1 = param1
         self.param2 = param2
-        self.dict1 = {}
-        self.dict2 = {}
+        self.dict1 = {'_keys_':set()}
+        self.dict2 = {'_keys_':set()}
         self.color0 = (self.vardict, self.param0, self.mod0)
         self.color1 = (self.dict1, self.param1, self.mod1)
         self.color2 = (self.dict2, self.param2, self.mod2)
@@ -76,6 +78,8 @@ class mywalk(GFF_sample_visitor_01):
             return
         dic_loop = {}
         for kname in keys:
+            if kname == '_keys_':
+                continue    # temperoly
             typ, val = dict_[kname]
             v = self.new_phi(typ, kname)
             if typ == type_complex:
@@ -139,27 +143,21 @@ class mywalk(GFF_sample_visitor_01):
         self.irbuilder.position_at_end(label_if)
 
         dict_, _, _ = self.cur_color
-        keys = getLocalVars(dict_)
-        sav_val = {kname : dict_[kname][1] for kname in keys}
+        sav_set = dict_['_keys_']; dict_['_keys_'] = set()
+
+        theb = class_branch(label_endif, dict_)
+
+        theb.add_jumppoint(cur_entry, dict_)
 
         # if body
         v2.walkabout(self)
 
         if_entry = self.irbuilder.block
-        with self.irbuilder.goto_block(label_endif):     # to label_endif
-            for kname in keys:
-                typ, val = dict_[kname]
-                val2 = sav_val[kname]
-                v = self.new_phi(typ, kname)
-                if typ == type_complex:
-                    v[0].add_incoming(val[0], if_entry)
-                    v[1].add_incoming(val[1], if_entry)
-                    v[0].add_incoming(val2[0], cur_entry)
-                    v[1].add_incoming(val2[1], cur_entry)
-                else:
-                    v.add_incoming(val, if_entry)
-                    v.add_incoming(val2, cur_entry)
-                dict_[kname] = typ, v
+        theb.add_jumppoint(if_entry, dict_)
+        theb.restore_dict(dict_)
+        with self.irbuilder.goto_block(theb.label):
+            theb.add_incomings(dict_, self.new_phi)
+        dict_['_keys_'] = theb.leave(dict_, sav_set)
 
         self.irbuilder.branch(label_endif)
         self.irbuilder.position_at_end(label_endif)
@@ -174,31 +172,25 @@ class mywalk(GFF_sample_visitor_01):
         self.irbuilder.cbranch(condi[1], label_if, label_else)
 
         dict_, _, _ = self.cur_color
-        keys = getLocalVars(dict_)
-        savall = dict_.copy()
+        sav2 = dict_.copy()
+        theb = class_branch(label_endif, dict_)
+        sav_set = dict_['_keys_']; dict_['_keys_'] = set()
+
 
         self.irbuilder.position_at_end(label_if)
 
         # if body
         v2.walkabout(self)
-        endif_dict = {}
         if_entry = self.irbuilder.block
-        with self.irbuilder.goto_block(label_endif):     # to label_endif
-            for kname in keys:
-                typ, val = dict_[kname]
-                v = self.new_phi(typ, kname)
-                if typ == type_complex:
-                    v[0].add_incoming(val[0], if_entry)
-                    v[1].add_incoming(val[1], if_entry)
-                else:
-                    v.add_incoming(val, if_entry)
-                endif_dict[kname] = v
+        theb.add_jumppoint(if_entry, dict_)
 
         self.irbuilder.branch(label_endif)
-        self.irbuilder.position_at_end(label_else)
 
-        for key,val in savall.items():
-            dict_[key] = val
+        theb.restore_dict(dict_)
+        #dict_ = sav2.copy()
+        self.irbuilder.position_at_end(label_else)
+        dict_['_keys_'] = set()
+
         # else body
         if if_to_lst[0][0] is not None:
             self.visit_if(if_to_lst)
@@ -207,16 +199,12 @@ class mywalk(GFF_sample_visitor_01):
             v.walkabout(self)
 
         else_entry = self.irbuilder.block
-        with self.irbuilder.goto_block(label_endif):     # to label_endif
-            for kname in keys:
-                typ, val = dict_[kname]
-                v = endif_dict[kname]
-                if typ == type_complex:
-                    v[0].add_incoming(val[0], else_entry)
-                    v[1].add_incoming(val[1], else_entry)
-                else:
-                    v.add_incoming(val, else_entry)
-                dict_[kname] = typ, v
+        theb.add_jumppoint(else_entry, dict_)
+        theb.restore_dict(dict_)
+        #dict_ = sav2
+        with self.irbuilder.goto_block(theb.label):
+            theb.add_incomings(dict_, self.new_phi)
+        dict_['_keys_'] = theb.leave(dict_, sav_set)
 
         self.irbuilder.branch(label_endif)
 
@@ -276,13 +264,251 @@ class mywalk(GFF_sample_visitor_01):
 
             cur_entry = self.irbuilder.block
             with self.irbuilder.goto_block(label_endifblk):     # to endif
-                v = self.endif_phis['idex']
-                v.add_incoming(dict_['index'][1], cur_entry)
-                self.vardict['idex'] = type_double, v
+                if '_final_endif_' not in self.vardict:
+                    pass
+                for kname, v in self.vardict['_final_endif_'].items():
+                    v.add_incoming(dict_[kname][1], cur_entry)
+                    self.vardict[kname] = type_double, v
 
-                v = self.endif_phis['solid']
-                v.add_incoming(dict_['solid'][1], cur_entry)
-                self.vardict['solid'] = type_int, v
+
+    def do_tolerence(self):
+        '''
+        if t__h_numiter >= min_period_iter:
+            if (t__h_numiter & save_mask) == 0:
+                old_z = z
+                save_incr -= 1
+                if save_incr == 0:
+                    save_mask = (save_mask << 1) + 1
+                    save_incr = next_save_incr
+            else:
+                if math.fabs(z.real - old_z.real) < period_tolerance and math.fabs(z.imag - old_z.imag) < period_tolerance:
+                    t__h_inside = 1
+                    break
+        '''
+        if not g_tolerance:
+            return
+        v_numiter = Ast_GFF.GFF_Name0('numiter')
+        v_mpi = Ast_GFF.GFF_Name0('min_period_iter')
+        v_condi = Ast_GFF.GFF_value2(v_numiter, '>=', v_mpi)
+        condi = v_condi.walkabout(self)
+
+        # below code copy from visit_if
+
+        cur_entry = self.irbuilder.block
+
+        label_if = self.irbuilder.append_basic_block("label_if")
+        label_endif = self.irbuilder.append_basic_block("label_endif")
+
+        self.irbuilder.cbranch(condi[1], label_if, label_endif)
+
+        self.irbuilder.position_at_end(label_if)
+
+        dict_, _, _ = self.cur_color
+        keys = ['old_z', 'save_incr', 'save_mask']
+        sav_val = {kname : dict_[kname][1] for kname in keys}
+
+        # if body
+        #v2.walkabout(self)
+        self.do_tolerence2()
+
+        if_entry = self.irbuilder.block
+        with self.irbuilder.goto_block(label_endif):     # to label_endif
+            for kname in keys:
+                typ, val = dict_[kname]
+                val2 = sav_val[kname]
+                v = self.new_phi(typ, kname)
+                if typ == type_complex:
+                    v[0].add_incoming(val[0], if_entry)
+                    v[1].add_incoming(val[1], if_entry)
+                    v[0].add_incoming(val2[0], cur_entry)
+                    v[1].add_incoming(val2[1], cur_entry)
+                else:
+                    v.add_incoming(val, if_entry)
+                    v.add_incoming(val2, cur_entry)
+                dict_[kname] = typ, v
+
+        self.irbuilder.branch(label_endif)
+        self.irbuilder.position_at_end(label_endif)
+
+    def do_tolerence2(self):
+        '''
+            if (t__h_numiter & save_mask) == 0:
+                old_z = z
+                save_incr -= 1
+                if save_incr == 0:
+                    save_mask = (save_mask << 1) + 1
+                    save_incr = next_save_incr
+            else:
+                if math.fabs(z.real - old_z.real) < period_tolerance and math.fabs(z.imag - old_z.imag) < period_tolerance:
+                    t__h_inside = 1
+                    break
+        '''
+        v_numiter = Ast_GFF.GFF_Name0('numiter')
+        v_smk = Ast_GFF.GFF_Name0('save_mask')
+        typ1,val1 = v_numiter.walkabout(self)
+        typ2,val2 = v_smk.walkabout(self)
+        val3 = self.irbuilder.and_(val1, val2)
+        zero = ir.Constant(ir.IntType(64), 0)
+        condi = self.irbuilder.icmp_signed('==', val3, zero)
+        # below code copy from visit_if2
+        label_if = self.irbuilder.append_basic_block("label_if")
+        label_else = self.irbuilder.append_basic_block("label_else")
+        label_endif = self.irbuilder.append_basic_block("label_endif")
+
+        self.irbuilder.cbranch(condi, label_if, label_else)
+
+        dict_, _, _ = self.cur_color
+        keys = ['old_z', 'save_incr', 'save_mask']
+        savall = dict_.copy()
+
+        self.irbuilder.position_at_end(label_if)
+
+        # if body
+        #v2.walkabout(self)
+        self.do_tolerence3()
+        endif_dict = {}
+        if_entry = self.irbuilder.block
+        with self.irbuilder.goto_block(label_endif):     # to label_endif
+            for kname in keys:
+                typ, val = dict_[kname]
+                v = self.new_phi(typ, kname)
+                if typ == type_complex:
+                    v[0].add_incoming(val[0], if_entry)
+                    v[1].add_incoming(val[1], if_entry)
+                else:
+                    v.add_incoming(val, if_entry)
+                endif_dict[kname] = v
+
+        self.irbuilder.branch(label_endif)
+        self.irbuilder.position_at_end(label_else)
+
+        for key,val in savall.items():
+            dict_[key] = val
+        # else body
+        self.do_tolerence4()
+
+        else_entry = self.irbuilder.block
+        with self.irbuilder.goto_block(label_endif):     # to label_endif
+            for kname in keys:
+                typ, val = dict_[kname]
+                v = endif_dict[kname]
+                if typ == type_complex:
+                    v[0].add_incoming(val[0], else_entry)
+                    v[1].add_incoming(val[1], else_entry)
+                else:
+                    v.add_incoming(val, else_entry)
+                dict_[kname] = typ, v
+        self.irbuilder.branch(label_endif)
+
+        self.irbuilder.position_at_end(label_endif)
+    def do_tolerence3(self):
+        '''
+        old_z = z
+        save_incr -= 1
+        if save_incr == 0:
+            save_mask = (save_mask << 1) + 1
+            save_incr = next_save_incr
+        '''
+        zero = ir.Constant(ir.IntType(64), 0)
+        one = ir.Constant(ir.IntType(64), 1)
+        self.vardict['old_z'] = self.vardict['z']
+        self.vardict['save_incr'] = type_int, self.irbuilder.sub(self.vardict['save_incr'][1], one)
+
+        condi = self.irbuilder.icmp_signed('==', self.vardict['save_incr'][1], zero)
+        # below copy from visit_if
+        cur_entry = self.irbuilder.block
+
+        label_if = self.irbuilder.append_basic_block("label_if")
+        label_endif = self.irbuilder.append_basic_block("label_endif")
+
+        self.irbuilder.cbranch(condi, label_if, label_endif)
+
+        self.irbuilder.position_at_end(label_if)
+
+        dict_, _, _ = self.cur_color
+        keys = ['save_incr', 'save_mask']
+        sav_val = {kname : dict_[kname][1] for kname in keys}
+
+        # if body
+        #v2.walkabout(self)
+        if True:
+            '''
+            save_mask = (save_mask << 1) + 1
+            save_incr = next_save_incr
+            '''
+            typ, val = self.vardict['save_mask']
+            val1 = self.irbuilder.shl(val, one)
+            val2 = self.irbuilder.add(val1, one)
+            self.vardict['save_mask'] = typ, val2
+            self.vardict['save_incr'] = self.vardict['next_save_incr']
+
+        if_entry = self.irbuilder.block
+        with self.irbuilder.goto_block(label_endif):     # to label_endif
+            for kname in keys:
+                typ, val = dict_[kname]
+                val2 = sav_val[kname]
+                v = self.new_phi(typ, kname)
+                if typ == type_complex:
+                    v[0].add_incoming(val[0], if_entry)
+                    v[1].add_incoming(val[1], if_entry)
+                    v[0].add_incoming(val2[0], cur_entry)
+                    v[1].add_incoming(val2[1], cur_entry)
+                else:
+                    v.add_incoming(val, if_entry)
+                    v.add_incoming(val2, cur_entry)
+                dict_[kname] = typ, v
+
+        self.irbuilder.branch(label_endif)
+        self.irbuilder.position_at_end(label_endif)
+
+    def do_tolerence4(self):
+        '''
+        if math.fabs(z.real - old_z.real) < period_tolerance and math.fabs(z.imag - old_z.imag) < period_tolerance:
+            t__h_inside = 1
+            break
+        '''
+        typ1, (z_real, z_imag) = self.vardict['z']
+        typ2, (oz_real, oz_imag) = self.vardict['old_z']
+        val1 = self.irbuilder.fsub(z_real, oz_real)
+        val2 = self.irbuilder.fsub(z_imag, oz_imag)
+        funcname = 'fabs'
+        func_p = self.globalfuncs.get(funcname)
+        if not func_p:
+            func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ])
+            func_p = ir.Function(self.module, func_t, funcname)
+            self.globalfuncs[funcname] = func_p
+
+        val3 = self.irbuilder.call(func_p, (val1,))
+        val4 = self.irbuilder.call(func_p, (val2,))
+        typ3, val_tol = self.vardict['period_tolerance']
+        condi1 = self.irbuilder.fcmp_ordered('<', val3, val_tol)
+        condi2 = self.irbuilder.fcmp_ordered('<', val4, val_tol)
+        condi = type_int, self.irbuilder.and_(condi1, condi2)
+        one = ir.Constant(ir.IntType(64), 1)
+        # -----
+
+        label_endif = self.irbuilder.append_basic_block("label_endif")
+
+        self.irbuilder.cbranch(condi[1], self.loop_exit, label_endif)
+
+        # if body
+        if True:
+            '''
+            t__h_inside = 1
+            break
+            '''
+
+        cur_entry = self.irbuilder.block
+        with self.irbuilder.goto_block(self.loop_exit):     # to loop_exit
+            self.vardict['_exit_']['inside'].add_incoming(one, cur_entry)
+            self.vardict['_exit_']['numiter'].add_incoming(self.vardict['numiter'][1], cur_entry)
+            self.vardict['_exit_']['z'][0].add_incoming(self.vardict['z'][1][0], cur_entry)
+            self.vardict['_exit_']['z'][1].add_incoming(self.vardict['z'][1][1], cur_entry)
+
+            self.ColorInOut_Label1ToExit(self.color1, cur_entry)
+            self.ColorInOut_Label1ToExit(self.color2, cur_entry)
+
+        self.irbuilder.position_at_end(label_endif)
 
     def visit_formu_deep(self, node):
         funcname = node.n.strip().replace(' ','_')
@@ -326,16 +552,28 @@ class mywalk(GFF_sample_visitor_01):
         func.args[4]._name = 'zwpixel.1'
         func.args[5]._name = 'maxiter'
 
+        zero = ir.Constant(ir.IntType(64), 0)
+
         self.vardict['pixel'] = (type_complex, (func.args[1], func.args[2]))
         self.vardict['zwpixel'] = (type_complex, (func.args[3], func.args[4]))
         self.vardict['maxiter'] = (type_int, func.args[5])
-        self.vardict['fate'] = (type_int, ir.Constant(ir.IntType(64), 0))
+        self.vardict['fate'] = type_int, zero
+        self.vardict['numiter'] = type_int, zero
+
+        if g_tolerance:
+            self.vardict['min_period_iter'] = (type_int, ir.Constant(ir.IntType(64), 10))
+            self.vardict['period_tolerance'] = (type_double, ir.Constant(ir.DoubleType(), 0.0001))
+            self.vardict['save_mask'] = (type_int, ir.Constant(ir.IntType(64), 9))
+            self.vardict['save_incr'] = (type_int, ir.Constant(ir.IntType(64), 1))
+            self.vardict['next_save_incr'] = (type_int, ir.Constant(ir.IntType(64), 4))
 
         # entry point of func
         bb_entry = func.append_basic_block('entry')
         self.irbuilder = ir.IRBuilder(bb_entry)
 
         init_blk.walkabout(self)
+        if g_tolerance:
+            self.vardict['old_z'] = self.vardict['z']
 
         self.InitColorInOut(self.color1)
         self.InitColorInOut(self.color2)
@@ -345,7 +583,7 @@ class mywalk(GFF_sample_visitor_01):
 
         self.do_final()
 
-        value_indx = self.vardict['idex']
+        value_indx = self.vardict['index']
         value_solid = self.vardict['solid']
 
         tem1 = rettype(ir.Undefined)
@@ -364,7 +602,7 @@ class mywalk(GFF_sample_visitor_01):
     def do_final(self):
         if False:
             self.vardict['solid'] = (type_int, ir.Constant(ir.IntType(64), 0))
-            self.vardict['idex'] = (type_double, ir.Constant(ir.DoubleType(), 0.000000001))
+            self.vardict['index'] = (type_double, ir.Constant(ir.DoubleType(), 0.000000001))
             return
         # solid = 0
         # if t__h_inside == 0:
@@ -378,14 +616,14 @@ class mywalk(GFF_sample_visitor_01):
 
         self.irbuilder.cbranch(condi, label_ifblk, label_elseblk)
 
-        savall = self.vardict.copy()
-
         self.irbuilder.position_at_end(label_ifblk)
 
         if True:
             with self.irbuilder.goto_block(label_endifblk):
-                self.endif_phis = {'idex' : self.new_phi(type_double, 'idex'),
+                self.vardict['_final_endif_'] = {'index' : self.new_phi(type_double, 'index'),
                        'solid' : self.new_phi(type_int, 'solid')}
+
+        savall = self.vardict.copy()
 
         # in ifblk
         self.ColorInOut_final(self.color1, label_endifblk)
@@ -398,9 +636,6 @@ class mywalk(GFF_sample_visitor_01):
         #else_entry = self.irbuilder.block
 
         self.ColorInOut_final(self.color2, label_endifblk)
-
-        #self.vardict['solid'] = (type_int, self.endif_solid)
-        #self.vardict['idex'] = (type_double, self.endif_idex)
 
         self.irbuilder.branch(label_endifblk)
 
@@ -421,29 +656,32 @@ class mywalk(GFF_sample_visitor_01):
         '''
     def visit_loop_blk(self, node):
         # now is entry
-        entry1 = self.irbuilder.block
         self.loop_body = self.irbuilder.append_basic_block("body")
-        self.label1 = self.irbuilder.append_basic_block("label1")
         self.loop_exit = self.irbuilder.append_basic_block("exit")
 
         self.irbuilder.branch(self.loop_body)
 
-        with self.irbuilder.goto_block(self.loop_body):     # entry to body
-            val1,val2 = self.vardict['z'][1]
-            loop_z0_body = self.irbuilder.phi(ir.DoubleType(), "z.0")
-            loop_z0_body.add_incoming(val1, entry1)
-            loop_z1_body = self.irbuilder.phi(ir.DoubleType(), "z.1")
-            loop_z1_body.add_incoming(val2, entry1)
-            self.vardict['z'] = type_complex, (loop_z0_body, loop_z1_body)
+        key = ['z', 'numiter']
+        if g_tolerance:
+            key.extend(['old_z', 'save_incr', 'save_mask'])
 
-            value_numiter = self.irbuilder.phi(ir.IntType(64), "numiter")
-            value_numiter.add_incoming(ir.Constant(ir.IntType(64), 0), entry1)
-            self.vardict['numiter'] = (type_int, value_numiter)
+        dict_ = {}
+        entry1 = self.irbuilder.block
+        with self.irbuilder.goto_block(self.loop_body):     # entry to body
+            for kname in key:
+                typ, val = self.vardict[kname]
+                v = self.new_phi(typ, kname)
+                if typ == type_complex:
+                    v[0].add_incoming(val[0], entry1)
+                    v[1].add_incoming(val[1], entry1)
+                else:
+                    v.add_incoming(val, entry1)
+                self.vardict[kname] = typ, v
+                dict_[kname] = v
+            self.vardict['_loop_'] = dict_
 
             self.ColorInOut_EntryToLoop(self.color1, entry1)
             self.ColorInOut_EntryToLoop(self.color2, entry1)
-
-        self.savall_body = self.vardict['z'], self.vardict['numiter']
 
         # now is body
 
@@ -458,32 +696,37 @@ class mywalk(GFF_sample_visitor_01):
 
         typ, val = node.v.walkabout(self)
         cond = val
-        self.irbuilder.cbranch(cond, self.label1, self.loop_exit)
+        self_label1 = self.irbuilder.append_basic_block("label1")
+        self.irbuilder.cbranch(cond, self_label1, self.loop_exit)
 
+        dict_exit = {}
         with self.irbuilder.goto_block(self.loop_exit): # body -> exit
             val1,val2 = self.vardict['z'][1]
-            loop_z0_body = self.irbuilder.phi(ir.DoubleType(), "z.0")
+            loop_z0_body, loop_z1_body = self.new_phi(type_complex, 'z')
             loop_z0_body.add_incoming(val1, entry2)
-            loop_z1_body = self.irbuilder.phi(ir.DoubleType(), "z.1")
             loop_z1_body.add_incoming(val2, entry2)
-            valuetuple_exit_z = type_complex, (loop_z0_body, loop_z1_body)
+            dict_exit['z'] = (loop_z0_body, loop_z1_body)
 
-            value_inside = self.irbuilder.phi(ir.IntType(64), "inside")
+            value_inside = self.new_phi(type_int, "inside")
             value_inside.add_incoming(ir.Constant(ir.IntType(64), 0), entry2)
-            valuetuple_exit_inside = (type_int, value_inside)
-            value_numiter = self.irbuilder.phi(ir.IntType(64), "numiter")
+            dict_exit['inside'] = value_inside
+
+            value_numiter = self.new_phi(type_int, "numiter")
             value_numiter.add_incoming(self.vardict['numiter'][1], entry2)
-            valuetuple_exit_numiter = (type_int, value_numiter)
+            dict_exit['numiter'] = value_numiter
+
+            self.vardict['_exit_'] = dict_exit
 
             self.ColorInOut_LoopToExit(self.color1, entry2)
             self.ColorInOut_LoopToExit(self.color2, entry2)
 
         # now is label 1
-        self.irbuilder.position_at_end(self.label1)
-
+        self.irbuilder.position_at_end(self_label1)
+        self.do_tolerence()
         self.ColorInOut_Loop(self.color1)
         self.ColorInOut_Loop(self.color2)
 
+        self.vardict['_keys_'].add('numiter')
         self.vardict['numiter'] = type_int, self.irbuilder.add(self.vardict['numiter'][1], ir.Constant(ir.IntType(64), 1))
 
         entry3 = self.irbuilder.block
@@ -491,21 +734,22 @@ class mywalk(GFF_sample_visitor_01):
         self.irbuilder.cbranch(value_comp, self.loop_exit, self.loop_body)
 
         with self.irbuilder.goto_block(self.loop_exit): # label1 -> exit
-            valuetuple_exit_z[1][0].add_incoming(self.vardict['z'][1][0], entry3)
-            valuetuple_exit_z[1][1].add_incoming(self.vardict['z'][1][1], entry3)
-            valuetuple_exit_inside[1].add_incoming(ir.Constant(ir.IntType(64), 1), entry3)
-            valuetuple_exit_numiter[1].add_incoming(self.vardict['numiter'][1], entry3)
+            self.vardict['_exit_']['z'][0].add_incoming(self.vardict['z'][1][0], entry3)
+            self.vardict['_exit_']['z'][1].add_incoming(self.vardict['z'][1][1], entry3)
+            self.vardict['_exit_']['inside'].add_incoming(ir.Constant(ir.IntType(64), 1), entry3)
+            self.vardict['_exit_']['numiter'].add_incoming(self.vardict['numiter'][1], entry3)
 
             self.ColorInOut_Label1ToExit(self.color1, entry3)
             self.ColorInOut_Label1ToExit(self.color2, entry3)
 
         with self.irbuilder.goto_block(self.loop_body):    # label1 -> body
-            tuple_z, tuple_numiter = self.savall_body
-
-            val1,val2 = self.vardict['z'][1]
-            tuple_z[1][0].add_incoming(val1, entry3)
-            tuple_z[1][1].add_incoming(val2, entry3)
-            tuple_numiter[1].add_incoming(self.vardict['numiter'][1], entry3)
+            for kname,v in self.vardict['_loop_'].items():
+                typ, val = self.vardict[kname]
+                if typ == type_complex:
+                    v[0].add_incoming(val[0], entry3)
+                    v[1].add_incoming(val[1], entry3)
+                else:
+                    v.add_incoming(val, entry3)
 
             self.ColorInOut_Label1ToLoop(self.color1, entry3)
             self.ColorInOut_Label1ToLoop(self.color2, entry3)
@@ -513,9 +757,9 @@ class mywalk(GFF_sample_visitor_01):
         # now is exit
 
         self.irbuilder.position_at_end(self.loop_exit)
-        self.vardict['inside'] = valuetuple_exit_inside
-        self.vardict['numiter'] = valuetuple_exit_numiter
-        self.vardict['z'] = valuetuple_exit_z
+        self.vardict['inside'] = type_int, self.vardict['_exit_']['inside']
+        self.vardict['numiter'] = type_int, self.vardict['_exit_']['numiter']
+        self.vardict['z'] = type_complex, self.vardict['_exit_']['z']
 
     def visit_declare(self, node):
         dt = getdt(node.v1.s)
@@ -548,10 +792,14 @@ class mywalk(GFF_sample_visitor_01):
                 dict_, _, _ = self.cur_color
                 if isinstance(dest, Ast_GFF.GFF_nameq) and isinstance(dest.v, Ast_GFF.GFF_Name0):
                     destname = dest.v.n
+                    if destname in dict_:
+                        dict_['_keys_'].add(destname)
                     dict_[destname] = typ, val
                     return
                 if isinstance(dest, Ast_GFF.GFF_nameq) and isinstance(dest.v, Ast_GFF.GFF_Name1):
                     destname = dest.v.n
+                    if destname in dict_:
+                        dict_['_keys_'].add(destname)
                     dict_[destname] = typ, val
                     return
             assert False
@@ -616,6 +864,8 @@ class mywalk(GFF_sample_visitor_01):
             tem2 = self.irbuilder.fmul(val2[1], val1)
             return type_complex, (tem1, tem2)
 
+        if node.s == '*' and typ1 == typ2 == type_double:
+            return typ1, self.irbuilder.fmul(val1, val2)
         if node.s == '*' and typ1 == typ2 == type_complex:
             val3 = self.complex_mul(val1, val2)
             return typ1, val3
@@ -655,18 +905,35 @@ class mywalk(GFF_sample_visitor_01):
             tem2 = self.irbuilder.fsub(val1[1], val2[1])
             return typ1, (tem1, tem2)
 
-        if node.s in ('<','>') and typ1 == typ2 == type_double:
+        if node.s in ('<','>','>=') and typ1 == typ2 == type_double:
             tem1 = self.irbuilder.fcmp_ordered(node.s, val1, val2)
             return type_int, tem1
+        if node.s in ('<','>','>=') and (typ1, typ2) == (type_double, type_int):
+            todouble = self.irbuilder.sitofp(val2, ir.DoubleType())
+            tem1 = self.irbuilder.fcmp_ordered(node.s, val1, todouble)
+            return type_int, tem1
+        if node.s in ('<','>','>=') and typ1 == typ2 == type_int:
+            tem1 = self.irbuilder.icmp_signed(node.s, val1, val2)
+            return type_int, tem1
         if node.s == '||':
-            assert typ1 == typ2 == type_bool
+            #assert typ1 == typ2 == type_bool
             return typ1, self.irbuilder.or_(val1, val2)
 
         if node.s == '%' and (typ1, typ2) == (type_double, type_int):
             #toint = self.irbuilder.fptosi(val1, ir.IntType(64))
             #return typ2, self.irbuilder.srem(toint, val2)
             todouble = self.irbuilder.sitofp(val2, ir.DoubleType())
-            return typ1, self.irbuilder.frem(val1, todouble)
+            if True:
+                return typ1, self.irbuilder.frem(val1, todouble)
+            funcname = 'fmod'
+            func_p = self.globalfuncs.get(funcname)
+            if not func_p:
+                func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ir.DoubleType()])
+                func_p = ir.Function(self.module, func_t, funcname)
+                self.globalfuncs[funcname] = func_p
+
+            tem1 = self.irbuilder.call(func_p,(val1,todouble))
+            return typ1, tem1
 
         print 'node.s ', node.s, typ1, typ2
         assert False
@@ -675,6 +942,8 @@ class mywalk(GFF_sample_visitor_01):
     def visit_neg_value(self, node):
         if isinstance(node.v, Ast_GFF.GFF_Number):
             return type_double, ir.Constant(ir.DoubleType(), -float(node.v.f))
+        if isinstance(node.v, Ast_GFF.GFF_Numi):
+            return type_int, ir.Constant(ir.IntType(64), -node.v.i)
         #node.v.walkabout(self)
         assert False
     def visit_AbsSigned(self, node):
@@ -684,6 +953,16 @@ class mywalk(GFF_sample_visitor_01):
             tem4 = self.irbuilder.fmul(val[1], val[1])
             tem5 = self.irbuilder.fadd(tem3, tem4)
             return type_double, tem5    # should I sqrt ?
+        if typ == type_double:
+            funcname = 'fabs'
+            func_p = self.globalfuncs.get(funcname)
+            if not func_p:
+                func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ])
+                func_p = ir.Function(self.module, func_t, funcname)
+                self.globalfuncs[funcname] = func_p
+
+            tem2 = self.irbuilder.call(func_p, (val,))
+            return type_double, tem2
         assert False
     def visit_funccall(self, node):
         #typ, val = node.v2.walkabout(self)
@@ -727,9 +1006,15 @@ class mywalk(GFF_sample_visitor_01):
 
             tem2 = self.irbuilder.call(func_p, (val,))
             return type_double, tem2
+        if funcname == 'real':
+            assert typ == type_complex
+            return type_double, val[0]
+        if funcname == 'imag':
+            assert typ == type_complex
+            return type_double, val[1]
 
         print dir(node)
-        print node.v1.n
+        print funcname
         assert False
 
     def complex_mul(self, val1, val2):
@@ -802,6 +1087,53 @@ class mywalk(GFF_sample_visitor_01):
             return 'cmag'
         assert False
 
+class class_branch:
+    def __init__(self, label, dict_):
+        self.label = label
+        self.dict_ = dict_.copy()
+        self.jumps = []
+        self.newphis = {}
+    def add_jumppoint(self, fromlabel, dict_):
+        a1 = {}
+        for kname in dict_['_keys_']:
+            a1[kname] = dict_[kname]
+        self.jumps.append((fromlabel, a1))
+
+    def restore_dict(self, dict_):
+        dict_.clear()
+        dict_.update(self.dict_)
+
+    def add_incomings(self, dict_, self_new_phi):
+        #theb.add_incomings(dict_)
+        keys = set()
+        for label1, key1 in self.jumps:
+            keys.update(key1.keys())
+
+        i=0
+        for label1, key1 in self.jumps:
+            i+=1
+            for kname in keys:
+                if kname in key1:
+                    typ, val = key1[kname]
+                else:
+                    typ, val = dict_[kname]
+                if i == 1:
+                    v = self_new_phi(typ, kname)
+                    self.newphis[kname] = typ, v
+                else:
+                    typ, v = self.newphis[kname]
+                if typ == type_complex:
+                    v[0].add_incoming(val[0], label1)
+                    v[1].add_incoming(val[1], label1)
+                else:
+                    v.add_incoming(val, label1)
+
+    def leave(self, dict_, sav_set):
+        for kname,v in self.newphis.items():
+            dict_[kname] = v
+            sav_set.add(kname)
+        return sav_set
+
 def create_execution_engine(ir_src):
     target = llvm.Target.from_default_triple()
     target_machine = target.create_target_machine()
@@ -826,13 +1158,13 @@ class LLVM_liud:
         funcname = mod0.walkabout(the)
         ir_src = str(the.module)
 
+        #print ir_src
         engine = llvm_func(ir_src)
         func_addr = engine.get_function_address(funcname)
 
         self.engine = engine
         cfuncptr = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_long)(func_addr)
         self.cfuncptr = cfuncptr
-
 
 if __name__ == '__main__':
     pass

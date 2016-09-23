@@ -40,20 +40,42 @@ def Mandelbrot_1(fbailout, pixel, zwpixel, maxiter):
     '''
     Mandelbrot with inside = Angles
     '''
+    min_period_iter=10
+    period_tolerance=0.0001
+    save_mask = 9
+    save_incr = 1
+    next_save_incr = 4
 
     t__h_numiter = 0
     z = zwpixel
     t__h_inside = 0
-    if True:
+
+    old_z = z
+
+    if False:
         angle = math.pi
     while True:
         z = z*z + pixel
         if z.real * z.real + z.imag * z.imag >= fbailout:
             break
-        if True:
+
+        if t__h_numiter >= min_period_iter:
+            if (t__h_numiter & save_mask) == 0:
+                old_z = z
+                save_incr -= 1
+                if save_incr == 0:
+                    save_mask = (save_mask << 1) + 1
+                    save_incr = next_save_incr
+            else:
+                if math.fabs(z.real - old_z.real) < period_tolerance and math.fabs(z.imag - old_z.imag) < period_tolerance:
+                    t__h_inside = 1
+                    break
+
+        if False:
             temp_angle = math.fabs(math.atan2(z.imag, z.real))
             if temp_angle < angle:
                 angle = temp_angle
+
         t__h_numiter += 1
         if t__h_numiter >= maxiter:
             t__h_inside = 1
@@ -77,7 +99,19 @@ endparam
 }
         '''
     else:
-        if True: # for zero
+        if True: # for basins
+            nbasins = 3
+            if False:
+                #idex = (t__h_numiter / 256.0) % nbasins
+                idex = (t__h_numiter * 1.0 / 256.0) + nbasins
+                #idex = math.fmod(t__h_numiter / 256.0, nbasins)
+            else:
+                idex = 0 # fate * 1.0/@nbasins)
+                idex = idex + (t__h_numiter / 256.0) % nbasins
+                #idex = math.fmod(t__h_numiter / 256.0, nbasins)
+
+            #print idex, t__h_numiter,
+        elif True: # for zero
             idex = 0 #t__a_cf1_offset
             solid = 1
         else: # for angel
