@@ -15,6 +15,9 @@ type_double = 2
 type_complex = 3
 type_bool = 4
 type_enum_string = 5
+type_color = 6
+
+colortype = ir.LiteralStructType((ir.IntType(64), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType()))
 
 def getLocalVars(dict_):
     keys = []
@@ -57,6 +60,12 @@ class mywalk(GFF_sample_visitor_01):
             v1 = self.irbuilder.phi(ir.DoubleType(), kname+'_real')
             v2 = self.irbuilder.phi(ir.DoubleType(), kname+'_imag')
             return (v1, v2)
+        if typ == type_color:
+            v1 = self.irbuilder.phi(ir.DoubleType(), kname+'_r')
+            v2 = self.irbuilder.phi(ir.DoubleType(), kname+'_g')
+            v3 = self.irbuilder.phi(ir.DoubleType(), kname+'_b')
+            v4 = self.irbuilder.phi(ir.DoubleType(), kname+'_a')
+            return (v1, v2, v3, v4)
         assert False
 
     def InitColorInOut(self, color):
@@ -85,6 +94,11 @@ class mywalk(GFF_sample_visitor_01):
             if typ == type_complex:
                 v[0].add_incoming(val[0], cur_entry)
                 v[1].add_incoming(val[1], cur_entry)
+            elif typ == type_color:
+                v[0].add_incoming(val[0], cur_entry)
+                v[1].add_incoming(val[1], cur_entry)
+                v[2].add_incoming(val[2], cur_entry)
+                v[3].add_incoming(val[3], cur_entry)
             else:
                 v.add_incoming(val, cur_entry)
             dict_[kname] = typ, v
@@ -103,6 +117,11 @@ class mywalk(GFF_sample_visitor_01):
             if typ == type_complex:
                 v[0].add_incoming(val[0], cur_entry)
                 v[1].add_incoming(val[1], cur_entry)
+            elif typ == type_color:
+                v[0].add_incoming(val[0], cur_entry)
+                v[1].add_incoming(val[1], cur_entry)
+                v[2].add_incoming(val[2], cur_entry)
+                v[3].add_incoming(val[3], cur_entry)
             else:
                 v.add_incoming(val, cur_entry)
             dic_exit[kname] = v
@@ -217,11 +236,17 @@ class mywalk(GFF_sample_visitor_01):
         dic = dict_['exit']
         for kname in dic:
             typ,val = dict_[kname]
+            v = dic[kname]
             if typ == type_complex:
-                dic[kname][0].add_incoming(val[0], cur_entry)
-                dic[kname][1].add_incoming(val[1], cur_entry)
+                v[0].add_incoming(val[0], cur_entry)
+                v[1].add_incoming(val[1], cur_entry)
+            elif typ == type_color:
+                v[0].add_incoming(val[0], cur_entry)
+                v[1].add_incoming(val[1], cur_entry)
+                v[2].add_incoming(val[2], cur_entry)
+                v[3].add_incoming(val[3], cur_entry)
             else:
-                dic[kname].add_incoming(val, cur_entry)
+                v.add_incoming(val, cur_entry)
 
     def ColorInOut_Label1ToLoop(self, color, cur_entry):
         dict_, param, mod = color
@@ -230,11 +255,17 @@ class mywalk(GFF_sample_visitor_01):
         dic = dict_['loop']
         for kname in dic:
             typ,val = dict_[kname]
+            v = dic[kname]
             if typ == type_complex:
-                dic[kname][0].add_incoming(val[0], cur_entry)
-                dic[kname][1].add_incoming(val[1], cur_entry)
+                v[0].add_incoming(val[0], cur_entry)
+                v[1].add_incoming(val[1], cur_entry)
+            elif typ == type_color:
+                v[0].add_incoming(val[0], cur_entry)
+                v[1].add_incoming(val[1], cur_entry)
+                v[2].add_incoming(val[2], cur_entry)
+                v[3].add_incoming(val[3], cur_entry)
             else:
-                dic[kname].add_incoming(val, cur_entry)
+                v.add_incoming(val, cur_entry)
 
     def DeepIn_default(self, mod):
         sav = self.default_blk
@@ -261,6 +292,18 @@ class mywalk(GFF_sample_visitor_01):
                 v1.walkabout(self)
             self.default_blk = savdb
             self.cur_color = self.color0
+
+            if 'color' in dict_:
+                typ, (val1,val2,val3,val4) = dict_['color']
+                one = ir.Constant(ir.IntType(64), 1)
+                tem1 = colortype(ir.Undefined)
+                tem2 = self.irbuilder.insert_value(tem1, one, (0,))
+                tem3 = self.irbuilder.insert_value(tem2, val1, (1,))
+                tem4 = self.irbuilder.insert_value(tem3, val2, (2,))
+                tem5 = self.irbuilder.insert_value(tem4, val3, (3,))
+                tem6 = self.irbuilder.insert_value(tem5, val4, (4,))
+
+                self.irbuilder.store(tem6, self.func.args[6])
 
             cur_entry = self.irbuilder.block
             with self.irbuilder.goto_block(label_endifblk):     # to endif
@@ -542,8 +585,10 @@ class mywalk(GFF_sample_visitor_01):
         rettype = ir.LiteralStructType((ir.IntType(64), ir.IntType(64), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.IntType(64)))
 
         func_t = ir.FunctionType(ir.IntType(32),
-                                 [rettype.as_pointer(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.IntType(64)])
+                                 [rettype.as_pointer(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.IntType(64),
+                                  colortype.as_pointer()])
         func = ir.Function(module, func_t, funcname)
+        self.func = func
 
         func.args[0]._name = 'retp'
         func.args[1]._name = 'pixel.0'
@@ -551,6 +596,7 @@ class mywalk(GFF_sample_visitor_01):
         func.args[3]._name = 'zwpixel.0'
         func.args[4]._name = 'zwpixel.1'
         func.args[5]._name = 'maxiter'
+        func.args[6]._name = 'colorp'
 
         zero = ir.Constant(ir.IntType(64), 0)
 
@@ -583,16 +629,13 @@ class mywalk(GFF_sample_visitor_01):
 
         self.do_final()
 
-        value_indx = self.vardict['index']
-        value_solid = self.vardict['solid']
-
         tem1 = rettype(ir.Undefined)
         tem2 = self.irbuilder.insert_value(tem1, self.vardict['inside'][1], (0,))
         tem3 = self.irbuilder.insert_value(tem2, self.vardict['numiter'][1], (1,))
         tem4 = self.irbuilder.insert_value(tem3, self.vardict['z'][1][0], (2,))
         tem5 = self.irbuilder.insert_value(tem4, self.vardict['z'][1][1], (3,))
-        tem6 = self.irbuilder.insert_value(tem5, value_indx[1], (4,))
-        tem7 = self.irbuilder.insert_value(tem6, value_solid[1], (5,))
+        tem6 = self.irbuilder.insert_value(tem5, self.vardict['index'][1], (4,))
+        tem7 = self.irbuilder.insert_value(tem6, self.vardict['solid'][1], (5,))
 
         self.irbuilder.store(tem7, func.args[0])
         self.irbuilder.ret(ir.Constant(ir.IntType(32), 0))
@@ -813,6 +856,8 @@ class mywalk(GFF_sample_visitor_01):
             return sub_func1()
         if dt == 3 and typ == type_complex:
             return sub_func1()
+        if dt == 4 and typ == type_color:
+            return sub_func1()
         assert False
     def visit_Name0(self, node):
         dict_, _, _ = self.cur_color
@@ -863,6 +908,12 @@ class mywalk(GFF_sample_visitor_01):
             tem1 = self.irbuilder.fmul(val2[0], val1)
             tem2 = self.irbuilder.fmul(val2[1], val1)
             return type_complex, (tem1, tem2)
+        if node.s == '*' and (typ1, typ2) == (type_color, type_double):
+            tem1 = self.irbuilder.fmul(val1[0], val2)
+            tem2 = self.irbuilder.fmul(val1[1], val2)
+            tem3 = self.irbuilder.fmul(val1[2], val2)
+            tem4 = self.irbuilder.fmul(val1[3], val2)
+            return type_color, (tem1, tem2, tem3, tem4)
 
         if node.s == '*' and typ1 == typ2 == type_double:
             return typ1, self.irbuilder.fmul(val1, val2)
@@ -966,16 +1017,26 @@ class mywalk(GFF_sample_visitor_01):
         assert False
     def visit_funccall(self, node):
         #typ, val = node.v2.walkabout(self)
-        if node.vq and len(node.vq.vlst) == 1:
-            param1 = node.vq.vlst[0]
-            typ, val = param1.walkabout(self)
-        else:
-            assert False
         if isinstance(node.v, Ast_GFF.GFF_Name2):
             name2 = node.v.n
             funcname = self.get_param_func_name(name2)
         else:
             funcname = node.v.n
+        if node.vq and len(node.vq.vlst) == 1:
+            param1 = node.vq.vlst[0]
+            typ, val = param1.walkabout(self)
+        else:
+            if funcname == 'rgb':
+                param1 = node.vq.vlst[0]
+                param2 = node.vq.vlst[1]
+                param3 = node.vq.vlst[2]
+                typ1, val1 = param1.walkabout(self)
+                typ2, val2 = param2.walkabout(self)
+                typ3, val3 = param3.walkabout(self)
+                float_one = ir.Constant(ir.DoubleType(), 1.0)
+                assert typ1 == typ2 == typ3 == type_double
+                return type_color, (val1,val2,val3,float_one)
+            assert False
         if funcname == 'cmag':
             tem1 = self.irbuilder.fmul(val[0], val[0])
             tem2 = self.irbuilder.fmul(val[1], val[1])
@@ -1012,6 +1073,15 @@ class mywalk(GFF_sample_visitor_01):
         if funcname == 'imag':
             assert typ == type_complex
             return type_double, val[1]
+        if funcname == 'red':
+            assert typ == type_color
+            return type_double, val[0]
+        if funcname == 'green':
+            assert typ == type_color
+            return type_double, val[1]
+        if funcname == 'blue':
+            assert typ == type_color
+            return type_double, val[2]
 
         print dir(node)
         print funcname
@@ -1046,6 +1116,11 @@ class mywalk(GFF_sample_visitor_01):
                     return type_int, ir.Constant(ir.IntType(64), val)
                 if typ == 2:
                     return type_double, ir.Constant(ir.DoubleType(), val)
+                if typ == 4:
+                    return type_color, (ir.Constant(ir.DoubleType(), val[0]),
+                                        ir.Constant(ir.DoubleType(), val[1]),
+                                        ir.Constant(ir.DoubleType(), val[2]),
+                                        ir.Constant(ir.DoubleType(), val[3]))
                 # return
         assert self.default_blk
         for itm in self.default_blk.vlst:
@@ -1163,7 +1238,7 @@ class LLVM_liud:
         func_addr = engine.get_function_address(funcname)
 
         self.engine = engine
-        cfuncptr = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_long)(func_addr)
+        cfuncptr = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_long, c_void_p)(func_addr)
         self.cfuncptr = cfuncptr
 
 if __name__ == '__main__':

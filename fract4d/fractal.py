@@ -267,6 +267,8 @@ class T(fctutils.T):
             var_ = var_params[i]
             if var_.type == 3: # complex
                 n0 += 1
+            if var_.type == 4: # color
+                n0 += 3
         assert n1 + n0 == n2
         lst = []
         n0 = 0
@@ -294,6 +296,10 @@ class T(fctutils.T):
                 value = (params[i+n0], params[i+n0+1])
                 n0 += 1
                 lst.append((name,3,value,enum))
+            elif var_.type == 4: # color
+                value = (params[i+n0], params[i+n0+1], params[i+n0+2], params[i+n0+3])
+                n0 += 3
+                lst.append((name,4,value,enum))
             else:
                 value = params[i+n0]
                 typ = paramtypes[i+n0]
@@ -393,7 +399,8 @@ if __name__ == '__main__':
         file = open(arg)
         f.loadFctFile(file)
         outputfile = None # f.compile()
-        im = image.T(640,480)
+        im = image.T(1024,768)
+        #im = image.T(320,200)
         from datetime import datetime
         t1 = datetime.now()
         f.draw(im, outputfile)

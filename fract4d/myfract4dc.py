@@ -314,6 +314,7 @@ def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
     return Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuNameNo, cmap)
 
 dtype_i8i8f8f8 = np.dtype([('i1', 'i8'),('i2', 'i8'),('i3', 'f8'),('i4', 'f8'),('i5', 'f8'),('i6', 'i8')])
+dtype_i8f8f8f8f8 = np.dtype([('i1', 'i8'),('i2', 'f8'),('i3', 'f8'),('i4', 'f8'),('i5', 'f8')])
 
 from LiuD import GenLLVM_GFF
 cfunc3_ptr = None
@@ -349,11 +350,15 @@ def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap):
 
     assert UseLLVM
     arr = np.zeros(1, dtype=dtype_i8i8f8f8)
-    cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
+    color_arr = np.zeros(1, dtype=dtype_i8f8f8f8f8)
+    cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter, color_arr.ctypes.data)
     a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
     a1 = a1 + len(arr) - len(arr)
 
     t__h_inside, t__h_numiter, z, indx, solid = a1, a2, complex(a3, a4), a5, a6
+
+    fcolor,colors[0],colors[1],colors[2],colors[3] = color_arr[0]['i1'], color_arr[0]['i2'], color_arr[0]['i3'], color_arr[0]['i4'], color_arr[0]['i5']
+    fUseColors = fcolor + len(color_arr) - len(color_arr)
 
     if t__h_inside == 0:
         t__h_index = t__a_cf0_density * indx + t__a_cf0_offset
@@ -365,11 +370,10 @@ def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap):
     dist = t__h_index
     if solid:
         fate |= FATE_SOLID
-    if fUseColors:
-        fate |= FATE_DIRECT
     if fate & FATE_INSIDE:
         iter_ = -1
     if fUseColors:
+        fate |= FATE_DIRECT
         pixel_ = lookup_with_dca(solid, colors)
     else:
         pixel_ = lookup_with_transfer(cmap, dist, solid)
@@ -382,13 +386,7 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
 
     (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = cf0cf1
 
-    if UseLLVM:
-        arr = np.zeros(1, dtype=dtype_i8i8f8f8)
-        cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter)
-        a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
-        a1 = a1 + len(arr) - len(arr)
-
-        t__h_inside, t__h_numiter, z, indx, solid = a1, a2, complex(a3, a4), a5, a6
+    assert not UseLLVM
 
     if formuNameNo == 1: # 'Mandelbrot':
         t__a_fbailout = param_values[0]
