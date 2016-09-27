@@ -936,20 +936,23 @@ class mywalk(GFF_sample_visitor_01):
             todouble = self.irbuilder.sitofp(val2, ir.DoubleType())
             return typ1, self.irbuilder.fdiv(val1, todouble)
 
-        if node.s == '+' and typ1 == typ2 == type_complex:
-            #print 'complex add'
-            tem1 = self.irbuilder.fadd(val1[0], val2[0])
-            tem2 = self.irbuilder.fadd(val1[1], val2[1])
-            return typ1, (tem1, tem2)
-        if node.s == '+' and (typ1, typ2) == (type_double, type_int):
-            todouble = self.irbuilder.sitofp(val2, ir.DoubleType())
-            return typ1, self.irbuilder.fadd(val1, todouble)
+        if node.s == '+':
+            if typ1 == typ2 == type_complex:
+                #print 'complex add'
+                tem1 = self.irbuilder.fadd(val1[0], val2[0])
+                tem2 = self.irbuilder.fadd(val1[1], val2[1])
+                return typ1, (tem1, tem2)
+            if (typ1, typ2) == (type_double, type_int):
+                todouble = self.irbuilder.sitofp(val2, ir.DoubleType())
+                return typ1, self.irbuilder.fadd(val1, todouble)
 
-        if node.s == '+' and typ1 == typ2 == type_double:
-            return typ1, self.irbuilder.fadd(val1, val2)
-        if node.s == '+' and (typ1, typ2) == (type_int, type_double):
-            todouble = self.irbuilder.sitofp(val1, ir.DoubleType())
-            return typ2, self.irbuilder.fadd(todouble, val2)
+            if typ1 == typ2 == type_int:
+                return typ1, self.irbuilder.add(val1, val2)
+            if typ1 == typ2 == type_double:
+                return typ1, self.irbuilder.fadd(val1, val2)
+            if (typ1, typ2) == (type_int, type_double):
+                todouble = self.irbuilder.sitofp(val1, ir.DoubleType())
+                return typ2, self.irbuilder.fadd(todouble, val2)
 
         if node.s == '-' and typ1 == typ2 == type_complex:
             tem1 = self.irbuilder.fsub(val1[0], val2[0])
@@ -1036,6 +1039,33 @@ class mywalk(GFF_sample_visitor_01):
                 float_one = ir.Constant(ir.DoubleType(), 1.0)
                 assert typ1 == typ2 == typ3 == type_double
                 return type_color, (val1,val2,val3,float_one)
+            if funcname == 'blend':
+                param1 = node.vq.vlst[0]
+                param2 = node.vq.vlst[1]
+                param3 = node.vq.vlst[2]
+                typ1, val1 = param1.walkabout(self)
+                typ2, val2 = param2.walkabout(self)
+                typ3, ratio = param3.walkabout(self)
+                assert typ1 == typ2 == type_color
+                assert typ3 == type_double
+                # blend(c,@background,ratio)
+                # c * (1.0 - ratio) + background * ratio
+                # val1 * (1.0 - val3) + val2 * val2
+                float_one = ir.Constant(ir.DoubleType(), 1.0)
+                onesubratio = self.irbuilder.fsub(float_one, ratio)
+                v00 = self.irbuilder.fmul(val1[0], onesubratio)
+                v01 = self.irbuilder.fmul(val1[1], onesubratio)
+                v02 = self.irbuilder.fmul(val1[2], onesubratio)
+                v03 = self.irbuilder.fmul(val1[3], onesubratio)
+                v10 = self.irbuilder.fmul(val2[0], ratio)
+                v11 = self.irbuilder.fmul(val2[1], ratio)
+                v12 = self.irbuilder.fmul(val2[2], ratio)
+                v13 = self.irbuilder.fmul(val2[3], ratio)
+                v20 = self.irbuilder.fadd(v00, v10)
+                v21 = self.irbuilder.fadd(v01, v11)
+                v22 = self.irbuilder.fadd(v02, v12)
+                v23 = self.irbuilder.fadd(v03, v13)
+                return type_color, (v20, v21, v22, v23)
             assert False
         if funcname == 'cmag':
             tem1 = self.irbuilder.fmul(val[0], val[0])
@@ -1047,26 +1077,21 @@ class mywalk(GFF_sample_visitor_01):
                 val3 = self.complex_mul(val, val)
                 return type_complex, val3
         if funcname == 'atan2':
-            func_p = self.globalfuncs.get(funcname)
-            if not func_p:
-                func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ir.DoubleType()])
-                func_p = ir.Function(self.module, func_t, funcname)
-                self.globalfuncs[funcname] = func_p
-
             val1,val2 = val
-
+            func_p = self.get_globalfunc(funcname)
             tem1 = self.irbuilder.call(func_p,(val2,val1))
             return type_double, tem1
-        if funcname == 'abs':
-            funcname = 'fabs'
-            func_p = self.globalfuncs.get(funcname)
-            if not func_p:
-                func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ])
-                func_p = ir.Function(self.module, func_t, funcname)
-                self.globalfuncs[funcname] = func_p
-
+        if funcname in ('abs' 'log'):
+            func_p = self.get_globalfunc(funcname)
+            if typ == type_int:
+                val = self.irbuilder.sitofp(val, ir.DoubleType())
             tem2 = self.irbuilder.call(func_p, (val,))
             return type_double, tem2
+        if funcname == 'float':
+            if typ == type_int:
+                val2 = self.irbuilder.sitofp(val, ir.DoubleType())
+                return type_double, val2
+            assert False
         if funcname == 'real':
             assert typ == type_complex
             return type_double, val[0]
@@ -1082,11 +1107,44 @@ class mywalk(GFF_sample_visitor_01):
         if funcname == 'blue':
             assert typ == type_color
             return type_double, val[2]
+        if funcname == 'gradient':
+            float_one = ir.Constant(ir.DoubleType(), 1.0)
+            r = self.irbuilder.fdiv(float_one, val)
+            g = self.irbuilder.fmul(float_one, val)
+            b = self.irbuilder.frem(val, float_one)
 
+            #print '::', self.module.functions
+
+            if True:
+                funcname = 'cfunc.__main__.abs4$3.float64.float64'
+                funcname = 'func_gradient'
+                func_p = self.globalfuncs.get(funcname)
+                if not func_p:
+                    func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ir.DoubleType()])
+                    func_p = ir.Function(self.module, func_t, funcname)
+                    self.globalfuncs[funcname] = func_p
+
+                b = self.irbuilder.call(func_p,(r,g))
+
+            return type_color, (r, g, b, float_one)
         print dir(node)
         print funcname
         assert False
 
+    def get_globalfunc(self, funcname):
+        if funcname == 'abs':
+            funcname = 'fabs'
+        func_p = self.globalfuncs.get(funcname)
+        if not func_p:
+            if funcname in ('fabs', 'log'):
+                func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ])
+            elif funcname in ('atan2', ):
+                func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ir.DoubleType()])
+            else:
+                assert False
+            func_p = ir.Function(self.module, func_t, funcname)
+            self.globalfuncs[funcname] = func_p
+        return func_p
     def complex_mul(self, val1, val2):
         tem1 = self.irbuilder.fmul(val1[0], val2[0])
         tem2 = self.irbuilder.fmul(val1[1], val2[1])
@@ -1213,6 +1271,16 @@ def create_execution_engine(ir_src):
     target = llvm.Target.from_default_triple()
     target_machine = target.create_target_machine()
     backing_mod = llvm.parse_assembly(ir_src)
+    import mycalc
+    address = mycalc.abs4.address
+    llvm.add_symbol('func_gradient', address)
+
+    import myfract4dc
+    look2 = myfract4dc.lookup_cfunc
+    address2 = myfract4dc.lookup_cfunc.address
+    #print address2
+    #import pdb; pdb.set_trace()
+
     engine = llvm.create_mcjit_compiler(backing_mod, target_machine)
     return engine
 

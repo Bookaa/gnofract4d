@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import numba
-from numba import jit, typeof, int64, float64, complex128 # 0.27.0
+from numba import jit, types, typeof, none, boolean, int8, int64, float64, complex128 # 0.27.0
 import mycalc
 
 from mycalc import myjit, myjitclass, UseLLVM
@@ -130,6 +130,61 @@ class Image(object):
         n = self.index_of_subpixel(x,y,subpixel)
         return self.index_buf[n]
 
+tem33 = Image()
+
+typeof_Image = typeof(tem33)
+
+del tem33
+
+ii_spec = [
+    ('im', typeof_Image),
+    ('index', float64),
+    ('iter', int64),
+    ('fate', numba.uint8),
+    ('pixel', numba.uint8[:]),
+]
+
+@myjitclass(ii_spec)
+class im_info(object):
+    def __init__(self, im):
+        self.im = im
+        self.index = 0.0
+        self.iter = 0
+        self.fate = 0
+        self.pixel = np.array([0,0,0,0], dtype=np.uint8)
+    def init_fate(self, x, y):
+        self.index = 0.0
+        self.iter = 0
+        self.fate = self.im.getFate(x,y,0)
+    def init(self, x, y):
+        self.index = self.im.getIndex(x,y,0)
+        self.iter = self.im.getIter(x,y)
+        self.fate = self.im.getFate(x,y,0)
+        self.pixel = self.im.get(x,y)
+        pass
+    def writeback(self, x, y):
+        self.im.setIter(x,y,self.iter)
+        self.im.setFate(x,y,0,self.fate)
+        self.im.setIndex(x,y,0,self.index)
+    def rectangle(self,x,y,w,h):
+        for i in range(y, y+h):
+            for j in range(x, x+w):
+                self.im.put(j,i,self.pixel)
+    def rectangle_with_iter(self,x,y,w,h):
+        for i in range(y, y+h):
+            for j in range(x, x+w):
+                self.im.put(j,i,self.pixel)
+                self.im.setIter(j,i,self.iter)
+                self.im.setFate(j,i,0,self.fate)
+                self.im.setIndex(j,i,0,self.index)
+    def set_pixel(self, pixel):
+        self.pixel = pixel
+tem32 = Image()
+tem33 = im_info(tem32)
+typ_im_info = typeof(tem33)
+del tem33
+del tem32
+
 def cmap_from_pyobject(segs):
     n = len(segs)
     cmap_items = [] # ColorMap(n)
@@ -203,87 +258,37 @@ def image_dims(_img):
     ytotalsize = _img.totalYres()
     return (xsize, ysize, xtotalsize, ytotalsize, xoffset, yoffset)
 
-@myjit
-def qbox_row(stfw, w, y, rsize, drawsize):
-    x = 0
-    while x < w-rsize:
-        do_pixel(stfw,x,y,drawsize,drawsize)
-        x += rsize-1
-    y2 = y
-    while y2 < y + rsize:
-        row(stfw,x,y2,w-x)
-        y2 += 1
+typ34 = types.Tuple((float64,float64,float64,float64,float64))
+typ_pfo_p = types.Tuple((typ34, typ34))
 
-@myjit
-def do_pixel(stfw, x, y, w, h):
-    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
-    ii = im_info(im)
-    ii.init_fate(x,y)
-    if ii.fate == FATE_UNKNOWN:
-        (ff_topleft, ff_deltax, ff_deltay, ff_maxiter) = ff
-        pos = ff_topleft + ff_deltax * x + ff_deltay * y
-        if UseLLVM:
-            (pixel, fate, index, iter_) = calc_pf_UseLLVM(self_cmap, pos, ff_maxiter)
-        else:
-            (pixel, fate, index, iter_) = calc_pf(self_pfo_p, self_cmap, self_formuNameNo, pos, ff_maxiter)
-        ii2 = im_info(im)
-        ii2.pixel = pixel; ii2.fate = fate; ii2.index = index; ii2.iter = iter_
-        ii2.writeback(x,y)
-        ii2.rectangle(x,y,w,h)
-    else:
-        ii.init(x,y)
-        recolor(ii, self_cmap)
-        ii.rectangle(x,y,w,h)
+typ36 = types.Tuple((float64, float64, float64, int64, int64,
+                     types.Tuple((float64, float64, float64, float64)),
+                     types.Tuple((float64, float64, float64, float64))
+                     ))
 
-@myjit
-def row(stfw, x, y, n):
-    for i in range(n):
-        do_pixel(stfw,x+i, y, 1, 1)
+typ_cmap = types.List(typ36, reflected=True)
 
-@myjit
-def box_row(stfw, w, y, rsize):
-    x = 0
-    while x < w-rsize:
-        do_box(stfw,x,y,rsize)
-        x += rsize - 1
-    for y2 in range(y, y+rsize):
-        row(stfw,x,y2,w-x)
-@myjit
+tem33 = np.array([0.0,0.0,0.0,0.0], dtype = np.float64)
+typeof_dbl4 = typeof(tem33)
+del tem33
+typ_ff = types.Tuple((typeof_dbl4, typeof_dbl4, typeof_dbl4, int64))
+typ_stfw = types.Tuple((typ_pfo_p, typ_cmap, typeof_Image, int64, typ_ff))
+
+tem33 = np.array([0,0,0,0], dtype = np.uint8)
+typeof_array4 = typeof(tem33)
+del tem33
+
+@myjit(int64(typeof_array4))
+def Pixel2INT(pixel):
+    r,g,b,a = pixel
+    return (r << 16) | (g << 8) | b
+
+@myjit(int64(typeof_Image, int64, int64))
 def RGB2INT(im,x,y):
     pixel = im.get(x,y)
     return Pixel2INT(pixel)
 
-@myjit
-def do_box(stfw, x, y, rsize):
-    (_, _, im, self_formuNameNo, ff) = stfw
-    bFlat = True
-    iter = im.getIter(x,y)
-    pcol = RGB2INT(im,x,y)
-    for x2 in range(x, x+rsize):
-        do_pixel(stfw,x2,y,1,1)
-        bFlat = isTheSame(im,bFlat,iter,pcol,x2,y)
-        do_pixel(stfw,x2,y+rsize-1,1,1)
-        bFlat = isTheSame(im,bFlat,iter,pcol,x2,y+rsize-1)
-    for y2 in range(y, y+rsize):
-        do_pixel(stfw,x,y2,1,1)
-        bFlat = isTheSame(im,bFlat,iter,pcol,x,y2)
-        do_pixel(stfw,x+rsize-1,y2,1,1)
-        bFlat = isTheSame(im,bFlat,iter,pcol,x+rsize-1,y2)
-    if bFlat:
-        ii = im_info(im); ii.init(x,y)
-        ii.rectangle_with_iter(x+1,y+1,rsize-2,rsize-2)
-    else:
-        if rsize > 4:
-            half_size = rsize / 2
-            do_box(stfw,x,y,half_size)
-            do_box(stfw,x+half_size,y,half_size)
-            do_box(stfw,x,y+half_size, half_size)
-            do_box(stfw,x+half_size,y+half_size,half_size)
-        else:
-            for y2 in range(y+1,y+rsize-1):
-                row(stfw,x+1,y2,rsize-2)
-
-@myjit
+@myjit(boolean(typeof_Image, boolean, int64, int64, int64, int64))
 def isTheSame(im, bFlat, targetIter, targetCol, x, y):
     if not bFlat:
         return False
@@ -293,267 +298,176 @@ def isTheSame(im, bFlat, targetIter, targetCol, x, y):
         return False
     return True
 
-@myjit
-def Pixel2INT(pixel):
-    r,g,b,a = pixel
-    return (r << 16) | (g << 8) | b
-
-@myjit
-def calc_pf_UseLLVM(cmap, params, nIters):
-    pixel = complex(params[0], params[1])
-    zwpixel = complex(params[2], params[3])
-
-    return Mandelbrot_calc_UseLLVM(pixel, zwpixel, nIters, cmap)
-
-@myjit
-def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
-    cf0cf1, values = pfo_p
-    pixel = complex(params[0], params[1])
-    zwpixel = complex(params[2], params[3])
-
-    return Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuNameNo, cmap)
-
-dtype_i8i8f8f8 = np.dtype([('i1', 'i8'),('i2', 'i8'),('i3', 'f8'),('i4', 'f8'),('i5', 'f8'),('i6', 'i8')])
-dtype_i8f8f8f8f8 = np.dtype([('i1', 'i8'),('i2', 'f8'),('i3', 'f8'),('i4', 'f8'),('i5', 'f8')])
-
-from LiuD import GenLLVM_GFF
-cfunc3_ptr = None
-g_color_params = None
-
-def CompileLLVM(form0_mod, form1_mod, form2_mod, param0, param1, param2):
-    (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = (0.0, 0.0, 0.0, 0.0, 0.0)
-
-    for name1, typ1, val1, enum in param1:
-        if name1 == '_offset': t__a_cf0_offset = val1
-        if name1 == '_density': t__a_cf0_density = val1
-        if name1 == 'bailout': t__a_cf0bailout = val1
-    for name1, typ1, val1, enum in param2:
-        if name1 == '_offset': t__a_cf1_offset = val1
-        if name1 == '_density': t__a_cf1_density = val1
-
-    global g_color_params
-    g_color_params = (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset)
-
-    global cfunc3_ptr
-    theliud3 = GenLLVM_GFF.LLVM_liud(form0_mod, form1_mod, form2_mod, param0, param1, param2)
-    cfunc3_ptr = theliud3.cfuncptr
-    cfunc3_ptr.savme = theliud3
-    # form1 usually continuous_potential
-    # form2 usually zero
-
-@myjit
-def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap):
-    fUseColors = 0
-    colors = [0.0, 0.0, 0.0, 0.0]
-
-    (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = g_color_params
-
-    assert UseLLVM
-    arr = np.zeros(1, dtype=dtype_i8i8f8f8)
-    color_arr = np.zeros(1, dtype=dtype_i8f8f8f8f8)
-    cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter, color_arr.ctypes.data)
-    a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
-    a1 = a1 + len(arr) - len(arr)
-
-    t__h_inside, t__h_numiter, z, indx, solid = a1, a2, complex(a3, a4), a5, a6
-
-    fcolor,colors[0],colors[1],colors[2],colors[3] = color_arr[0]['i1'], color_arr[0]['i2'], color_arr[0]['i3'], color_arr[0]['i4'], color_arr[0]['i5']
-    fUseColors = fcolor + len(color_arr) - len(color_arr)
-
-    if t__h_inside == 0:
-        t__h_index = t__a_cf0_density * indx + t__a_cf0_offset
+@myjit(float64(float64,float64))
+def calc_linear_factor(middle, pos):
+    EPSILON = 1e-10
+    if pos <= middle:
+        if middle < EPSILON:
+            return 0.0
+        return 0.5 * pos / middle
     else:
-        t__h_index = t__a_cf1_density * indx + t__a_cf1_offset
+        pos -= middle
+        middle = 1.0 - middle
+        if middle < EPSILON:
+            return 1.0
+        return 0.5 + 0.5 * pos / middle
 
-    iter_ = t__h_numiter
-    fate = FATE_INSIDE if t__h_inside != 0 else 0
-    dist = t__h_index
-    if solid:
-        fate |= FATE_SOLID
-    if fate & FATE_INSIDE:
-        iter_ = -1
-    if fUseColors:
-        fate |= FATE_DIRECT
-        pixel_ = lookup_with_dca(solid, colors)
+@myjit(float64(float64,float64))
+def calc_sphere_decreasing_factor(middle, pos):
+    pos = calc_linear_factor(middle, pos)
+    return 1.0 - math.sqrt(1.0 - pos * pos)
+
+@myjit(float64(float64,float64))
+def calc_sphere_increasing_factor(middle, pos):
+    pos = calc_linear_factor(middle, pos) - 1.0
+    return math.sqrt(1.0 - pos * pos)
+
+@myjit(float64(float64,float64))
+def calc_sine_factor(middle, pos):
+    pos = calc_linear_factor(middle, pos)
+    return (math.sin((-math.pi / 2.0) + math.pi * pos) + 1.0) / 2.0
+
+@myjit(float64(float64,float64))
+def calc_curved_factor(middle, pos):
+    EPSILON = 1e-10
+    middle = max(middle, EPSILON)
+    return math.pow(pos, math.log(0.5)) / math.log(middle)
+
+@myjit(types.Tuple((float64,float64,float64))(float64,float64,float64))
+def hsv_to_rgb(h,s,v):
+    if s == 0:
+        return (v,v,v)
+    while h > 6.0:
+        h -= 6.0
+    if h < 0:
+        h += 6.0
+    i = int(h)
+    f = h - i
+    p = v * (1 - s)
+    q = v * (1 - s * f)
+    t = v * (1 - s * (1 - f))
+    if i == 0:
+        return (v, t, p)
+    elif i == 1:
+        return (q, v, p)
+    elif i == 2:
+        return (p, v, t)
+    elif i == 3:
+        return (p, q, v)
+    elif i == 4:
+        return (t, p, v)
+    elif i == 5:
+        return (v, p, q)
     else:
-        pixel_ = lookup_with_transfer(cmap, dist, solid)
-    return (pixel_, fate, dist, iter_)
+        #assert False
+        return (0.0, 0.0, 0.0)
+@myjit(types.Tuple((float64,float64,float64))(float64,float64,float64))
+def gimp_hsv_to_rgb(h,s,v):
+    return hsv_to_rgb(h * 6.0, s, v)
 
-@myjit
-def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap):
-    fUseColors = 0
-    colors = [0.0, 0.0, 0.0, 0.0]
+@myjit(int64(float64,typ_cmap,int64))
+def grad_find(index, items, ncolors):
 
-    (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = cf0cf1
+    i = ncolors - ncolors
 
-    assert not UseLLVM
+    while i < ncolors:
+        (left, right, mid, bmode, cmode, leftc, rightc) = items[i]
+        if index <= right:
+            return i
+        i+=1
 
-    if formuNameNo == 1: # 'Mandelbrot':
-        t__a_fbailout = param_values[0]
-        if UseLLVM:
-            pass
-        else:
-            t__h_inside, t__h_numiter, z, indx, solid = mycalc.Mandelbrot_1(t__a_fbailout, pixel, zwpixel, maxiter)
+    return -1
 
-
-    elif formuNameNo == 2: # 'CGNewton3':
-        p1 = complex(param_values[0], param_values[1])
-        if UseLLVM:
-            pass
-        else:
-            t__h_inside, t__h_numiter, z, indx, solid = mycalc.CGNewton3_1(p1, pixel, maxiter)
-    else: # if formuNameNo == 3: # 'Cubic Mandelbrot':
-        t__a_fbailout = param_values[0]
-        fa = complex(param_values[1], param_values[2])
-        if UseLLVM:
-            pass
-        else:
-            t__h_inside, t__h_numiter, z, indx, solid = mycalc.Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, zwpixel, maxiter)
-
-    if t__h_inside == 0:
-        t__h_index = t__a_cf0_density * indx + t__a_cf0_offset
+@myjit(types.Tuple((float64,float64,float64))(float64,float64,float64))
+def rgb_to_hsv(r,g,b):
+    min_ = min(r,g,b)
+    max_ = max(r,g,b)
+    v = max_
+    delta = max_ - min_
+    s = 0.0 if max_ == 0.0 else delta / max_
+    if s == 0.0:
+        h = 0.0
+        return (h,s,v)
+    if r == max_:
+        h = (g - b) / delta
+    elif g == max_:
+        h = 2.0 + (b - r) / delta
     else:
-        t__h_index = t__a_cf1_density * indx + t__a_cf1_offset
+        h = 4.0 + (r - g) / delta
+    if h < 0.0:
+        h += 6.0
+    return (h, s, v)
+@myjit(types.Tuple((float64,float64,float64))(float64,float64,float64))
+def gimp_rgb_to_hsv(r,g,b):
+    (h,s,v) = rgb_to_hsv(r,g,b)
+    return (h / 6.0, s, v)
 
+@myjit(types.Tuple((int8, int8, int8, int8))(typ_cmap, float64))
+def look33up(cmap_items, input_index):
+    self_items = cmap_items
+    self_ncolors = len(cmap_items)
+    index = 1.0 if input_index == 1.0 else input_index - int(input_index)
+    i = grad_find(index, self_items, self_ncolors)
+    seg = self_items[i]
+    (seg_left, seg_right, seg_mid, seg_bmode, seg_cmode, seg_left_color, seg_right_color) = seg
 
-    iter_ = t__h_numiter
-    fate = FATE_INSIDE if t__h_inside != 0 else 0
-    dist = t__h_index
-    if solid:
-        fate |= FATE_SOLID
-    if fUseColors:
-        fate |= FATE_DIRECT
-    if fate & FATE_INSIDE:
-        iter_ = -1
-    if fUseColors:
-        pixel_ = lookup_with_dca(solid, colors)
+    seg_len = seg_right - seg_left
+    EPSILON = 1e-10
+    if seg_len < EPSILON:
+        middle = 0.5
+        pos = 0.5
     else:
-        pixel_ = lookup_with_transfer(cmap, dist, solid)
-    return (pixel_, fate, dist, iter_)
-
-@jit(float64(complex128))
-def abs2(c):
-    return c.imag * c.imag + c.real * c.real
-
-
-tem33 = Image()
-
-ii_spec = [
-    #('im', typeof(Image)),
-    ('im', typeof(tem33)),
-    ('index', float64),
-    ('iter', int64),
-    ('fate', numba.uint8),
-    ('pixel', numba.uint8[:]),
-]
-del tem33
-
-@myjitclass(ii_spec)
-class im_info(object):
-    def __init__(self, im):
-        self.im = im
-        self.index = 0.0
-        self.iter = 0
-        self.fate = 0
-        self.pixel = np.array([0,0,0,0], dtype=np.uint8)
-    def init_fate(self, x, y):
-        self.index = 0.0
-        self.iter = 0
-        self.fate = self.im.getFate(x,y,0)
-    def init(self, x, y):
-        self.index = self.im.getIndex(x,y,0)
-        self.iter = self.im.getIter(x,y)
-        self.fate = self.im.getFate(x,y,0)
-        self.pixel = self.im.get(x,y)
+        middle = (seg_mid - seg_left) / seg_len
+        pos = (index - seg_left) / seg_len
+    if seg_bmode == BLEND_LINEAR:
+        factor = calc_linear_factor(middle, pos)
+    elif seg_bmode == BLEND_CURVED:
+        factor = calc_curved_factor(middle, pos)
+    elif seg_bmode == BLEND_SINE:
+        factor = calc_sine_factor(middle, pos)
+    elif seg_bmode == BLEND_SPHERE_INCREASING:
+        factor = calc_sphere_increasing_factor(middle, pos)
+    elif seg_bmode == BLEND_SPHERE_DECREASING:
+        factor = calc_sphere_decreasing_factor(middle, pos)
+    else:
         pass
-    def writeback(self, x, y):
-        self.im.setIter(x,y,self.iter)
-        self.im.setFate(x,y,0,self.fate)
-        self.im.setIndex(x,y,0,self.index)
-    def rectangle(self,x,y,w,h):
-        for i in range(y, y+h):
-            for j in range(x, x+w):
-                self.im.put(j,i,self.pixel)
-    def rectangle_with_iter(self,x,y,w,h):
-        for i in range(y, y+h):
-            for j in range(x, x+w):
-                self.im.put(j,i,self.pixel)
-                self.im.setIter(j,i,self.iter)
-                self.im.setFate(j,i,0,self.fate)
-                self.im.setIndex(j,i,0,self.index)
-    def set_pixel(self, pixel):
-        self.pixel = pixel
+        # assert False
+    lc = seg_left_color
+    rc = seg_right_color
+    if seg_cmode == RGB:
+        r = 255.0 * (lc[0] + (rc[0] - lc[0]) * factor)
+        g = 255.0 * (lc[1] + (rc[1] - lc[1]) * factor)
+        b = 255.0 * (lc[2] + (rc[2] - lc[2]) * factor)
+        a = 255.0 * (lc[3] + (rc[3] - lc[3]) * factor)
+        r = int(r) % 256
+        g = int(g) % 256
+        b = int(b) % 256
+        a = int(a) % 256
+        return r,g,b,a #np.array([r,g,b,a], dtype=np.uint8)
+    elif seg_cmode in (HSV_CCW, HSV_CW):
+        (lh,ls,lv) = gimp_rgb_to_hsv(lc[0], lc[1], lc[2])
+        (rh,rs,rv) = gimp_rgb_to_hsv(rc[0], rc[1], rc[2])
 
-@myjit
-def recolor(selfii, cmap):
-    dist = selfii.index
-    fate = selfii.fate
-    solid = 0
-    inside = 0
-    if fate & FATE_DIRECT:
-        return
-    if fate & FATE_SOLID:
-        solid = 1
-    if fate & FATE_INSIDE:
-        inside = 1
-    pixel = lookup_with_transfer(cmap, dist, solid)
-    selfii.set_pixel(pixel)
-
-@myjit
-def GetPos_delta(im, params):
-    xtotalsize = im.totalXres()
-    ytotalsize = im.totalYres()
-    xoffset = im.Xoffset()
-    yoffset = im.Yoffset()
-
-    center = np.array([params[XCENTER], params[YCENTER], params[ZCENTER], params[WCENTER]])
-    #print 'mycenter', center
-
-    rot = rotated_matrix(params)
-
-    rot = rot / xtotalsize
-    #print 'myrot', rot
-
-    self_deltax = rot[VX] #.getA1()
-    self_deltay = -rot[VY] #.getA1()
-
-    delta_aa_x = self_deltax / 2.0
-    delta_aa_y = self_deltay / 2.0
-
-    topleft = center - self_deltax * xtotalsize / 2.0 - self_deltay * ytotalsize / 2.0
-
-    topleft += xoffset * self_deltax;
-    topleft += yoffset * self_deltay;
-
-    topleft += delta_aa_x + delta_aa_y;
-
-    return self_deltax, self_deltay, topleft
-
-@myjit
-def draw_8(stfw):
-    (self_pfo_p, _, im, self_formuNameNo, ff) = stfw
-
-    rsize = 16; drawsize = 16
-    xsize = im.Xres(); ysize = im.Yres()
-    w = xsize; h = ysize
-    y = 0
-    while y < h - rsize:
-        qbox_row(stfw,w,y,rsize,drawsize)
-        y += rsize
-    while y < h:
-        row(stfw,0,y,w)
-        y += 1
-    y = 0
-    while y < h - rsize:
-        box_row(stfw,w,y,rsize)
-        y += rsize
-
-@myjit
-def lookup_with_transfer(cmap_items, index, solid):
-    black = np.array([0,0,0,255], dtype=np.uint8)
-    if solid:
-        return black
-    return lookup(cmap_items, index)
+        if seg_cmode == HSV_CCW and lh >= rh:
+            rh += 1.0
+        if seg_cmode == HSV_CW and lh <= rh:
+            lh += 1.0
+        h = lh + (rh - lh) * factor
+        s = ls + (rs - ls) * factor
+        v = lv + (rv - lv) * factor
+        if h > 1.0:
+            h -= 1.0
+        (r,g,b) = gimp_hsv_to_rgb(h,s,v)
+        a = 255.0 * (lc[3] + (rc[3] - lc[3]) * factor)
+        r = int(r*255.0) % 256
+        g = int(g*255.0) % 256
+        b = int(b*255.0) % 256
+        a = int(a) % 256
+        return r,g,b,a #np.array([r,g,b,a], dtype=np.uint8)
+    else:
+        pass
+        # assert False
+        return 0,0,0,0 #np.array([0,0,0,0], dtype=np.uint8)
 
 @myjit
 def lookup(cmap_items, input_index):
@@ -622,7 +536,30 @@ def lookup(cmap_items, input_index):
         # assert False
         return np.array([0,0,0,0], dtype=np.uint8)
 
-@jit
+@myjit(typeof_array4(typ_cmap, float64, int64))
+def lookup_with_transfer(cmap_items, index, solid):
+    black = np.array([0,0,0,255], dtype=np.uint8)
+    if solid:
+        return black
+    #return lookup(cmap_items, index)
+    r,g,b,a = look33up(cmap_items, index)
+    return np.array([r,g,b,a], dtype=np.uint8)
+    #return look33up(index)
+
+#@jit(typeof(np.zeros((4,),dtype='f8',order='C'))(int64,float64[:]))
+#@jit #(int8[:](int64,float64[:]))
+@jit(typeof_array4(int64,types.Tuple((float64,float64,float64,float64))))
+def lookup_with_dca_nt(solid, colors):
+    black = np.array([0,0,0,255], dtype=np.uint8)
+    if solid:
+        return black
+    r = int(255.0 * colors[0]) % 256
+    g = int(255.0 * colors[1]) % 256
+    b = int(255.0 * colors[2]) % 256
+    a = int(255.0 * colors[3]) % 256
+    return np.array([r,g,b,a], dtype=np.uint8)
+
+@jit #(typeof_array4(int64,types.Tuple((float64,float64,float64,float64))))
 def lookup_with_dca(solid, colors):
     black = np.array([0,0,0,255], dtype=np.uint8)
     if solid:
@@ -633,111 +570,293 @@ def lookup_with_dca(solid, colors):
     a = int(255.0 * colors[3]) % 256
     return np.array([r,g,b,a], dtype=np.uint8)
 
-@myjit
-def rgb_to_hsv(r,g,b):
-    min_ = min(r,g,b)
-    max_ = max(r,g,b)
-    v = max_
-    delta = max_ - min_
-    s = 0.0 if max_ == 0.0 else delta / max_
-    if s == 0.0:
-        h = 0
-        return (h,s,v)
-    if r == max_:
-        h = (g - b) / delta
-    elif g == max_:
-        h = 2 + (b - r) / delta
+dtype_i8i8f8f8 = np.dtype([('i1', 'i8'),('i2', 'i8'),('i3', 'f8'),('i4', 'f8'),('i5', 'f8'),('i6', 'i8')])
+dtype_i8f8f8f8f8 = np.dtype([('i1', 'i8'),('i2', 'f8'),('i3', 'f8'),('i4', 'f8'),('i5', 'f8')])
+
+from LiuD import GenLLVM_GFF
+cfunc3_ptr = None
+g_color_params = None
+
+def CompileLLVM(form0_mod, form1_mod, form2_mod, param0, param1, param2):
+    (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = (0.0, 0.0, 0.0, 0.0, 0.0)
+
+    for name1, typ1, val1, enum in param1:
+        if name1 == '_offset': t__a_cf0_offset = val1
+        if name1 == '_density': t__a_cf0_density = val1
+        if name1 == 'bailout': t__a_cf0bailout = val1
+    for name1, typ1, val1, enum in param2:
+        if name1 == '_offset': t__a_cf1_offset = val1
+        if name1 == '_density': t__a_cf1_density = val1
+
+    global g_color_params
+    g_color_params = (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset)
+
+    global cfunc3_ptr
+    theliud3 = GenLLVM_GFF.LLVM_liud(form0_mod, form1_mod, form2_mod, param0, param1, param2)
+    cfunc3_ptr = theliud3.cfuncptr
+    cfunc3_ptr.savme = theliud3
+    # form1 usually continuous_potential
+    # form2 usually zero
+
+@myjit #(types.Tuple((int8[:], int64, float64, int64))(complex128, complex128, int64, typ_cmap))
+def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap):
+    #print 'xxx',pixel, zwpixel, maxiter, cmap
+    fUseColors = 0
+    colors = [0.0, 0.0, 0.0, 0.0]
+
+    (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = g_color_params
+
+    assert UseLLVM
+    arr = np.zeros(1, dtype=dtype_i8i8f8f8)
+    color_arr = np.zeros(1, dtype=dtype_i8f8f8f8f8)
+    cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter, color_arr.ctypes.data)
+    a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
+    a1 = a1 + len(arr) - len(arr)
+
+    t__h_inside, t__h_numiter, z, indx, solid = a1, a2, complex(a3, a4), a5, a6
+
+    fcolor,colors[0],colors[1],colors[2],colors[3] = color_arr[0]['i1'], color_arr[0]['i2'], color_arr[0]['i3'], color_arr[0]['i4'], color_arr[0]['i5']
+    fUseColors = fcolor + len(color_arr) - len(color_arr)
+
+    #colors[0] = 0.0 # I donot know why it always nan or inf
+
+    if t__h_inside == 0:
+        t__h_index = t__a_cf0_density * indx + t__a_cf0_offset
     else:
-        h = 4 + (r - g) / delta
-    if h < 0:
-        h += 6.0
-    return (h, s, v)
-@myjit
-def gimp_rgb_to_hsv(r,g,b):
-    (h,s,v) = rgb_to_hsv(r,g,b)
-    return (h / 6.0, s, v)
+        t__h_index = t__a_cf1_density * indx + t__a_cf1_offset
 
-@myjit
-def hsv_to_rgb(h,s,v):
-    if s == 0:
-        return (v,v,v)
-    while h > 6.0:
-        h -= 6.0
-    if h < 0:
-        h += 6.0
-    i = int(h)
-    f = h - i
-    p = v * (1 - s)
-    q = v * (1 - s * f)
-    t = v * (1 - s * (1 - f))
-    if i == 0:
-        return (v, t, p)
-    elif i == 1:
-        return (q, v, p)
-    elif i == 2:
-        return (p, v, t)
-    elif i == 3:
-        return (p, q, v)
-    elif i == 4:
-        return (t, p, v)
-    elif i == 5:
-        return (v, p, q)
+    iter_ = t__h_numiter
+    fate = FATE_INSIDE if t__h_inside != 0 else 0
+    dist = t__h_index
+    if solid:
+        fate |= FATE_SOLID
+    if fate & FATE_INSIDE:
+        iter_ = -1
+    if fUseColors:
+        fate |= FATE_DIRECT
+        #pixel_ = lookup_with_dca(solid, colors)
+        pixel_ = lookup_with_dca_nt(solid, (colors[0],colors[1],colors[2],colors[3]))
     else:
-        #assert False
-        return (0, 0, 0)
-@myjit
-def gimp_hsv_to_rgb(h,s,v):
-    return hsv_to_rgb(h * 6.0, s, v)
+        pixel_ = lookup_with_transfer(cmap, dist, solid)
+    #print 'fff',pixel_, fate, dist, iter_
+    # fff [ 70  72 230 255] 0 0.00330332703674 0
 
-@myjit
-def calc_sphere_decreasing_factor(middle, pos):
-    pos = calc_linear_factor(middle, pos)
-    return 1.0 - math.sqrt(1.0 - pos * pos)
+    return (pixel_, fate, dist, iter_)
 
+#[((float64 x 5), complex128, complex128, int64, (float64 x 5), int64, reflected list((float64, float64, float64, int64, int64, (float64 x 4), (float64 x 4))))]
+#@myjit(types.Tuple((int64,int64,complex128,float64,int64))(float64, complex128, complex128, int64))
 @myjit
-def calc_sphere_increasing_factor(middle, pos):
-    pos = calc_linear_factor(middle, pos) - 1.0
-    return math.sqrt(1.0 - pos * pos)
+def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap):
+    fUseColors = 0
+    colors = [0.0, 0.0, 0.0, 0.0]
 
-@myjit
-def calc_sine_factor(middle, pos):
-    pos = calc_linear_factor(middle, pos)
-    return (math.sin((-math.pi / 2.0) + math.pi * pos) + 1.0) / 2.0
+    (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = cf0cf1
 
-@myjit
-def calc_curved_factor(middle, pos):
-    EPSILON = 1e-10
-    middle = max(middle, EPSILON)
-    return math.pow(pos, math.log(0.5)) / math.log(middle)
+    assert not UseLLVM
 
-@myjit
-def calc_linear_factor(middle, pos):
-    EPSILON = 1e-10
-    if pos <= middle:
-        if middle < EPSILON:
-            return 0.0
-        return 0.5 * pos / middle
+    if formuNameNo == 1: # 'Mandelbrot':
+        t__a_fbailout = param_values[0]
+        if UseLLVM:
+            pass
+        else:
+            t__h_inside, t__h_numiter, z, indx, solid = mycalc.Mandelbrot_1(t__a_fbailout, pixel, zwpixel, maxiter)
+
+
+    elif formuNameNo == 2: # 'CGNewton3':
+        p1 = complex(param_values[0], param_values[1])
+        if UseLLVM:
+            pass
+        else:
+            t__h_inside, t__h_numiter, z, indx, solid = mycalc.CGNewton3_1(p1, pixel, maxiter)
+    else: # if formuNameNo == 3: # 'Cubic Mandelbrot':
+        t__a_fbailout = param_values[0]
+        fa = complex(param_values[1], param_values[2])
+        if UseLLVM:
+            pass
+        else:
+            t__h_inside, t__h_numiter, z, indx, solid = mycalc.Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, zwpixel, maxiter)
+
+    if t__h_inside == 0:
+        t__h_index = t__a_cf0_density * indx + t__a_cf0_offset
     else:
-        pos -= middle
-        middle = 1.0 - middle
-        if middle < EPSILON:
-            return 1.0
-        return 0.5 + 0.5 * pos / middle
+        t__h_index = t__a_cf1_density * indx + t__a_cf1_offset
+
+
+    iter_ = t__h_numiter
+    fate = FATE_INSIDE if t__h_inside != 0 else 0
+    dist = t__h_index
+    if solid:
+        fate |= FATE_SOLID
+    if fUseColors:
+        fate |= FATE_DIRECT
+    if fate & FATE_INSIDE:
+        iter_ = -1
+    if fUseColors:
+        pixel_ = lookup_with_dca(solid, colors)
+    else:
+        pixel_ = lookup_with_transfer(cmap, dist, solid)
+    return (pixel_, fate, dist, iter_)
+
+@myjit #(types.Tuple((int8[:], int64, float64, int64))(typ_cmap, float64[:], int64))
+def calc_pf_UseLLVM(cmap, params, nIters):
+    pixel = complex(params[0], params[1])
+    zwpixel = complex(params[2], params[3])
+
+    return Mandelbrot_calc_UseLLVM(pixel, zwpixel, nIters, cmap)
 
 @myjit
-def grad_find(index, items, ncolors):
+def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
+    cf0cf1, values = pfo_p
+    pixel = complex(params[0], params[1])
+    zwpixel = complex(params[2], params[3])
 
-    i = ncolors - ncolors
+    return Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuNameNo, cmap)
 
-    while i < ncolors:
-        (left, right, mid, bmode, cmode, leftc, rightc) = items[i]
-        if index <= right:
-            return i
-        i+=1
+@jit(float64(complex128))
+def abs2(c):
+    return c.imag * c.imag + c.real * c.real
 
-    return -1
+@myjit(none(typ_im_info, typ_cmap))
+def recolor(selfii, cmap):
+    dist = selfii.index
+    fate = selfii.fate
+    solid = 0
+    inside = 0
+    if fate & FATE_DIRECT:
+        return
+    if fate & FATE_SOLID:
+        solid = 1
+    if fate & FATE_INSIDE:
+        inside = 1
+    pixel = lookup_with_transfer(cmap, dist, solid)
+    selfii.set_pixel(pixel)
 
-@myjit
+@myjit#(none(typ_stfw, int64, int64, int64, int64))
+def do_pixel(stfw, x, y, w, h):
+    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+    ii = im_info(im)
+    ii.init_fate(x,y)
+    if ii.fate == FATE_UNKNOWN:
+        (ff_topleft, ff_deltax, ff_deltay, ff_maxiter) = ff
+        pos = ff_topleft + ff_deltax * x + ff_deltay * y
+        if UseLLVM:
+            (pixel, fate, index, iter_) = calc_pf_UseLLVM(self_cmap, pos, ff_maxiter)
+        else:
+            (pixel, fate, index, iter_) = calc_pf(self_pfo_p, self_cmap, self_formuNameNo, pos, ff_maxiter)
+        ii2 = im_info(im)
+        ii2.pixel = pixel; ii2.fate = fate; ii2.index = index; ii2.iter = iter_
+        ii2.writeback(x,y)
+        ii2.rectangle(x,y,w,h)
+    else:
+        ii.init(x,y)
+        recolor(ii, self_cmap)
+        ii.rectangle(x,y,w,h)
+
+@myjit #(none(typ_stfw, int64, int64, int64))
+def row(stfw, x, y, n):
+    for i in range(n):
+        do_pixel(stfw,x+i, y, 1, 1)
+
+@myjit #(none(typ_stfw, int64, int64, int64, int64))
+def qbox_row(stfw, w, y, rsize, drawsize):
+    x = 0
+    while x < w-rsize:
+        do_pixel(stfw,x,y,drawsize,drawsize)
+        x += rsize-1
+    y2 = y
+    while y2 < y + rsize:
+        row(stfw,x,y2,w-x)
+        y2 += 1
+
+@myjit #(none(typ_stfw, int64, int64, int64))
+def do_box(stfw, x, y, rsize):
+    (_, _, im, self_formuNameNo, ff) = stfw
+    bFlat = True
+    iter = im.getIter(x,y)
+    pcol = RGB2INT(im,x,y)
+    for x2 in range(x, x+rsize):
+        do_pixel(stfw,x2,y,1,1)
+        bFlat = isTheSame(im,bFlat,iter,pcol,x2,y)
+        do_pixel(stfw,x2,y+rsize-1,1,1)
+        bFlat = isTheSame(im,bFlat,iter,pcol,x2,y+rsize-1)
+    for y2 in range(y, y+rsize):
+        do_pixel(stfw,x,y2,1,1)
+        bFlat = isTheSame(im,bFlat,iter,pcol,x,y2)
+        do_pixel(stfw,x+rsize-1,y2,1,1)
+        bFlat = isTheSame(im,bFlat,iter,pcol,x+rsize-1,y2)
+    if bFlat:
+        ii = im_info(im); ii.init(x,y)
+        ii.rectangle_with_iter(x+1,y+1,rsize-2,rsize-2)
+    else:
+        if rsize > 4:
+            half_size = rsize / 2
+            do_box(stfw,x,y,half_size)
+            do_box(stfw,x+half_size,y,half_size)
+            do_box(stfw,x,y+half_size, half_size)
+            do_box(stfw,x+half_size,y+half_size,half_size)
+        else:
+            for y2 in range(y+1,y+rsize-1):
+                row(stfw,x+1,y2,rsize-2)
+
+@myjit #(none(typ_stfw, int64, int64, int64))
+def box_row(stfw, w, y, rsize):
+    x = 0
+    while x < w-rsize:
+        do_box(stfw,x,y,rsize)
+        x += rsize - 1
+    for y2 in range(y, y+rsize):
+        row(stfw,x,y2,w-x)
+
+@myjit(int64(typ_pfo_p))
+def test_param1(self_pfo_p):
+    return 0
+
+@myjit(int64(typ_cmap))
+def test_param2(self_cmap):
+    return 0
+
+#@myjit(int64(typeof_Image))
+#def test_param3(im):
+#    return 0
+
+@myjit(int64(int64))
+def test_param4(fnno):
+    return 0
+
+
+@myjit(none(typ_ff))
+def test_param5(ff):
+    pass
+
+
+@myjit #(none(typ_stfw))
+def draw_8(stfw):
+    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+
+    test_param1(self_pfo_p)
+    #for v in self_cmap:
+    #    print v
+    test_param2(self_cmap)
+    #test_param3(im)
+    test_param4(self_formuNameNo)
+    test_param5(ff)
+
+    rsize = 16; drawsize = 16
+    xsize = im.Xres(); ysize = im.Yres()
+    w = xsize; h = ysize
+    y = 0
+    while y < h - rsize:
+        qbox_row(stfw,w,y,rsize,drawsize)
+        y += rsize
+    while y < h:
+        row(stfw,0,y,w)
+        y += 1
+    y = 0
+    while y < h - rsize:
+        box_row(stfw,w,y,rsize)
+        y += rsize
+
+@myjit(float64[:](float64,float64,float64))
 def rotXY(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -746,7 +865,7 @@ def rotXY(theta, one, zero):
         zero, zero, one, zero,
         zero, zero, zero, one], dtype=np.float64) #.reshape((4,4))
 
-@myjit
+@myjit(float64[:](float64,float64,float64))
 def rotXZ(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -754,7 +873,7 @@ def rotXZ(theta, one, zero):
         zero, one, zero, zero,
         -s, zero, c, zero,
         zero, zero, zero, one], dtype=np.float64) #.reshape((4,4))
-@myjit
+@myjit(float64[:](float64,float64,float64))
 def rotXW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -762,7 +881,7 @@ def rotXW(theta, one, zero):
         zero, one, zero, zero,
         zero, zero, one, zero,
         -s, zero, zero, c], dtype=np.float64) #.reshape((4,4))
-@myjit
+@myjit(float64[:](float64,float64,float64))
 def rotYZ(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -770,7 +889,7 @@ def rotYZ(theta, one, zero):
         zero, c, -s, zero,
         zero, s, c, zero,
         zero, zero, zero, one], dtype=np.float64) #.reshape((4,4))
-@myjit
+@myjit(float64[:](float64,float64,float64))
 def rotYW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -778,7 +897,7 @@ def rotYW(theta, one, zero):
         zero, c, zero, s,
         zero, zero, one, zero,
         zero, -s, zero, c], dtype=np.float64) #.reshape((4,4))
-@myjit
+@myjit(float64[:](float64,float64,float64))
 def rotZW(theta, one, zero):
     c = math.cos(theta)
     s = math.sin(theta)
@@ -787,7 +906,7 @@ def rotZW(theta, one, zero):
         zero, zero, c, -s,
         zero, zero, s, c], dtype=np.float64) #.reshape((4,4))
 
-@myjit
+@myjit(typeof(np.zeros((16,), dtype='f8', order='C'))(float64[:],float64[:]))
 def matmult(a,b):
     return np.array([a[0]*b[0]+a[1]*b[4]+a[2]*b[8]+a[3]*b[12],
                      a[0]*b[1]+a[1]*b[5]+a[2]*b[9]+a[3]*b[13],
@@ -810,7 +929,7 @@ def matmult(a,b):
                      a[12]*b[3]+a[13]*b[7]+a[14]*b[11]+a[15]*b[15],
                      ])
 
-@myjit
+@myjit #(typeof(np.zeros((4,4), dtype='f8', order='C'))(float64[:]))
 def rotated_matrix(params):
     id = (np.identity(4) * params[MAGNITUDE]).reshape(16)
     m12 = rotXY(params[XYANGLE], 1.0, 0.0)
@@ -826,6 +945,37 @@ def rotated_matrix(params):
     m23 = rotZW(params[ZWANGLE], 1.0, 0.0)
     m = matmult(m, m23)
     return m.reshape((4,4))
+
+@myjit #(types.Tuple((float64[:],float64[:],float64[:]))(typeof_Image,float64[:]))
+def GetPos_delta(im, params):
+    xtotalsize = im.totalXres()
+    ytotalsize = im.totalYres()
+    xoffset = im.Xoffset()
+    yoffset = im.Yoffset()
+
+    center = np.array([params[XCENTER], params[YCENTER], params[ZCENTER], params[WCENTER]])
+    #print 'mycenter', center
+
+    rot = rotated_matrix(params)
+
+    rot = rot / xtotalsize
+    #print 'myrot', rot
+
+    self_deltax = rot[VX] #.getA1()
+    self_deltay = -rot[VY] #.getA1()
+
+    delta_aa_x = self_deltax / 2.0
+    delta_aa_y = self_deltay / 2.0
+
+    topleft = center - self_deltax * xtotalsize / 2.0 - self_deltay * ytotalsize / 2.0
+
+    topleft += xoffset * self_deltax;
+    topleft += yoffset * self_deltay;
+
+    topleft += delta_aa_x + delta_aa_y;
+
+    return self_deltax, self_deltay, topleft
+
 
 def parse_params_to_dict(params):
     (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = (0.0, 0.0, 0.0, 0.0, 0.0)
@@ -846,6 +996,8 @@ def parse_params_to_dict(params):
             else:
                 values.append(param)
 
+    while len(values) < 5:
+        values.append(0.0)
     cf0cf1 = (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset)
     return (cf0cf1, tuple(values))
 
@@ -866,5 +1018,104 @@ def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
 
     pfcls = (formuNameNo, params, pfo_p, cmap, maxiter, _img)
 
+    global g_33
+    g_33 = cmap
+    print 'here33'
+
+    #import pdb; pdb.set_trace()
+
     for (xoff,yoff,xres,yres) in image.get_tile_list():
         calc_7(pfcls, xoff, yoff, xres, yres)
+
+    #print look33up.inspect_llvm().values()[0]
+
+Cmap_spec = [
+    ('m_1', typ_cmap),
+]
+
+@myjitclass(Cmap_spec)
+class ClassCmap(object):
+    def __init__(self, items):
+        self.m_1 = items
+
+typ36 = types.Tuple((float64, float64, float64, int64, int64,
+                     types.Tuple((float64, float64, float64, float64)),
+                     types.Tuple((float64, float64, float64, float64))
+                     ))
+tem32 = [(0.0,0.0,0.0,0,0,(0.0,0.0,0.0,0.0),(0.0,0.0,0.0,0.0))]
+tem33 = ClassCmap(tem32)
+typ_ccmap = typeof(tem33)
+del tem33
+del tem32
+
+g_33 = [(0.0,0.0,0.0,0,0,(0.0,0.0,0.0,0.0),(0.0,0.0,0.0,0.0))]
+
+# define [4 x i8]
+# @"cfunc.myfract4dc.lookup_cfunc$65.reflected_list((float64,_float64,_float64,_int64,_int64,_(float64_x_4),_(float64_x_4))).float64"
+# ({ i8*, i8* } %.1, double %.2)
+@numba.cfunc(types.Tuple((int8, int8, int8, int8))(typ_cmap, float64))
+def lookup_cfunc(cmap_items, input_index):
+    self_items = cmap_items
+    self_ncolors = len(cmap_items)
+    index = 1.0 if input_index == 1.0 else input_index - int(input_index)
+    i = grad_find(index, self_items, self_ncolors)
+    seg = self_items[i]
+    (seg_left, seg_right, seg_mid, seg_bmode, seg_cmode, seg_left_color, seg_right_color) = seg
+
+    seg_len = seg_right - seg_left
+    EPSILON = 1e-10
+    if seg_len < EPSILON:
+        middle = 0.5
+        pos = 0.5
+    else:
+        middle = (seg_mid - seg_left) / seg_len
+        pos = (index - seg_left) / seg_len
+    if seg_bmode == BLEND_LINEAR:
+        factor = calc_linear_factor(middle, pos)
+    elif seg_bmode == BLEND_CURVED:
+        factor = calc_curved_factor(middle, pos)
+    elif seg_bmode == BLEND_SINE:
+        factor = calc_sine_factor(middle, pos)
+    elif seg_bmode == BLEND_SPHERE_INCREASING:
+        factor = calc_sphere_increasing_factor(middle, pos)
+    elif seg_bmode == BLEND_SPHERE_DECREASING:
+        factor = calc_sphere_decreasing_factor(middle, pos)
+    else:
+        pass
+        # assert False
+    lc = seg_left_color
+    rc = seg_right_color
+    if seg_cmode == RGB:
+        r = 255.0 * (lc[0] + (rc[0] - lc[0]) * factor)
+        g = 255.0 * (lc[1] + (rc[1] - lc[1]) * factor)
+        b = 255.0 * (lc[2] + (rc[2] - lc[2]) * factor)
+        a = 255.0 * (lc[3] + (rc[3] - lc[3]) * factor)
+        r = int(r) % 256
+        g = int(g) % 256
+        b = int(b) % 256
+        a = int(a) % 256
+        return r,g,b,a #np.array([r,g,b,a], dtype=np.uint8)
+    elif seg_cmode in (HSV_CCW, HSV_CW):
+        (lh,ls,lv) = gimp_rgb_to_hsv(lc[0], lc[1], lc[2])
+        (rh,rs,rv) = gimp_rgb_to_hsv(rc[0], rc[1], rc[2])
+
+        if seg_cmode == HSV_CCW and lh >= rh:
+            rh += 1.0
+        if seg_cmode == HSV_CW and lh <= rh:
+            lh += 1.0
+        h = lh + (rh - lh) * factor
+        s = ls + (rs - ls) * factor
+        v = lv + (rv - lv) * factor
+        if h > 1.0:
+            h -= 1.0
+        (r,g,b) = gimp_hsv_to_rgb(h,s,v)
+        a = 255.0 * (lc[3] + (rc[3] - lc[3]) * factor)
+        r = int(r*255.0) % 256
+        g = int(g*255.0) % 256
+        b = int(b*255.0) % 256
+        a = int(a) % 256
+        return r,g,b,a #np.array([r,g,b,a], dtype=np.uint8)
+    else:
+        pass
+        # assert False
+        return 0,0,0,0 #np.array([0,0,0,0], dtype=np.uint8)
