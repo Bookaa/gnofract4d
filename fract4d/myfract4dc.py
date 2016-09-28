@@ -609,7 +609,29 @@ def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap):
     assert UseLLVM
     arr = np.zeros(1, dtype=dtype_i8i8f8f8)
     color_arr = np.zeros(1, dtype=dtype_i8f8f8f8f8)
-    cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter, color_arr.ctypes.data)
+    #print dir(cmap)
+
+    if True:
+        n = len(cmap)
+        f_arr = np.zeros(n * (3+4+4), dtype = np.float64)
+        i_arr = np.zeros(n * 2, dtype = np.int64)
+        for i in range(n):
+            (f0,f1,f2,i1,i2,(f3,f4,f5,f6),(f7,f8,f9,f10)) = cmap[i]
+            f_arr[i*11+0] = f0
+            f_arr[i*11+1] = f1
+            f_arr[i*11+2] = f2
+            f_arr[i*11+3] = f3
+            f_arr[i*11+4] = f4
+            f_arr[i*11+5] = f5
+            f_arr[i*11+6] = f6
+            f_arr[i*11+7] = f7
+            f_arr[i*11+8] = f8
+            f_arr[i*11+9] = f9
+            f_arr[i*11+10] = f10
+            i_arr[i*2+0] = i1
+            i_arr[i*2+1] = i2
+    cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter, color_arr.ctypes.data,
+               f_arr.ctypes.data, i_arr.ctypes.data, n)
     a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
     a1 = a1 + len(arr) - len(arr)
 
@@ -1018,10 +1040,6 @@ def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
 
     pfcls = (formuNameNo, params, pfo_p, cmap, maxiter, _img)
 
-    global g_33
-    g_33 = cmap
-    print 'here33'
-
     #import pdb; pdb.set_trace()
 
     for (xoff,yoff,xres,yres) in image.get_tile_list():
@@ -1048,19 +1066,28 @@ typ_ccmap = typeof(tem33)
 del tem33
 del tem32
 
-g_33 = [(0.0,0.0,0.0,0,0,(0.0,0.0,0.0,0.0),(0.0,0.0,0.0,0.0))]
-
-# define [4 x i8]
-# @"cfunc.myfract4dc.lookup_cfunc$65.reflected_list((float64,_float64,_float64,_int64,_int64,_(float64_x_4),_(float64_x_4))).float64"
-# ({ i8*, i8* } %.1, double %.2)
-@numba.cfunc(types.Tuple((int8, int8, int8, int8))(typ_cmap, float64))
-def lookup_cfunc(cmap_items, input_index):
-    self_items = cmap_items
-    self_ncolors = len(cmap_items)
+@numba.cfunc(types.Tuple((int8, int8, int8, int8))(float64, types.CPointer(types.double), types.CPointer(types.i8), int64))
+def lookup_cfunc(input_index, ftbl, itbl, n):
     index = 1.0 if input_index == 1.0 else input_index - int(input_index)
-    i = grad_find(index, self_items, self_ncolors)
-    seg = self_items[i]
-    (seg_left, seg_right, seg_mid, seg_bmode, seg_cmode, seg_left_color, seg_right_color) = seg
+    #if False:
+    #    self_items = cmap_items
+    #    self_ncolors = len(cmap_items)
+    #    i = grad_find(index, self_items, self_ncolors)
+    #    seg = self_items[i]
+    #    (seg_left, seg_right, seg_mid, seg_bmode, seg_cmode, seg_left_color, seg_right_color) = seg
+    #i = grad_find_1(index, ftbl, itbl, n)
+    i = n - n
+    while i < n:
+        right = ftbl[i*11+1]
+        if index <= right:
+            break
+        i+=1
+
+    (seg_left, seg_right, seg_mid, seg_bmode, seg_cmode, seg_left_color, seg_right_color) = (
+        ftbl[i*11+0],ftbl[i*11+1],ftbl[i*11+2],itbl[i*2+0],itbl[i*2+1],
+        (ftbl[i*11+3],ftbl[i*11+4],ftbl[i*11+5],ftbl[i*11+6]),
+        (ftbl[i*11+7],ftbl[i*11+8],ftbl[i*11+9],ftbl[i*11+10]),
+    )
 
     seg_len = seg_right - seg_left
     EPSILON = 1e-10

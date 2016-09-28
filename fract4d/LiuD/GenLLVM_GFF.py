@@ -1,5 +1,5 @@
 import Ast_GFF
-from Ast_GFF import GFF_sample_visitor_01, Test_Parse_GFF, s_sample_GFF
+from Ast_GFF import GFF_sample_visitor_01
 from ParseFormFile import getdt
 
 import llvmlite.ir as ir
@@ -586,7 +586,8 @@ class mywalk(GFF_sample_visitor_01):
 
         func_t = ir.FunctionType(ir.IntType(32),
                                  [rettype.as_pointer(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.IntType(64),
-                                  colortype.as_pointer()])
+                                  colortype.as_pointer(),
+                                  ir.PointerType(ir.DoubleType()), ir.PointerType(ir.IntType(64)), ir.IntType(64)])
         func = ir.Function(module, func_t, funcname)
         self.func = func
 
@@ -597,6 +598,9 @@ class mywalk(GFF_sample_visitor_01):
         func.args[4]._name = 'zwpixel.1'
         func.args[5]._name = 'maxiter'
         func.args[6]._name = 'colorp'
+        func.args[7]._name = 'f_arr'
+        func.args[8]._name = 'i_arr'
+        func.args[9]._name = 'n_arr'
 
         zero = ir.Constant(ir.IntType(64), 0)
 
@@ -1115,7 +1119,7 @@ class mywalk(GFF_sample_visitor_01):
 
             #print '::', self.module.functions
 
-            if True:
+            if False:
                 funcname = 'cfunc.__main__.abs4$3.float64.float64'
                 funcname = 'func_gradient'
                 func_p = self.globalfuncs.get(funcname)
@@ -1123,8 +1127,28 @@ class mywalk(GFF_sample_visitor_01):
                     func_t = ir.FunctionType(ir.DoubleType(), [ir.DoubleType(), ir.DoubleType()])
                     func_p = ir.Function(self.module, func_t, funcname)
                     self.globalfuncs[funcname] = func_p
-
                 b = self.irbuilder.call(func_p,(r,g))
+            if True:
+                funcname = 'look33up'
+                func_p = self.globalfuncs.get(funcname)
+                if not func_p:
+                    type33 = ir.LiteralStructType((ir.IntType(8), ir.IntType(8), ir.IntType(8), ir.IntType(8)))
+                    func_t = ir.FunctionType(type33, [ir.DoubleType(),
+                                  ir.PointerType(ir.DoubleType()), ir.PointerType(ir.IntType(64)), ir.IntType(64)
+                                                      ])
+                    func_p = ir.Function(self.module, func_t, funcname)
+                    self.globalfuncs[funcname] = func_p
+
+                rgba = self.irbuilder.call(func_p,(val,self.func.args[7],self.func.args[8],self.func.args[9]))
+                r = self.irbuilder.extract_value(rgba, 0)
+                g = self.irbuilder.extract_value(rgba, 1)
+                b = self.irbuilder.extract_value(rgba, 2)
+
+                r = self.irbuilder.sitofp(r, ir.DoubleType())
+                g = self.irbuilder.sitofp(g, ir.DoubleType())
+                b = self.irbuilder.sitofp(b, ir.DoubleType())
+
+                #a = self.irbuilder.extract_value(rgba, 3)
 
             return type_color, (r, g, b, float_one)
         print dir(node)
@@ -1278,7 +1302,9 @@ def create_execution_engine(ir_src):
     import myfract4dc
     look2 = myfract4dc.lookup_cfunc
     address2 = myfract4dc.lookup_cfunc.address
+    llvm.add_symbol('look33up', address2)
     #print address2
+    #print look2.inspect_llvm()
     #import pdb; pdb.set_trace()
 
     engine = llvm.create_mcjit_compiler(backing_mod, target_machine)
@@ -1305,8 +1331,11 @@ class LLVM_liud:
         engine = llvm_func(ir_src)
         func_addr = engine.get_function_address(funcname)
 
+        #print '##', type(func_addr), func_addr
+
         self.engine = engine
-        cfuncptr = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_long, c_void_p)(func_addr)
+        cfuncptr = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_long, c_void_p,
+                             c_void_p, c_void_p, c_long)(func_addr)
         self.cfuncptr = cfuncptr
 
 if __name__ == '__main__':
