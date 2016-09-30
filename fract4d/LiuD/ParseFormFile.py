@@ -126,8 +126,11 @@ class mywalk(GFF_sample_visitor_01):
         return node.v.walkabout(self)
     def visit_Name0(self, node):
         name = node.n
-        dict_ = {'datatype' : None, 'pos' : 0, 'leaf' : name, 'children' : [], 'type' : 'id'}
-        return dict_
+        if name == 'true':
+            return new_dict(leaf=True, datatype=0, type='const')
+        if name == 'false':
+            return new_dict(leaf=False, datatype=0, type='const')
+        return new_dict(leaf=name, type='id')
     def visit_Name1(self, node):
         name = '#' + node.n
         dict_ = {'datatype' : None, 'pos' : 0, 'leaf' : name, 'children' : [], 'type' : 'id'}
@@ -208,15 +211,17 @@ class mywalk(GFF_sample_visitor_01):
 
     def visit_df_hint(self, node):
         a1 = new_dict(leaf="hint", type="id")
-        a2 = new_dict(datatype=5, leaf=node.s, type="string")
+        s = node.s[0]
+        s = s.replace('\\\n','')
+        a2 = new_dict(datatype=5, leaf=s, type="string")
         return new_dict(type='set', children=[a1,a2])
     def visit_df_caption(self, node):
         a1 = new_dict(leaf="caption", type="id")
-        a2 = new_dict(datatype=5, leaf=node.s, type="string")
+        a2 = new_dict(datatype=5, leaf=node.s[0], type="string")
         return new_dict(type='set', children=[a1,a2])
     def visit_df_title(self, node):
         a1 = new_dict(leaf="title", type="id")
-        a2 = new_dict(datatype=5, leaf=node.s, type="string")
+        a2 = new_dict(datatype=5, leaf=node.s[0], type="string")
         return new_dict(type='set', children=[a1,a2])
     def visit_df_argtype(self, node):
         dt = getdt(node.v.s)
@@ -226,6 +231,8 @@ class mywalk(GFF_sample_visitor_01):
         return new_dict(datatype=dt, type='set', children=[a1,a2])
     def visit_if_stmt(self, node):
         condi = node.v1.walkabout(self)
+        if condi is None:
+            condi = node.v1.walkabout(self)
         stmt_1 = node.v2.walkabout(self)
         stmt = new_dict(leaf='', type='stmlist', children=stmt_1)
         lst = []
@@ -253,11 +260,20 @@ class mywalk(GFF_sample_visitor_01):
     def visit_elseblk(self, node):
         stmt_1 = node.v.walkabout(self)
         return stmt_1 # new_dict(leaf='', type='stmlist', children=stmt_1)
-
+    def visit_not_value(self, node):
+        a = node.v.walkabout(self)
+        return new_dict(type='unop',leaf='t__not',children=[a])
+'''
+type : unop leaf : t__not children : [
+                     type : id leaf : @offset children : []
+                ]
+                '''
 
 def new_dict(**ww):
     if ww.has_key('children'):
         for a in ww['children']:
+            if a is None:
+                pass
             assert a is not None
     a = {"datatype": None, "leaf": None, "type": None, "pos": 0, "children": []}
     a.update(ww)
