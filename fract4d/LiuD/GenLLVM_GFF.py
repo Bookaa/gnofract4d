@@ -928,17 +928,22 @@ class mywalk(GFF_sample_visitor_01):
             todouble = self.irbuilder.sitofp(val1, ir.DoubleType())
             return typ2, self.irbuilder.fmul(todouble, val2)
 
-        if node.s == '/' and typ1 == typ2 == type_complex:
-            val3 = self.complex_div(val1, val2)
-            return typ1, val3
-        if node.s == '/' and typ1 == typ2 == type_double:
-            return typ1, self.irbuilder.fdiv(val1, val2)
-        if node.s == '/' and (typ1, typ2) == (type_int, type_double):
-            todouble = self.irbuilder.sitofp(val1, ir.DoubleType())
-            return typ2, self.irbuilder.fdiv(todouble, val2)
-        if node.s == '/' and (typ1, typ2) == (type_double, type_int):
-            todouble = self.irbuilder.sitofp(val2, ir.DoubleType())
-            return typ1, self.irbuilder.fdiv(val1, todouble)
+        if node.s == '/':
+            if typ1 == typ2 == type_complex:
+                val3 = self.complex_div(val1, val2)
+                return typ1, val3
+            if typ1 == typ2 == type_double:
+                return typ1, self.irbuilder.fdiv(val1, val2)
+            if (typ1, typ2) == (type_int, type_double):
+                todouble = self.irbuilder.sitofp(val1, ir.DoubleType())
+                return typ2, self.irbuilder.fdiv(todouble, val2)
+            if (typ1, typ2) == (type_double, type_int):
+                todouble = self.irbuilder.sitofp(val2, ir.DoubleType())
+                return typ1, self.irbuilder.fdiv(val1, todouble)
+            if typ1 == typ2 == type_int:
+                val3 = self.irbuilder.sitofp(val1, ir.DoubleType())
+                val4 = self.irbuilder.sitofp(val2, ir.DoubleType())
+                return type_double, self.irbuilder.fdiv(val3, val4)
 
         if node.s == '+':
             if typ1 == typ2 == type_complex:
@@ -957,11 +962,20 @@ class mywalk(GFF_sample_visitor_01):
             if (typ1, typ2) == (type_int, type_double):
                 todouble = self.irbuilder.sitofp(val1, ir.DoubleType())
                 return typ2, self.irbuilder.fadd(todouble, val2)
+            if typ1 == typ2 == type_color:
+                tem1 = self.irbuilder.fadd(val1[0], val2[0])
+                tem2 = self.irbuilder.fadd(val1[1], val2[1])
+                tem3 = self.irbuilder.fadd(val1[2], val2[2])
+                tem4 = self.irbuilder.fadd(val1[3], val2[3])
+                return type_color, (tem1, tem2, tem3, tem4)
 
-        if node.s == '-' and typ1 == typ2 == type_complex:
-            tem1 = self.irbuilder.fsub(val1[0], val2[0])
-            tem2 = self.irbuilder.fsub(val1[1], val2[1])
-            return typ1, (tem1, tem2)
+        if node.s == '-':
+            if typ1 == typ2 == type_complex:
+                tem1 = self.irbuilder.fsub(val1[0], val2[0])
+                tem2 = self.irbuilder.fsub(val1[1], val2[1])
+                return typ1, (tem1, tem2)
+            if typ1 == typ2 == type_double:
+                return typ1, self.irbuilder.fsub(val1, val2)
 
         if node.s in ('<','>','>=') and typ1 == typ2 == type_double:
             tem1 = self.irbuilder.fcmp_ordered(node.s, val1, val2)
@@ -1043,6 +1057,30 @@ class mywalk(GFF_sample_visitor_01):
                 float_one = ir.Constant(ir.DoubleType(), 1.0)
                 assert typ1 == typ2 == typ3 == type_double
                 return type_color, (val1,val2,val3,float_one)
+            if funcname == 'hsl':
+                funcname = 'hsl_to_rgb'
+                func_p = self.globalfuncs.get(funcname)
+                if not func_p:
+                    type33 = ir.LiteralStructType((ir.DoubleType(), ir.DoubleType(), ir.DoubleType()))
+                    func_t = ir.FunctionType(type33, [ir.DoubleType(), ir.DoubleType(), ir.DoubleType()])
+                    func_p = ir.Function(self.module, func_t, funcname)
+                    self.globalfuncs[funcname] = func_p
+
+                param1 = node.vq.vlst[0]
+                param2 = node.vq.vlst[1]
+                param3 = node.vq.vlst[2]
+                typ1, val1 = param1.walkabout(self)
+                typ2, val2 = param2.walkabout(self)
+                typ3, val3 = param3.walkabout(self)
+                assert typ1 == typ2 == typ3 == type_double
+                rgb = self.irbuilder.call(func_p,(val1,val2,val3))
+
+                r = self.irbuilder.extract_value(rgb, 0)
+                g = self.irbuilder.extract_value(rgb, 1)
+                b = self.irbuilder.extract_value(rgb, 2)
+
+                float_one = ir.Constant(ir.DoubleType(), 1.0)
+                return type_color, (r,g,b,float_one)
             if funcname == 'blend':
                 param1 = node.vq.vlst[0]
                 param2 = node.vq.vlst[1]
@@ -1070,7 +1108,48 @@ class mywalk(GFF_sample_visitor_01):
                 v22 = self.irbuilder.fadd(v02, v12)
                 v23 = self.irbuilder.fadd(v03, v13)
                 return type_color, (v20, v21, v22, v23)
-            assert False
+            if funcname == 'compose':
+                param1 = node.vq.vlst[0]
+                param2 = node.vq.vlst[1]
+                param3 = node.vq.vlst[2]
+                typ1, val1 = param1.walkabout(self)
+                typ2, val2 = param2.walkabout(self)
+                typ3, oprate = param3.walkabout(self)
+                assert typ1 == typ2 == type_color
+                assert typ3 == type_double
+                '''
+                def compose(color1, color2, oprate):
+                    rate = color2.a * oprate
+                    c1 = color1 * (1.0 - rate)
+                    c2 = color2 * rate
+                    result = c1 + c2
+                    result.a = color1.a
+                    return result
+                '''
+                rate = self.irbuilder.fmul(val2[3], oprate)
+                float_one = ir.Constant(ir.DoubleType(), 1.0)
+                onesubratio = self.irbuilder.fsub(float_one, rate)
+                v00 = self.irbuilder.fmul(val1[0], onesubratio)
+                v01 = self.irbuilder.fmul(val1[1], onesubratio)
+                v02 = self.irbuilder.fmul(val1[2], onesubratio)
+                v03 = self.irbuilder.fmul(val1[3], onesubratio)
+                v10 = self.irbuilder.fmul(val2[0], rate)
+                v11 = self.irbuilder.fmul(val2[1], rate)
+                v12 = self.irbuilder.fmul(val2[2], rate)
+                v13 = self.irbuilder.fmul(val2[3], rate)
+                v20 = self.irbuilder.fadd(v00, v10)
+                v21 = self.irbuilder.fadd(v01, v11)
+                v22 = self.irbuilder.fadd(v02, v12)
+                v23 = self.irbuilder.fadd(v03, v13)
+                v23 = val1[3]
+                return type_color, (v20, v21, v22, v23)
+            if funcname == 'mergenormal':
+                param1 = node.vq.vlst[0]
+                param2 = node.vq.vlst[1]
+                typ1, val1 = param1.walkabout(self)
+                typ2, val2 = param2.walkabout(self)
+                return typ2, val2
+            assert False, funcname
         if funcname == 'cmag':
             tem1 = self.irbuilder.fmul(val[0], val[0])
             tem2 = self.irbuilder.fmul(val[1], val[1])
@@ -1113,9 +1192,9 @@ class mywalk(GFF_sample_visitor_01):
             return type_double, val[2]
         if funcname == 'gradient':
             float_one = ir.Constant(ir.DoubleType(), 1.0)
-            r = self.irbuilder.fdiv(float_one, val)
-            g = self.irbuilder.fmul(float_one, val)
-            b = self.irbuilder.frem(val, float_one)
+            #r = self.irbuilder.fdiv(float_one, val)
+            #g = self.irbuilder.fmul(float_one, val)
+            #b = self.irbuilder.frem(val, float_one)
 
             #print '::', self.module.functions
 
@@ -1144,9 +1223,14 @@ class mywalk(GFF_sample_visitor_01):
                 g = self.irbuilder.extract_value(rgba, 1)
                 b = self.irbuilder.extract_value(rgba, 2)
 
-                r = self.irbuilder.sitofp(r, ir.DoubleType())
-                g = self.irbuilder.sitofp(g, ir.DoubleType())
-                b = self.irbuilder.sitofp(b, ir.DoubleType())
+                r = self.irbuilder.uitofp(r, ir.DoubleType())
+                g = self.irbuilder.uitofp(g, ir.DoubleType())
+                b = self.irbuilder.uitofp(b, ir.DoubleType())
+
+                f255 = ir.Constant(ir.DoubleType(), 255.0)
+                r = self.irbuilder.fdiv(r, f255)
+                g = self.irbuilder.fdiv(g, f255)
+                b = self.irbuilder.fdiv(b, f255)
 
                 #a = self.irbuilder.extract_value(rgba, 3)
 
@@ -1303,6 +1387,11 @@ def create_execution_engine(ir_src):
     look2 = myfract4dc.lookup_cfunc
     address2 = myfract4dc.lookup_cfunc.address
     llvm.add_symbol('look33up', address2)
+
+    hsl_to_rgb = myfract4dc.hsl_to_rgb
+    address3 = hsl_to_rgb.address
+    llvm.add_symbol('hsl_to_rgb', address3)
+
     #print address2
     #print look2.inspect_llvm()
     #import pdb; pdb.set_trace()

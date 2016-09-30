@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import numba
-from numba import jit, types, typeof, none, boolean, int8, int64, float64, complex128 # 0.27.0
+from numba import jit, types, typeof, none, boolean, byte, int64, float64, complex128 # 0.27.0
 import mycalc
 
 from mycalc import myjit, myjitclass, UseLLVM
@@ -402,7 +402,7 @@ def gimp_rgb_to_hsv(r,g,b):
     (h,s,v) = rgb_to_hsv(r,g,b)
     return (h / 6.0, s, v)
 
-@myjit(types.Tuple((int8, int8, int8, int8))(typ_cmap, float64))
+@myjit(types.Tuple((byte, byte, byte, byte))(typ_cmap, float64))
 def look33up(cmap_items, input_index):
     self_items = cmap_items
     self_ncolors = len(cmap_items)
@@ -1066,7 +1066,7 @@ typ_ccmap = typeof(tem33)
 del tem33
 del tem32
 
-@numba.cfunc(types.Tuple((int8, int8, int8, int8))(float64, types.CPointer(types.double), types.CPointer(types.i8), int64))
+@numba.cfunc(types.Tuple((byte, byte, byte, byte))(float64, types.CPointer(types.double), types.CPointer(types.i8), int64))
 def lookup_cfunc(input_index, ftbl, itbl, n):
     index = 1.0 if input_index == 1.0 else input_index - int(input_index)
     #if False:
@@ -1146,3 +1146,43 @@ def lookup_cfunc(input_index, ftbl, itbl, n):
         pass
         # assert False
         return 0,0,0,0 #np.array([0,0,0,0], dtype=np.uint8)
+
+@myjit(float64(float64, float64, float64))
+def rgb_component(n1, n2, hue):
+    if hue > 6.0:
+        hue -= 6.0
+    elif hue < 0.0:
+        hue += 6.0
+    if hue < 1.0:
+        return n1 + (n2 - n1)*hue
+    if hue < 3.0:
+        return n2
+    if hue < 4.0:
+        return n1 + (n2 - n1)*(4.0 - hue)
+    return n1
+
+
+@numba.cfunc(types.Tuple((float64,float64,float64))(float64, float64, float64))
+def hsl_to_rgb(h, s, l):
+    if s == 0.0:
+        return (l, l, l)
+    if l <= 0.5:
+        n2 = l * (1.0 + s)
+    else:
+        n2 = l + s - l*s
+
+    n1 = 2.0 * l - n2
+
+    r = rgb_component(n1, n2, h + 2.0)
+    g = rgb_component(n1, n2, h)
+    b = rgb_component(n1, n2, h - 2.0)
+
+    return (r, g, b)
+
+def compose(color1, color2, oprate):
+    rate = color2.a * oprate
+    c1 = color1 * (1.0 - rate)
+    c2 = color2 * rate
+    result = c1 + c2
+    result.a = color1.a
+    return result
