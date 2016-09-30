@@ -17,7 +17,7 @@ type_bool = 4
 type_enum_string = 5
 type_color = 6
 
-colortype = ir.LiteralStructType((ir.IntType(64), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType()))
+retcolortype = ir.LiteralStructType((ir.IntType(64), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType()))
 
 def getLocalVars(dict_):
     keys = []
@@ -305,7 +305,7 @@ class mywalk(GFF_sample_visitor_01):
             if 'color' in dict_:
                 typ, (val1,val2,val3,val4) = dict_['color']
                 one = ir.Constant(ir.IntType(64), 1)
-                tem1 = colortype(ir.Undefined)
+                tem1 = retcolortype(ir.Undefined)
                 tem2 = self.irbuilder.insert_value(tem1, one, (0,))
                 tem3 = self.irbuilder.insert_value(tem2, val1, (1,))
                 tem4 = self.irbuilder.insert_value(tem3, val2, (2,))
@@ -595,7 +595,8 @@ class mywalk(GFF_sample_visitor_01):
 
         func_t = ir.FunctionType(ir.IntType(32),
                                  [rettype.as_pointer(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.IntType(64),
-                                  colortype.as_pointer(),
+                                  retcolortype.as_pointer(),
+                                  ir.IntType(64),
                                   ir.PointerType(ir.DoubleType()), ir.PointerType(ir.IntType(64)), ir.IntType(64)])
         func = ir.Function(module, func_t, funcname)
         self.func = func
@@ -607,9 +608,10 @@ class mywalk(GFF_sample_visitor_01):
         func.args[4]._name = 'zwpixel.1'
         func.args[5]._name = 'maxiter'
         func.args[6]._name = 'colorp'
-        func.args[7]._name = 'f_arr'
-        func.args[8]._name = 'i_arr'
-        func.args[9]._name = 'n_arr'
+        func.args[7]._name = 'checkPeriod'
+        func.args[8]._name = 'f_arr'
+        func.args[9]._name = 'i_arr'
+        func.args[10]._name = 'n_arr'
 
         zero = ir.Constant(ir.IntType(64), 0)
 
@@ -620,7 +622,8 @@ class mywalk(GFF_sample_visitor_01):
         self.vardict['numiter'] = type_int, zero
 
         if g_tolerance:
-            self.vardict['min_period_iter'] = (type_int, ir.Constant(ir.IntType(64), 10))
+            #self.vardict['min_period_iter'] = (type_int, ir.Constant(ir.IntType(64), 10))
+            self.vardict['min_period_iter'] = (type_int, func.args[7])
             self.vardict['period_tolerance'] = (type_double, ir.Constant(ir.DoubleType(), 0.0001))
             self.vardict['save_mask'] = (type_int, ir.Constant(ir.IntType(64), 9))
             self.vardict['save_incr'] = (type_int, ir.Constant(ir.IntType(64), 1))
@@ -1240,7 +1243,7 @@ class mywalk(GFF_sample_visitor_01):
                     func_p = ir.Function(self.module, func_t, funcname)
                     self.globalfuncs[funcname] = func_p
 
-                rgba = self.irbuilder.call(func_p,(val,self.func.args[7],self.func.args[8],self.func.args[9]))
+                rgba = self.irbuilder.call(func_p,(val,self.func.args[8],self.func.args[9],self.func.args[10]))
                 r = self.irbuilder.extract_value(rgba, 0)
                 g = self.irbuilder.extract_value(rgba, 1)
                 b = self.irbuilder.extract_value(rgba, 2)
@@ -1480,6 +1483,7 @@ class LLVM_liud:
 
         self.engine = engine
         cfuncptr = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_long, c_void_p,
+                             c_long,
                              c_void_p, c_void_p, c_long)(func_addr)
         self.cfuncptr = cfuncptr
 

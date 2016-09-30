@@ -27,6 +27,7 @@ Image_spec = [
     ('iter_buf', int64[:]),
     ('fate_buf', numba.u1[:]),
     ('index_buf', float64[:]),
+    ('lastIter', int64),
 ]
 
 @myjitclass(Image_spec)
@@ -39,6 +40,7 @@ class Image(object):
         self.iter_buf = np.zeros(0,dtype=np.int64) #None
         self.fate_buf = np.zeros(0,dtype=np.uint8) #None
         self.index_buf = np.zeros(0,dtype=np.float64) #None
+        self.lastIter = 0
 
     def Xres(self): return self.m_Xres
     def Yres(self): return self.m_Yres
@@ -48,6 +50,25 @@ class Image(object):
     def Yoffset(self): return self.m_yoffset
     def row_length(self): return self.Xres() * 3
     def bytes(self): return self.row_length() * self.m_Yres
+
+    def periodGuess(self):
+        if self.lastIter == -1:
+            return 0
+        return self.lastIter + 10
+
+        '''
+        if(!ff->periodicity)
+            return ff->maxiter;
+        if(lastIter == -1)
+        {
+        // we were captured last time so probably will be again
+        return 0;
+        }
+        // we escaped, so don't try so hard this time
+        return lastIter + 10;
+        '''
+    def periodSet(self, iter_):
+        self.lastIter = iter_
 
     def alloc_buffers(self):
         self.buffer = np.zeros(self.bytes(),dtype=np.uint8)
@@ -599,7 +620,7 @@ def CompileLLVM(form0_mod, form1_mod, form2_mod, param0, param1, param2):
     # form2 usually zero
 
 @myjit #(types.Tuple((int8[:], int64, float64, int64))(complex128, complex128, int64, typ_cmap))
-def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap):
+def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap, checkPeriod):
     #print 'xxx',pixel, zwpixel, maxiter, cmap
     fUseColors = 0
     colors = [0.0, 0.0, 0.0, 0.0]
@@ -631,6 +652,7 @@ def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap):
             i_arr[i*2+0] = i1
             i_arr[i*2+1] = i2
     cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter, color_arr.ctypes.data,
+               checkPeriod,
                f_arr.ctypes.data, i_arr.ctypes.data, n)
     a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
     a1 = a1 + len(arr) - len(arr)
@@ -668,7 +690,7 @@ def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap):
 #[((float64 x 5), complex128, complex128, int64, (float64 x 5), int64, reflected list((float64, float64, float64, int64, int64, (float64 x 4), (float64 x 4))))]
 #@myjit(types.Tuple((int64,int64,complex128,float64,int64))(float64, complex128, complex128, int64))
 @myjit
-def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap):
+def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap, checkPeriod):
     fUseColors = 0
     colors = [0.0, 0.0, 0.0, 0.0]
 
@@ -720,19 +742,19 @@ def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, 
     return (pixel_, fate, dist, iter_)
 
 @myjit #(types.Tuple((int8[:], int64, float64, int64))(typ_cmap, float64[:], int64))
-def calc_pf_UseLLVM(cmap, params, nIters):
+def calc_pf_UseLLVM(cmap, params, nIters, checkPeriod):
     pixel = complex(params[0], params[1])
     zwpixel = complex(params[2], params[3])
 
-    return Mandelbrot_calc_UseLLVM(pixel, zwpixel, nIters, cmap)
+    return Mandelbrot_calc_UseLLVM(pixel, zwpixel, nIters, cmap, checkPeriod)
 
 @myjit
-def calc_pf(pfo_p, cmap, formuNameNo, params, nIters):
+def calc_pf(pfo_p, cmap, formuNameNo, params, nIters, checkPeriod):
     cf0cf1, values = pfo_p
     pixel = complex(params[0], params[1])
     zwpixel = complex(params[2], params[3])
 
-    return Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuNameNo, cmap)
+    return Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuNameNo, cmap, checkPeriod)
 
 @jit(float64(complex128))
 def abs2(c):
@@ -761,10 +783,12 @@ def do_pixel(stfw, x, y, w, h):
     if ii.fate == FATE_UNKNOWN:
         (ff_topleft, ff_deltax, ff_deltay, ff_maxiter) = ff
         pos = ff_topleft + ff_deltax * x + ff_deltay * y
+        checkPeriod = im.periodGuess()
         if UseLLVM:
-            (pixel, fate, index, iter_) = calc_pf_UseLLVM(self_cmap, pos, ff_maxiter)
+            (pixel, fate, index, iter_) = calc_pf_UseLLVM(self_cmap, pos, ff_maxiter, checkPeriod)
         else:
-            (pixel, fate, index, iter_) = calc_pf(self_pfo_p, self_cmap, self_formuNameNo, pos, ff_maxiter)
+            (pixel, fate, index, iter_) = calc_pf(self_pfo_p, self_cmap, self_formuNameNo, pos, ff_maxiter, checkPeriod)
+        im.periodSet(iter_)
         ii2 = im_info(im)
         ii2.pixel = pixel; ii2.fate = fate; ii2.index = index; ii2.iter = iter_
         ii2.writeback(x,y)
