@@ -597,7 +597,7 @@ class mywalk(GFF_sample_visitor_01):
                                  [rettype.as_pointer(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.IntType(64),
                                   retcolortype.as_pointer(),
                                   ir.IntType(64),
-                                  ir.PointerType(ir.DoubleType()), ir.PointerType(ir.IntType(64)), ir.IntType(64)])
+                                  ir.PointerType(ir.DoubleType()), ir.IntType(64)])
         func = ir.Function(module, func_t, funcname)
         self.func = func
 
@@ -609,9 +609,8 @@ class mywalk(GFF_sample_visitor_01):
         func.args[5]._name = 'maxiter'
         func.args[6]._name = 'colorp'
         func.args[7]._name = 'checkPeriod'
-        func.args[8]._name = 'f_arr'
-        func.args[9]._name = 'i_arr'
-        func.args[10]._name = 'n_arr'
+        func.args[8]._name = 'cmap_arr'
+        func.args[9]._name = 'n_arr'
 
         zero = ir.Constant(ir.IntType(64), 0)
 
@@ -1238,12 +1237,12 @@ class mywalk(GFF_sample_visitor_01):
                 if not func_p:
                     type33 = ir.LiteralStructType((ir.IntType(8), ir.IntType(8), ir.IntType(8), ir.IntType(8)))
                     func_t = ir.FunctionType(type33, [ir.DoubleType(),
-                                  ir.PointerType(ir.DoubleType()), ir.PointerType(ir.IntType(64)), ir.IntType(64)
+                                  ir.PointerType(ir.DoubleType()), ir.IntType(64)
                                                       ])
                     func_p = ir.Function(self.module, func_t, funcname)
                     self.globalfuncs[funcname] = func_p
 
-                rgba = self.irbuilder.call(func_p,(val,self.func.args[8],self.func.args[9],self.func.args[10]))
+                rgba = self.irbuilder.call(func_p,(val,self.func.args[8],self.func.args[9]))
                 r = self.irbuilder.extract_value(rgba, 0)
                 g = self.irbuilder.extract_value(rgba, 1)
                 b = self.irbuilder.extract_value(rgba, 2)
@@ -1484,7 +1483,7 @@ class LLVM_liud:
         self.engine = engine
         cfuncptr = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_long, c_void_p,
                              c_long,
-                             c_void_p, c_void_p, c_long)(func_addr)
+                             c_void_p, c_long)(func_addr)
         self.cfuncptr = cfuncptr
 
 if __name__ == '__main__':
