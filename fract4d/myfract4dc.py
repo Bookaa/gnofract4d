@@ -246,7 +246,25 @@ def cmap_from_pyobject(segs):
 
         # the.set(left, right, mid, left_col, right_col, bmode, cmode)
         cmap_items.append(the)
-    return cmap_items
+    n = len(cmap_items)
+    cmap_arr = np.zeros(n, dtype=dtype_cmap)
+    for i in range(n):
+        (f0,f1,f2,i1,i2,(f3,f4,f5,f6),(f7,f8,f9,f10)) = cmap_items[i]
+        cmap_arr[i]['f0'] = f0
+        cmap_arr[i]['f1'] = f1
+        cmap_arr[i]['f2'] = f2
+        cmap_arr[i]['i1'] = i1
+        cmap_arr[i]['i2'] = i2
+        cmap_arr[i]['f3'] = f3
+        cmap_arr[i]['f4'] = f4
+        cmap_arr[i]['f5'] = f5
+        cmap_arr[i]['f6'] = f6
+        cmap_arr[i]['f7'] = f7
+        cmap_arr[i]['f8'] = f8
+        cmap_arr[i]['f9'] = f9
+        cmap_arr[i]['f10'] = f10
+
+    return cmap_arr
 
 def calc_7(pfcls, xoff, yoff, xres, yres):
     (self_formuNameNo, self_params, self_pfo_p, self_cmap, self_maxiter, im) = pfcls
@@ -386,13 +404,21 @@ def hsv_to_rgb(h,s,v):
 def gimp_hsv_to_rgb(h,s,v):
     return hsv_to_rgb(h * 6.0, s, v)
 
-@myjit(int64(float64,typ_cmap,int64))
+dtype_cmap = np.dtype([('f0','f8'),('f1','f8'),('f2','f8'),
+                       ('i1','i8'),('i2','i8'),
+                       ('f3','f8'),('f4','f8'),('f5','f8'),('f6','f8'),
+                       ('f7','f8'),('f8','f8'),('f9','f8'),('f10','f8')])
+
+typ_np_cmap = typeof(np.zeros(1, dtype=dtype_cmap))
+
+@myjit(int64(float64,typ_np_cmap,int64))
 def grad_find(index, items, ncolors):
 
     i = ncolors - ncolors
 
     while i < ncolors:
-        (left, right, mid, bmode, cmode, leftc, rightc) = items[i]
+        #(left, right, mid, bmode, cmode, leftc, rightc) = items[i]
+        right = items[i]['f1']
         if index <= right:
             return i
         i+=1
@@ -423,14 +449,21 @@ def gimp_rgb_to_hsv(r,g,b):
     (h,s,v) = rgb_to_hsv(r,g,b)
     return (h / 6.0, s, v)
 
-@myjit(types.Tuple((byte, byte, byte, byte))(typ_cmap, float64))
+@myjit(types.Tuple((byte, byte, byte, byte))(typ_np_cmap, float64))
 def look33up(cmap_items, input_index):
     self_items = cmap_items
     self_ncolors = len(cmap_items)
     index = 1.0 if input_index == 1.0 else input_index - int(input_index)
     i = grad_find(index, self_items, self_ncolors)
     seg = self_items[i]
-    (seg_left, seg_right, seg_mid, seg_bmode, seg_cmode, seg_left_color, seg_right_color) = seg
+    #(seg_left, seg_right, seg_mid, seg_bmode, seg_cmode, seg_left_color, seg_right_color) = seg
+    seg_left = seg['f0']
+    seg_right = seg['f1']
+    seg_mid = seg['f2']
+    seg_bmode = seg['i1']
+    seg_cmode = seg['i2']
+    seg_left_color = (seg['f3'],seg['f4'],seg['f5'],seg['f6'])
+    seg_right_color = (seg['f7'],seg['f8'],seg['f9'],seg['f10'])
 
     seg_len = seg_right - seg_left
     EPSILON = 1e-10
@@ -490,74 +523,7 @@ def look33up(cmap_items, input_index):
         # assert False
         return 0,0,0,0 #np.array([0,0,0,0], dtype=np.uint8)
 
-@myjit
-def lookup(cmap_items, input_index):
-    self_items = cmap_items
-    self_ncolors = len(cmap_items)
-    index = 1.0 if input_index == 1.0 else input_index - int(input_index)
-    i = grad_find(index, self_items, self_ncolors)
-    seg = self_items[i]
-    (seg_left, seg_right, seg_mid, seg_bmode, seg_cmode, seg_left_color, seg_right_color) = seg
-
-    seg_len = seg_right - seg_left
-    EPSILON = 1e-10
-    if seg_len < EPSILON:
-        middle = 0.5
-        pos = 0.5
-    else:
-        middle = (seg_mid - seg_left) / seg_len
-        pos = (index - seg_left) / seg_len
-    if seg_bmode == BLEND_LINEAR:
-        factor = calc_linear_factor(middle, pos)
-    elif seg_bmode == BLEND_CURVED:
-        factor = calc_curved_factor(middle, pos)
-    elif seg_bmode == BLEND_SINE:
-        factor = calc_sine_factor(middle, pos)
-    elif seg_bmode == BLEND_SPHERE_INCREASING:
-        factor = calc_sphere_increasing_factor(middle, pos)
-    elif seg_bmode == BLEND_SPHERE_DECREASING:
-        factor = calc_sphere_decreasing_factor(middle, pos)
-    else:
-        pass
-        # assert False
-    lc = seg_left_color
-    rc = seg_right_color
-    if seg_cmode == RGB:
-        r = 255.0 * (lc[0] + (rc[0] - lc[0]) * factor)
-        g = 255.0 * (lc[1] + (rc[1] - lc[1]) * factor)
-        b = 255.0 * (lc[2] + (rc[2] - lc[2]) * factor)
-        a = 255.0 * (lc[3] + (rc[3] - lc[3]) * factor)
-        r = int(r) % 256
-        g = int(g) % 256
-        b = int(b) % 256
-        a = int(a) % 256
-        return np.array([r,g,b,a], dtype=np.uint8)
-    elif seg_cmode in (HSV_CCW, HSV_CW):
-        (lh,ls,lv) = gimp_rgb_to_hsv(lc[0], lc[1], lc[2])
-        (rh,rs,rv) = gimp_rgb_to_hsv(rc[0], rc[1], rc[2])
-
-        if seg_cmode == HSV_CCW and lh >= rh:
-            rh += 1.0
-        if seg_cmode == HSV_CW and lh <= rh:
-            lh += 1.0
-        h = lh + (rh - lh) * factor
-        s = ls + (rs - ls) * factor
-        v = lv + (rv - lv) * factor
-        if h > 1.0:
-            h -= 1.0
-        (r,g,b) = gimp_hsv_to_rgb(h,s,v)
-        a = 255.0 * (lc[3] + (rc[3] - lc[3]) * factor)
-        r = int(r*255.0) % 256
-        g = int(g*255.0) % 256
-        b = int(b*255.0) % 256
-        a = int(a) % 256
-        return np.array([r,g,b,a], dtype=np.uint8)
-    else:
-        pass
-        # assert False
-        return np.array([0,0,0,0], dtype=np.uint8)
-
-@myjit(typeof_array4(typ_cmap, float64, int64))
+@myjit(typeof_array4(typ_np_cmap, float64, int64))
 def lookup_with_transfer(cmap_items, index, solid):
     black = np.array([0,0,0,255], dtype=np.uint8)
     if solid:
@@ -565,7 +531,6 @@ def lookup_with_transfer(cmap_items, index, solid):
     #return lookup(cmap_items, index)
     r,g,b,a = look33up(cmap_items, index)
     return np.array([r,g,b,a], dtype=np.uint8)
-    #return look33up(index)
 
 #@jit(typeof(np.zeros((4,),dtype='f8',order='C'))(int64,float64[:]))
 #@jit #(int8[:](int64,float64[:]))
@@ -593,10 +558,6 @@ def lookup_with_dca(solid, colors):
 
 dtype_i8i8f8f8 = np.dtype([('i1', 'i8'),('i2', 'i8'),('i3', 'f8'),('i4', 'f8'),('i5', 'f8'),('i6', 'i8')])
 dtype_i8f8f8f8f8 = np.dtype([('i1', 'i8'),('i2', 'f8'),('i3', 'f8'),('i4', 'f8'),('i5', 'f8')])
-dtype_cmap = np.dtype([('f0','f8'),('f1','f8'),('f2','f8'),
-                       ('i1','i8'),('i2','i8'),
-                       ('f3','f8'),('f4','f8'),('f5','f8'),('f6','f8'),
-                       ('f7','f8'),('f8','f8'),('f9','f8'),('f10','f8')])
 
 from LiuD import GenLLVM_GFF
 cfunc3_ptr = None
@@ -638,22 +599,7 @@ def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap, checkPeriod):
 
     if True:
         n = len(cmap)
-        cmap_arr = np.zeros(n, dtype=dtype_cmap)
-        for i in range(n):
-            (f0,f1,f2,i1,i2,(f3,f4,f5,f6),(f7,f8,f9,f10)) = cmap[i]
-            cmap_arr[i]['f0'] = f0
-            cmap_arr[i]['f1'] = f1
-            cmap_arr[i]['f2'] = f2
-            cmap_arr[i]['i1'] = i1
-            cmap_arr[i]['i2'] = i2
-            cmap_arr[i]['f3'] = f3
-            cmap_arr[i]['f4'] = f4
-            cmap_arr[i]['f5'] = f5
-            cmap_arr[i]['f6'] = f6
-            cmap_arr[i]['f7'] = f7
-            cmap_arr[i]['f8'] = f8
-            cmap_arr[i]['f9'] = f9
-            cmap_arr[i]['f10'] = f10
+        cmap_arr = cmap
     cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter, color_arr.ctypes.data,
                checkPeriod,
                cmap_arr.ctypes.data, n)
@@ -684,7 +630,7 @@ def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap, checkPeriod):
         #pixel_ = lookup_with_dca(solid, colors)
         pixel_ = lookup_with_dca_nt(solid, (colors[0],colors[1],colors[2],colors[3]))
     else:
-        pixel_ = lookup_with_transfer(cmap, dist, solid)
+        pixel_ = lookup_with_transfer(cmap_arr, dist, solid)
     #print 'fff',pixel_, fate, dist, iter_
     # fff [ 70  72 230 255] 0 0.00330332703674 0
 
@@ -763,7 +709,7 @@ def calc_pf(pfo_p, cmap, formuNameNo, params, nIters, checkPeriod):
 def abs2(c):
     return c.imag * c.imag + c.real * c.real
 
-@myjit(none(typ_im_info, typ_cmap))
+@myjit(none(typ_im_info, typ_np_cmap))
 def recolor(selfii, cmap):
     dist = selfii.index
     fate = selfii.fate
@@ -885,7 +831,7 @@ def draw_8(stfw):
     test_param1(self_pfo_p)
     #for v in self_cmap:
     #    print v
-    test_param2(self_cmap)
+    #test_param2(self_cmap)
     #test_param3(im)
     test_param4(self_formuNameNo)
     test_param5(ff)
