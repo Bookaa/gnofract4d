@@ -9,6 +9,7 @@
 .string NUM_DOUBLE Double '[-]?\d*\.\d+(e(-)?\d+)?|\d+\.'
 .string HEXNUM Name '[0-9a-fA-F]+'
 .string FILENAME Name '[A-Za-z_][^}\]\n]*'
+.string NUMINT Int '[-]?0|[1-9]\d*'
 
 .set_linecomment ';'
 .set_comment '\\\n'
@@ -95,9 +96,8 @@ elseblk : 'else' stmtblk
 stmtblk : stmt*
 
 String : STR
-Numi : NUMBER_INT
-NegNumi : '-' NUMBER_INT
-Number01 :: Numi | NegNumi
+Numi : NUMINT
+Number01 :: Numi
 Number : NUM_DOUBLE
 Number00 :: Number
 Num_Complex : '(' value ',' value ')'
@@ -151,7 +151,6 @@ Output Rules {
     Name0 : x
     Number : x
     Numi : x
-    NegNumi : '-' - x
     Num_Complex : '(' x ',' x ')'
     Num_Hyper : '(' x ',' x ',' x ',' x ')'
     bool_value : x

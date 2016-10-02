@@ -476,14 +476,6 @@ class GFF_Numi:
         return visitor.visit_Numi(self)
 
 
-class GFF_NegNumi:
-    def __init__(self, i):
-        self.i = i
-
-    def walkabout(self, visitor):
-        return visitor.visit_NegNumi(self)
-
-
 class GFF_Number:
     def __init__(self, f):
         self.f = f
@@ -659,7 +651,6 @@ class GFF_sample_visitor_00:
     def visit_stmtblk(self, node): pass
     def visit_String(self, node): pass
     def visit_Numi(self, node): pass
-    def visit_NegNumi(self, node): pass
     def visit_Number(self, node): pass
     def visit_Num_Complex(self, node): pass
     def visit_Num_Hyper(self, node): pass
@@ -828,8 +819,6 @@ class GFF_sample_visitor_01:
     def visit_String(self, node):
         pass
     def visit_Numi(self, node):
-        pass
-    def visit_NegNumi(self, node):
         pass
     def visit_Number(self, node):
         pass
@@ -1147,10 +1136,6 @@ class GFF_out_visitor_01:
         self.outp.puts(node.s[1])
     def visit_Numi(self, node):
         self.outp.puts(node.i)
-    def visit_NegNumi(self, node):
-        self.outp.puts('-')
-        self.outp.lnk()
-        self.outp.puts(node.i)
     def visit_Number(self, node):
         self.outp.puts(node.f)
     def visit_Num_Complex(self, node):
@@ -1228,6 +1213,7 @@ class Parser(Parser00):
         self.lex_FILENAME = HowRe(r'[A-Za-z_][^}\]\n]*')
         self.lex_HEXNUM = HowRe('[0-9a-fA-F]+')
         self.lex_NUMBER_INT = HowRe(r'0|[1-9]\d*')
+        self.lex_NUMINT = HowRe(r'[-]?0|[1-9]\d*')
         self.lex_NUM_DOUBLE = HowRe(r'[-]?\d*\.\d+(e(-)?\d+)?|\d+\.')
         self.lex_STR = HowRe(r'"((?:.|\n)*?)"')
     
@@ -1245,6 +1231,10 @@ class Parser(Parser00):
     
     def handle_NUMBER_INT(self):
         s = self.handle_Lex(self.lex_NUMBER_INT)
+        return None if s is None else int(s)
+    
+    def handle_NUMINT(self):
+        s = self.handle_Lex(self.lex_NUMINT)
         return None if s is None else int(s)
     
     def handle_NUM_DOUBLE(self):
@@ -2475,29 +2465,14 @@ class Parser(Parser00):
 
     def handle_Numi(self):
         sav0 = self.getpos()
-        i = self.handle_NUMBER_INT()
+        i = self.handle_NUMINT()
         if i is None:
             self.setpos(sav0)
             return None
         return GFF_Numi(i)
 
-    def handle_NegNumi(self):
-        sav0 = self.getpos()
-        if self.handle_OpChar('-') is None:
-            self.setpos(sav0)
-            return None
-        self.Skip(0)
-        i = self.handle_NUMBER_INT()
-        if i is None:
-            self.setpos(sav0)
-            return None
-        return GFF_NegNumi(i)
-
     def hdl_Number01(self):
-        v = self.handle_Numi()
-        if v is not None:
-            return v
-        return self.handle_NegNumi()
+        return self.handle_Numi()
 
     def handle_Number(self):
         sav0 = self.getpos()
