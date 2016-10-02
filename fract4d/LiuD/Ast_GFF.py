@@ -2,6 +2,91 @@
 
 from lib import *
 
+class GFF_FCT_File:
+    def __init__(self, vlst):
+        self.vlst = vlst
+
+    def walkabout(self, visitor):
+        return visitor.visit_FCT_File(self)
+
+
+class GFF_NameEquValue:
+    def __init__(self, v1, v2):
+        self.v1 = v1
+        self.v2 = v2
+
+    def walkabout(self, visitor):
+        return visitor.visit_NameEquValue(self)
+
+
+class GFF_fctf_section:
+    def __init__(self, n, vlst):
+        self.n = n
+        self.vlst = vlst
+
+    def walkabout(self, visitor):
+        return visitor.visit_fctf_section(self)
+
+
+class GFF_gradient:
+    def __init__(self, s, vlst):
+        self.s = s
+        self.vlst = vlst
+
+    def walkabout(self, visitor):
+        return visitor.visit_gradient(self)
+
+
+class GFF_solids:
+    def __init__(self, vlst):
+        self.vlst = vlst
+
+    def walkabout(self, visitor):
+        return visitor.visit_solids(self)
+
+
+class GFF_NameEquValue2:
+    def __init__(self, v1, v2):
+        self.v1 = v1
+        self.v2 = v2
+
+    def walkabout(self, visitor):
+        return visitor.visit_NameEquValue2(self)
+
+
+class GFF_colordata:
+    def __init__(self, n):
+        self.n = n
+
+    def walkabout(self, visitor):
+        return visitor.visit_colordata(self)
+
+
+class GFF_fctfs_formula:
+    def __init__(self, v):
+        self.v = v
+
+    def walkabout(self, visitor):
+        return visitor.visit_fctfs_formula(self)
+
+
+class GFF_hex:
+    def __init__(self, n):
+        self.n = n
+
+    def walkabout(self, visitor):
+        return visitor.visit_hex(self)
+
+
+class GFF_ExtEqu:
+    def __init__(self, s, n):
+        self.s = s
+        self.n = n
+
+    def walkabout(self, visitor):
+        return visitor.visit_ExtEqu(self)
+
+
 class GFF_Module:
     def __init__(self, vlst):
         self.vlst = vlst
@@ -407,14 +492,6 @@ class GFF_Number:
         return visitor.visit_Number(self)
 
 
-class GFF_NegNumber:
-    def __init__(self, f):
-        self.f = f
-
-    def walkabout(self, visitor):
-        return visitor.visit_NegNumber(self)
-
-
 class GFF_Num_Complex:
     def __init__(self, v1, v2):
         self.v1 = v1
@@ -526,6 +603,16 @@ class GFF_Name2:
         return visitor.visit_Name2(self)
 
 class GFF_sample_visitor_00:
+    def visit_FCT_File(self, node): pass
+    def visit_NameEquValue(self, node): pass
+    def visit_fctf_section(self, node): pass
+    def visit_gradient(self, node): pass
+    def visit_solids(self, node): pass
+    def visit_NameEquValue2(self, node): pass
+    def visit_colordata(self, node): pass
+    def visit_fctfs_formula(self, node): pass
+    def visit_hex(self, node): pass
+    def visit_ExtEqu(self, node): pass
     def visit_Module(self, node): pass
     def visit_commentblk(self, node): pass
     def visit_AnyLine(self, node): pass
@@ -574,7 +661,6 @@ class GFF_sample_visitor_00:
     def visit_Numi(self, node): pass
     def visit_NegNumi(self, node): pass
     def visit_Number(self, node): pass
-    def visit_NegNumber(self, node): pass
     def visit_Num_Complex(self, node): pass
     def visit_Num_Hyper(self, node): pass
     def visit_bool_value(self, node): pass
@@ -590,6 +676,32 @@ class GFF_sample_visitor_00:
     def visit_Name2(self, node): pass
 
 class GFF_sample_visitor_01:
+    def visit_FCT_File(self, node):
+        for v in node.vlst:
+            v.walkabout(self)
+    def visit_NameEquValue(self, node):
+        node.v1.walkabout(self)
+        node.v2.walkabout(self)
+    def visit_fctf_section(self, node):
+        for v in node.vlst:
+            v.walkabout(self)
+    def visit_gradient(self, node):
+        for v in node.vlst:
+            v.walkabout(self)
+    def visit_solids(self, node):
+        for v in node.vlst:
+            v.walkabout(self)
+    def visit_NameEquValue2(self, node):
+        node.v1.walkabout(self)
+        node.v2.walkabout(self)
+    def visit_colordata(self, node):
+        pass
+    def visit_fctfs_formula(self, node):
+        node.v.walkabout(self)
+    def visit_hex(self, node):
+        pass
+    def visit_ExtEqu(self, node):
+        pass
     def visit_Module(self, node):
         for v in node.vlst:
             v.walkabout(self)
@@ -721,8 +833,6 @@ class GFF_sample_visitor_01:
         pass
     def visit_Number(self, node):
         pass
-    def visit_NegNumber(self, node):
-        pass
     def visit_Num_Complex(self, node):
         node.v1.walkabout(self)
         node.v2.walkabout(self)
@@ -761,6 +871,61 @@ class GFF_sample_visitor_01:
 class GFF_out_visitor_01:
     def __init__(self, outp):
         self.outp = outp
+    def visit_FCT_File(self, node):
+        self.outp.puts('gnofract4d parameter file')
+        for tem1 in node.vlst:
+            tem1.walkabout(self)
+            self.outp.newline()
+    def visit_NameEquValue(self, node):
+        node.v1.walkabout(self)
+        self.outp.puts('=')
+        node.v2.walkabout(self)
+    def visit_fctf_section(self, node):
+        self.outp.puts('[')
+        self.outp.puts(node.n)
+        self.outp.puts(']')
+        self.outp.newline()
+        for tem1 in node.vlst:
+            tem1.walkabout(self)
+            self.outp.newline()
+        self.outp.puts('[endsection]')
+    def visit_gradient(self, node):
+        self.outp.puts(node.s)
+        self.outp.puts('=')
+        self.outp.puts('[')
+        for tem1 in node.vlst:
+            tem1.walkabout(self)
+            self.outp.newline()
+        self.outp.puts(']')
+    def visit_solids(self, node):
+        self.outp.puts('solids')
+        self.outp.puts('=')
+        self.outp.puts('[')
+        for tem1 in node.vlst:
+            tem1.walkabout(self)
+            self.outp.newline()
+        self.outp.puts(']')
+    def visit_NameEquValue2(self, node):
+        node.v1.walkabout(self)
+        self.outp.puts('=')
+        node.v2.walkabout(self)
+    def visit_colordata(self, node):
+        self.outp.puts('colordata')
+        self.outp.puts('=')
+        self.outp.puts(node.n)
+    def visit_fctfs_formula(self, node):
+        self.outp.puts('formula')
+        self.outp.puts('=')
+        self.outp.puts('[')
+        node.v.walkabout(self)
+        self.outp.newline()
+        self.outp.puts(']')
+    def visit_hex(self, node):
+        self.outp.puts(node.n)
+    def visit_ExtEqu(self, node):
+        self.outp.puts(node.s)
+        self.outp.puts('=')
+        self.outp.puts(node.n)
     def visit_Module(self, node):
         for tem1 in node.vlst:
             tem1.walkabout(self)
@@ -988,10 +1153,6 @@ class GFF_out_visitor_01:
         self.outp.puts(node.i)
     def visit_Number(self, node):
         self.outp.puts(node.f)
-    def visit_NegNumber(self, node):
-        self.outp.puts('-')
-        self.outp.lnk()
-        self.outp.puts(node.f)
     def visit_Num_Complex(self, node):
         self.outp.puts('(')
         node.v1.walkabout(self)
@@ -1062,10 +1223,12 @@ class Parser(Parser00):
         self.skips = [
             IgnoreCls(' \t\n', [';.*', '{-(.|\\n)*?-}', '\\\\\\n']),
         ]
-        self.lex_ANYLINE = HowRe(r'[^}\n]+')
+        self.lex_ANYLINE = HowRe(r'[^}\]\n]+')
         self.lex_ANYNAME = HowRe(r'[^({\n]+')
+        self.lex_FILENAME = HowRe(r'[A-Za-z_][^}\]\n]*')
+        self.lex_HEXNUM = HowRe('[0-9a-fA-F]+')
         self.lex_NUMBER_INT = HowRe(r'0|[1-9]\d*')
-        self.lex_NUM_DOUBLE = HowRe(r'\d*\.\d+(e(-)?\d+)?|\d+\.')
+        self.lex_NUM_DOUBLE = HowRe(r'[-]?\d*\.\d+(e(-)?\d+)?|\d+\.')
         self.lex_STR = HowRe(r'"((?:.|\n)*?)"')
     
     def handle_ANYLINE(self, s = None):
@@ -1073,6 +1236,12 @@ class Parser(Parser00):
     
     def handle_ANYNAME(self, s = None):
         return self.handle_Lex(self.lex_ANYNAME, s)
+    
+    def handle_FILENAME(self, s = None):
+        return self.handle_Lex(self.lex_FILENAME, s)
+    
+    def handle_HEXNUM(self, s = None):
+        return self.handle_Lex(self.lex_HEXNUM, s)
     
     def handle_NUMBER_INT(self):
         s = self.handle_Lex(self.lex_NUMBER_INT)
@@ -1083,6 +1252,250 @@ class Parser(Parser00):
     
     def handle_STR(self):
         return self.handle_string_Lex(self.lex_STR)
+
+    def handle_FCT_File(self):
+        sav0 = self.getpos()
+        if self.handle_OpChar('gnofract4d parameter file') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        vlst = []
+        sav1 = self.getpos()
+        while True:
+            v3 = self.hdl_fctf_item()
+            if v3 is None:
+                break
+            vlst.append(v3)
+            sav1 = self.getpos()
+            self.Skip(0)
+        self.setpos(sav1)
+        self.Skip(0)
+        if self.handle_ENDMARKER() is None:
+            self.setpos(sav0)
+            return None
+        return GFF_FCT_File(vlst)
+
+    def hdl_fctf_item(self):
+        v = self.handle_NameEquValue()
+        if v is not None:
+            return v
+        return self.handle_fctf_section()
+
+    def handle_NameEquValue(self):
+        sav0 = self.getpos()
+        v1 = self.handle_Name0()
+        if v1 is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        if self.handle_OpChar('=') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        v2 = self.hdl_value0()
+        if v2 is None:
+            self.setpos(sav0)
+            return None
+        return GFF_NameEquValue(v1, v2)
+
+    def handle_fctf_section(self):
+        sav0 = self.getpos()
+        if self.handle_OpChar('[') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        n = self.handle_NAME()
+        if n is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        if self.handle_OpChar(']') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        vlst = []
+        sav1 = self.getpos()
+        while True:
+            v3 = self.hdl_fctfs_item()
+            if v3 is None:
+                break
+            vlst.append(v3)
+            sav1 = self.getpos()
+            self.Skip(0)
+        self.setpos(sav1)
+        self.Skip(0)
+        if self.handle_OpChar('[endsection]') is None:
+            self.setpos(sav0)
+            return None
+        return GFF_fctf_section(n, vlst)
+
+    def hdl_fctfs_item(self):
+        v = self.handle_fctfs_formula()
+        if v is not None:
+            return v
+        v = self.handle_gradient()
+        if v is not None:
+            return v
+        v = self.handle_solids()
+        if v is not None:
+            return v
+        v = self.handle_colordata()
+        if v is not None:
+            return v
+        v = self.handle_ExtEqu()
+        if v is not None:
+            return v
+        v = self.handle_NameEquValue2()
+        if v is not None:
+            return v
+        return self.handle_NameEquValue()
+
+    def handle_gradient(self):
+        sav0 = self.getpos()
+        s = self.handle_OpChar('@_gradient')
+        if s is None:
+            s = self.handle_NAME('gradient')
+        if s is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        if self.handle_OpChar('=') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        if self.handle_OpChar('[') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        vlst = []
+        sav1 = self.getpos()
+        while True:
+            v3 = self.handle_AnyLine()
+            if v3 is None:
+                break
+            vlst.append(v3)
+            sav1 = self.getpos()
+            self.Skip(0)
+        self.setpos(sav1)
+        self.Skip(0)
+        if self.handle_OpChar(']') is None:
+            self.setpos(sav0)
+            return None
+        return GFF_gradient(s, vlst)
+
+    def handle_solids(self):
+        sav0 = self.getpos()
+        if self.handle_NAME('solids') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        if self.handle_OpChar('=') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        if self.handle_OpChar('[') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        vlst = []
+        sav1 = self.getpos()
+        while True:
+            v3 = self.handle_hex()
+            if v3 is None:
+                break
+            vlst.append(v3)
+            sav1 = self.getpos()
+            self.Skip(0)
+        self.setpos(sav1)
+        self.Skip(0)
+        if self.handle_OpChar(']') is None:
+            self.setpos(sav0)
+            return None
+        return GFF_solids(vlst)
+
+    def handle_NameEquValue2(self):
+        sav0 = self.getpos()
+        v1 = self.handle_Name2()
+        if v1 is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        if self.handle_OpChar('=') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        v2 = self.hdl_value0()
+        if v2 is None:
+            self.setpos(sav0)
+            return None
+        return GFF_NameEquValue2(v1, v2)
+
+    def handle_colordata(self):
+        sav0 = self.getpos()
+        if self.handle_NAME('colordata') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        if self.handle_OpChar('=') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        n = self.handle_HEXNUM()
+        if n is None:
+            self.setpos(sav0)
+            return None
+        return GFF_colordata(n)
+
+    def handle_fctfs_formula(self):
+        sav0 = self.getpos()
+        if self.handle_NAME('formula') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        if self.handle_OpChar('=') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        if self.handle_OpChar('[') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        v = self.handle_formu()
+        if v is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        if self.handle_OpChar(']') is None:
+            self.setpos(sav0)
+            return None
+        return GFF_fctfs_formula(v)
+
+    def handle_hex(self):
+        sav0 = self.getpos()
+        n = self.handle_HEXNUM()
+        if n is None:
+            self.setpos(sav0)
+            return None
+        return GFF_hex(n)
+
+    def handle_ExtEqu(self):
+        sav0 = self.getpos()
+        s = self.handle_NAME('formulafile')
+        if s is None:
+            s = self.handle_NAME('function')
+        if s is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        if self.handle_OpChar('=') is None:
+            self.setpos(sav0)
+            return None
+        self.Skip(0)
+        n = self.handle_FILENAME()
+        if n is None:
+            self.setpos(sav0)
+            return None
+        return GFF_ExtEqu(s, n)
 
     def handle_Module(self):
         self.Skip(0)
@@ -2094,23 +2507,8 @@ class Parser(Parser00):
             return None
         return GFF_Number(f)
 
-    def handle_NegNumber(self):
-        sav0 = self.getpos()
-        if self.handle_OpChar('-') is None:
-            self.setpos(sav0)
-            return None
-        self.Skip(0)
-        f = self.handle_NUM_DOUBLE()
-        if f is None:
-            self.setpos(sav0)
-            return None
-        return GFF_NegNumber(f)
-
     def hdl_Number00(self):
-        v = self.handle_Number()
-        if v is not None:
-            return v
-        return self.handle_NegNumber()
+        return self.handle_Number()
 
     def handle_Num_Complex(self):
         sav0 = self.getpos()
@@ -2357,10 +2755,10 @@ class Parser(Parser00):
         return self.step6_value2(v1)
 
     def hdl_value(self):
-        v = self.handle_neg_value()
+        v = self.handle_value2()
         if v is not None:
             return v
-        return self.handle_value2()
+        return self.handle_neg_value()
 
     def handle_neg_value(self):
         sav0 = self.getpos()

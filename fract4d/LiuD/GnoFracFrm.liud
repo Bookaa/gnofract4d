@@ -3,10 +3,12 @@
 
 .name_prefix GFF
 
-.string ANYLINE Name '[^}\n]+'
+.string ANYLINE Name '[^}\]\n]+'
 .string ANYNAME Name '[^({\n]+'
 .string STR strtype1 '"((?:.|\n)*?)"'
-.string NUM_DOUBLE Double '\d*\.\d+(e(-)?\d+)?|\d+\.'
+.string NUM_DOUBLE Double '[-]?\d*\.\d+(e(-)?\d+)?|\d+\.'
+.string HEXNUM Name '[0-9a-fA-F]+'
+.string FILENAME Name '[A-Za-z_][^}\]\n]*'
 
 .set_linecomment ';'
 .set_comment '\\\n'
@@ -14,6 +16,18 @@
 
 .syntax crlf
 
+FCT_File : 'gnofract4d parameter file' fctf_item* ENDMARKER$
+    fctf_item :: NameEquValue | fctf_section
+    NameEquValue : Name0 '=' value0
+    fctf_section : '[' NAME ']' fctfs_item* '[endsection]'
+    fctfs_item :: fctfs_formula | gradient | solids | colordata | ExtEqu | NameEquValue2 | NameEquValue
+    gradient : ('@_gradient' | 'gradient')$ '=' '[' AnyLine* ']'
+    solids : 'solids' '=' '[' hex* ']'
+    NameEquValue2 : Name2 '=' value0
+    colordata : 'colordata' '=' HEXNUM
+    fctfs_formula : 'formula' '=' '[' formu ']'
+    hex : HEXNUM
+    ExtEqu : ('formulafile' | 'function')$ '=' FILENAME
 
 Module : blk* ENDMARKER$
 
@@ -85,8 +99,7 @@ Numi : NUMBER_INT
 NegNumi : '-' NUMBER_INT
 Number01 :: Numi | NegNumi
 Number : NUM_DOUBLE
-NegNumber : '-' NUM_DOUBLE
-Number00 :: Number | NegNumber
+Number00 :: Number
 Num_Complex : '(' value ',' value ')'
 Num_Hyper : '(' value ',' value ',' value ',' value ')'
 num22 :: Number00 | Number01
@@ -96,7 +109,7 @@ value0 :: bool_value | Name1 | Name2 | Name0 | Number00 | Number01 | String | Nu
 value1 :: funccall | value0 | EnclosedValue | AbsSigned
 value2 : value1 ^- ('^' ('*'|'/') '%' ('+'|'-') ('>='|'>'|'<='|'<'|'==') ('||'|'&&'))
 
-value :: neg_value | value2
+value :: value2 | neg_value
 
 neg_value : '-' value2
 
@@ -137,7 +150,6 @@ Output Rules {
     String : x
     Name0 : x
     Number : x
-    NegNumber : '-' - x
     Numi : x
     NegNumi : '-' - x
     Num_Complex : '(' x ',' x ')'
@@ -173,6 +185,16 @@ Output Rules {
     xzangle : 'xzangle =' x
     ywangle : 'ywangle =' x
     maxiter : 'maxiter =' x
+    FCT_File : 'gnofract4d parameter file' (x NL)*
+    NameEquValue : x '=' x
+    NameEquValue2 : x '=' x
+    fctf_section : '[' x ']' NL (x NL)* '[endsection]'
+    gradient : x '=' '[' (x NL)* ']'
+    solids : 'solids' '=' '[' (x NL)* ']'
+    fctfs_formula : 'formula' '=' '[' x NL ']'
+    hex : x
+    ExtEqu : x '=' x
+    colordata : 'colordata' '=' x
 }
 
 Sample Text = $liud$

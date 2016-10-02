@@ -149,12 +149,97 @@ class T(fctutils.T):
         self.set_formula_text(func.text, 1, 2)
         self.forms[2].load_param_bag(params)
 
+    def parse__inner_1(self, vlst):
+        params_dict = {}
+        for v in vlst:
+            if isinstance(v, Ast_GFF.GFF_fctfs_formula):
+                assert isinstance(v.v, Ast_GFF.GFF_formu)
+                v = v.v
+                assert v.vq is None
+                s = v.n + '{\n' + '\n'.join([v1.n for v1 in v.vlst]) + '\n}'
+                self.set_formula_text(s, 1, 2)
+                continue
+            if isinstance(v, Ast_GFF.GFF_NameEquValue2):
+                assert isinstance(v.v1, Ast_GFF.GFF_Name2)
+                name = '@'+v.v1.n
+                val = ValueToString(v.v2)
+                self.forms[2].set_named_item(name,val)
+                continue
+            if isinstance(v, Ast_GFF.GFF_gradient):
+                name = '@_gradient'
+                val = '\n'.join([v1.n for v1 in v.vlst])
+                self.forms[2].set_named_item(name,val)
+                continue
+            if isinstance(v, Ast_GFF.GFF_ExtEqu):
+                name = v.s
+                val = v.n
+                if name in ('formulafile', 'function'):
+                    params_dict[name] = val
+                    if len(params_dict) == 2: # we have both
+                        formtype = 2
+                        formulafile = params_dict.get(
+                            "formulafile",self.forms[formtype].funcFile)
+                        fname = params_dict.get(
+                            "function", self.forms[formtype].funcName)
+                        f = self.compiler.get_parsetree(formulafile, fname)
+                        self.set_formula_text(f.text, 1, 2)
+                    continue
+                assert False
+
+
+            assert False
+
     def parse__outer_(self,val,f):
         params = fctutils.ParamBag()
         params.load(f)
         (file, func) = self.normalize_formulafile(params,1,fc.FormulaTypes.COLORFUNC)
         self.set_formula_text(func.text, 1, 1)
         self.forms[1].load_param_bag(params)
+
+    def parse__outer_1(self, vlst):
+        params_dict = {}
+        for v in vlst:
+            if isinstance(v, Ast_GFF.GFF_fctfs_formula):
+                assert isinstance(v.v, Ast_GFF.GFF_formu)
+                v = v.v
+                assert v.vq is None
+                s = v.n + '{\n' + '\n'.join([v1.n for v1 in v.vlst]) + '\n}'
+                self.set_formula_text(s, 1, 1)
+                continue
+            if isinstance(v, Ast_GFF.GFF_NameEquValue2):
+                assert isinstance(v.v1, Ast_GFF.GFF_Name2)
+                name = '@'+v.v1.n
+                if isinstance(v.v2, Ast_GFF.GFF_Name0):
+                    val = v.v2.n
+                elif isinstance(v.v2, Ast_GFF.GFF_Number):
+                    val = v.v2.f
+                else:
+                    assert False
+                self.forms[1].set_named_item(name,val)
+                continue
+            if isinstance(v, Ast_GFF.GFF_gradient):
+                name = '@_gradient'
+                val = '\n'.join([v1.n for v1 in v.vlst])
+                self.forms[1].set_named_item(name,val)
+                continue
+            if isinstance(v, Ast_GFF.GFF_ExtEqu):
+                name = v.s
+                val = v.n
+                if name in ('formulafile', 'function'):
+                    params_dict[name] = val
+                    if len(params_dict) == 2: # we have both
+                        formtype = 1
+                        formulafile = params_dict.get(
+                            "formulafile",self.forms[formtype].funcFile)
+                        fname = params_dict.get(
+                            "function", self.forms[formtype].funcName)
+                        f = self.compiler.get_parsetree(formulafile, fname)
+                        self.set_formula_text(f.text, 1, 1)
+                    continue
+                assert False
+
+
+            assert False
 
     def parse__function_(self,val,f):
         params = fctutils.ParamBag()
@@ -172,6 +257,52 @@ class T(fctutils.T):
                 self.forms[0].set_named_param("@" + name, val)
             else:
                 self.forms[0].set_named_item(name,val)
+
+    def parse__function_1(self, vlst):
+        params_dict = {}
+        for v in vlst:
+            if isinstance(v, Ast_GFF.GFF_fctfs_formula):
+                assert isinstance(v.v, Ast_GFF.GFF_formu)
+                v = v.v
+                assert v.vq is None
+                s = v.n + '{\n' + '\n'.join([v1.n for v1 in v.vlst]) + '\n}'
+                self.set_formula_text(s, 0, 0)
+                continue
+            if isinstance(v, Ast_GFF.GFF_NameEquValue):
+                assert isinstance(v.v1, Ast_GFF.GFF_Name0)
+                name = v.v1.n
+                val = ValueToString(v.v2)
+                self.forms[0].set_named_item(name,val)
+                continue
+            if isinstance(v, Ast_GFF.GFF_NameEquValue2):
+                assert isinstance(v.v1, Ast_GFF.GFF_Name2)
+                name = '@'+v.v1.n
+                val = ValueToString(v.v2)
+                self.forms[0].set_named_item(name,val)
+                continue
+            if isinstance(v, Ast_GFF.GFF_gradient):
+                name = '@_gradient'
+                val = '\n'.join([v1.n for v1 in v.vlst])
+                self.forms[0].set_named_item(name,val)
+                continue
+            if isinstance(v, Ast_GFF.GFF_ExtEqu):
+                name = v.s
+                val = v.n
+                if name in ('formulafile', 'function'):
+                    params_dict[name] = val
+                    if len(params_dict) == 2: # we have both
+                        formtype = 0
+                        formulafile = params_dict.get(
+                            "formulafile",self.forms[formtype].funcFile)
+                        fname = params_dict.get(
+                            "function", self.forms[formtype].funcName)
+                        f = self.compiler.get_parsetree(formulafile, fname)
+                        self.set_formula_text(f.text, 0, 0)
+                    continue
+                assert False
+
+            assert False
+
 
     def parse__transform_(self,val,f):
         which_transform = int(val)
@@ -322,6 +453,12 @@ class T(fctutils.T):
         if cf.read_gradient:
             self.set_gradient(cf.gradient)
 
+    def parse__colors_1(self,vlst):
+        cf = colorizer.T(self)
+        cf.load_1(vlst)
+        if cf.read_gradient:
+            self.set_gradient(cf.gradient)
+
     def parse__colorizer_(self,val,f):
         which_cf = int(val)
         cf = colorizer.T(self)
@@ -384,6 +521,80 @@ class T(fctutils.T):
 
         self.load(f)
 
+def ValueToString(v):
+    if isinstance(v, Ast_GFF.GFF_Name0):
+        val = v.n
+    elif isinstance(v, Ast_GFF.GFF_Number):
+        val = v.f
+    elif isinstance(v, Ast_GFF.GFF_Numi):
+        val = str(v.i)
+    elif isinstance(v, Ast_GFF.GFF_Num_Complex):
+        val = '(%s,%s)' % (ValueToString(v.v1), ValueToString(v.v2))
+    else:
+        assert False
+    return val
+
+from LiuD import Ast_GFF
+class MyLoadFCT(Ast_GFF.GFF_sample_visitor_01):
+    def __init__(self, f):
+        self.f = f
+    def visit_NameEquValue(self, node):
+        name = node.v1.walkabout(self)
+        value = node.v2.walkabout(self)
+        if name in ('version', 'yflip', 'periodicity', 'period_tolerance', 'antialias'):
+            return # ignore
+        if name == 'x':  return self.f.parse_x(value, None)
+        if name == 'y':  return self.f.parse_y(value, None)
+        if name == 'z':  return self.f.parse_z(value, None)
+        if name == 'w':  return self.f.parse_w(value, None)
+        if name == 'size':  return self.f.parse_size(value, None)
+        if name == 'xy':  return self.f.parse_xy(value, None)
+        if name == 'xz':  return self.f.parse_xz(value, None)
+        if name == 'xw':  return self.f.parse_xw(value, None)
+        if name == 'yz':  return self.f.parse_yz(value, None)
+        if name == 'yw':  return self.f.parse_yw(value, None)
+        if name == 'zw':  return self.f.parse_zw(value, None)
+        if name == 'bailout':  return self.f.parse_bailout(value, None)
+        if name == 'maxiter':  return self.f.parse_maxiter(value, None)
+        if name == 'bailfunc': return self.f.parse_bailfunc(value, None)
+        if name == 'inner': return self.f.parse_inner(value, None)
+        if name == 'outer': return self.f.parse_outer(value, None)
+        assert False
+    def visit_fctf_section(self, node):
+        sec_name = node.n
+        if sec_name == 'function':
+            self.f.parse__function_1(node.vlst)
+        elif sec_name == 'outer':
+            self.f.parse__outer_1(node.vlst)
+        elif sec_name == 'inner':
+            self.f.parse__inner_1(node.vlst)
+        elif sec_name == 'colors':
+            self.f.parse__colors_1(node.vlst)
+        else:
+            assert False
+    def visit_Name0(self, node):
+        return node.n
+    def visit_Number(self, node):
+        return node.f
+    def visit_Numi(self, node):
+        return str(node.i)
+def MyloadFctFile(file, f):
+    if False:
+        f.loadFctFile(file)
+    srctxt = file.read()
+    pass
+    parser = Ast_GFF.Parser(srctxt)
+    mod = parser.handle_FCT_File()
+    if mod is None:
+        lastpos, lastlineno, lastcolumn, lastline = parser.GetLast()
+        print 'parse error, last pos = %d' % lastpos
+        print 'last lineno = %d, column = %d' % (lastlineno, lastcolumn)
+        print 'last line :', lastline
+    else:
+        print 'parse success'
+    the = MyLoadFCT(f)
+    mod.walkabout(the)
+
 if __name__ == '__main__':
     g_comp = fc.Compiler()
     g_comp.add_func_path("formulas")
@@ -397,7 +608,10 @@ if __name__ == '__main__':
     f = T(g_comp)
     for arg in sys.argv[1:]:
         file = open(arg)
-        f.loadFctFile(file)
+        if False:
+            f.loadFctFile(file)
+        else:
+            MyloadFctFile(file, f)
         outputfile = None # f.compile()
         im = image.T(1024,768)
         #im = image.T(320,200)

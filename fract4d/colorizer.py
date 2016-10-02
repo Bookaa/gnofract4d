@@ -24,6 +24,37 @@ class T(fctutils.T):
                 self.parseVal(name,val,f)
             line = f.readline()
 
+    def load_1(self,vlst):
+        from LiuD import Ast_GFF
+        from fractal import ValueToString
+        for v in vlst:
+            if isinstance(v, Ast_GFF.GFF_NameEquValue):
+                name = v.v1.n
+                val = ValueToString(v.v2)
+                if name == 'colorizer':
+                    self.parse_colorizer(val, None)
+                else:
+                    assert False
+                continue
+            if isinstance(v, Ast_GFF.GFF_solids):
+                self.solids = []
+                for v1 in v.vlst:
+                    line = v1.n
+                    cols = self.extract_color(line,0,True)
+                    self.solids.append(tuple(cols))
+                continue
+            if isinstance(v, Ast_GFF.GFF_colordata):
+                s = v.n
+                self.parse_colordata(s, None)
+                continue
+            if isinstance(v, Ast_GFF.GFF_gradient):
+                val = '\n'.join([v1.n for v1 in v.vlst])
+                import StringIO
+                f = StringIO.StringIO(val)
+                self.parse_gradient(None, f)
+                continue
+            assert False
+
     def parse_colorizer(self,val,f):
         # old 1.x files: 0 == rgb, 1 == gradient
         t = int(val)
