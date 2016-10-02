@@ -1266,8 +1266,11 @@ class ColorFunc(TBase):
             dict3_ = ParseFormFile.ParseFormuFile(text, True)
             lst = dict3_['children'][0]['children']
             for dict1 in lst:
-                m = Node(0,0)
-                m.SerialIn(dict1)
+                if True:
+                    m = Node1(dict1)
+                else:
+                    m = Node(0,0)
+                    m.SerialIn(dict1)
                 f.children.append(m)
             f.deepmod = dict3_['children'][0]['deepmod']
 

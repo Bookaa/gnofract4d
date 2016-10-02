@@ -349,8 +349,11 @@ class Compiler:
     def get_parsetree_with_text(self, formulatext):
         dict_ = ParseFormulaFileRemote(formulatext)
 
-        result = absyn.Node(0,0)
-        result.SerialIn(dict_)
+        if True:
+            result = absyn.Node1(dict_)
+        else:
+            result = absyn.Node(0,0)
+            result.SerialIn(dict_)
         
         ff = result
 
