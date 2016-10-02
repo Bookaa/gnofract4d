@@ -257,6 +257,13 @@ class Compiler:
         # print 'input', type(s), len(s)
         dict_ = ParseFormulaFileRemote(s)
 
+        if True:
+            formulas = {}
+            for v in dict_['children']:
+                the = absyn.Node1(v)
+                formulas[the.leaf] = the
+            return formulas
+
         result = absyn.Node(0,0)
         result.SerialIn(dict_)
 
