@@ -150,6 +150,7 @@ class T(fctutils.T):
         self.forms[2].load_param_bag(params)
 
     def parse__inner_1(self, vlst):
+        self.forms[2].deeplist = vlst
         params_dict = {}
         for v in vlst:
             if isinstance(v, Ast_GFF.GFF_fctfs_formula):
@@ -197,6 +198,7 @@ class T(fctutils.T):
         self.forms[1].load_param_bag(params)
 
     def parse__outer_1(self, vlst):
+        self.forms[1].deeplist = vlst
         params_dict = {}
         for v in vlst:
             if isinstance(v, Ast_GFF.GFF_fctfs_formula):
@@ -259,6 +261,7 @@ class T(fctutils.T):
                 self.forms[0].set_named_item(name,val)
 
     def parse__function_1(self, vlst):
+        self.forms[0].deeplist = vlst
         params_dict = {}
         for v in vlst:
             if isinstance(v, Ast_GFF.GFF_fctfs_formula):
@@ -368,25 +371,84 @@ class T(fctutils.T):
         return p
 
     def draw(self, image, outputfile):
-        formuName = self.forms[0].funcName
-        initparams = self.all_params()
         segs = self.get_gradient().segments
 
-        form0_mod = self.forms[0].formula.basef.deepmod
-        form1_mod = self.forms[1].formula.basef.deepmod
-        form2_mod = self.forms[2].formula.basef.deepmod
-        form0_text = self.forms[0].formula.basef.text; form0_leaf = self.forms[0].formula.basef.leaf
-        form1_text = self.forms[1].formula.basef.text; form1_leaf = self.forms[1].formula.basef.leaf   # continuous_potential
-        form2_text = self.forms[2].formula.basef.text; form2_leaf = self.forms[2].formula.basef.leaf   # Angel
+        if myfract4dc.UseLLVM:
+            formuName = ''
+            initparams = None
 
-        param0 = self.bookaa_GetParam(self.forms[0])
-        param1 = self.bookaa_GetParam(self.forms[1])
-        param2 = self.bookaa_GetParam(self.forms[2])
-        myfract4dc.CompileLLVM(form0_mod, form1_mod, form2_mod, param0, param1, param2)
+            form0_mod = self.forms[0].formula.basef.deepmod
+            form1_mod = self.forms[1].formula.basef.deepmod
+            form2_mod = self.forms[2].formula.basef.deepmod
+
+            param0 = self.bookaa_GetParam(self.forms[0])
+            param1 = self.bookaa_GetParam(self.forms[1])
+            param2 = self.bookaa_GetParam(self.forms[2])
+            myfract4dc.CompileLLVM(form0_mod, form1_mod, form2_mod, param0, param1, param2)
+        else:
+            formuName = self.forms[0].funcName
+            initparams = self.all_params()
         myfract4dc.draw(image, outputfile, formuName, initparams, self.params, segs, self.maxiter)
         return
 
     def bookaa_GetParam(self, theform):
+        lst = self.bookaa_GetParam0(theform)
+        pass
+        dict_ = {}
+        for name, var in theform.formula.paramlist.items():
+            dict_[name] = (var.datatype, var.type, var.value, var.enum)
+
+        if '_density' not in dict_:
+            dict_['_density'] = (2, 'param', 1.0, None)
+        if '_offset' not in dict_:
+            dict_['_offset'] = (2, 'param', 0.0, None)
+
+        for name, s in theform.paramlist.items():
+            if name in dict_:
+                (typ1, typ2, val, enum) = dict_[name]
+                if typ2 == 'func':
+                    dict_[name] = (typ1, typ2, s, enum)
+                elif typ2 == 'param':
+                    if typ1 == 2: # double
+                        val2 = float(s)
+                        dict_[name] = (typ1, typ2, val2, enum)
+                    elif typ1 == 1: # int
+                        val2 = int(s)
+                        dict_[name] = (typ1, typ2, val2, enum)
+                    elif typ1 == 3: # complex
+                        dict_[name] = (typ1, typ2, val, enum)
+                    else:
+                        assert False
+                else:
+                    assert False
+            elif name == '_transfer':
+                dict_[name] = (97, 'param', s, None)
+            elif name == '_gradient':
+                dict_[name] = (99, '99', s, None)
+            else:
+                assert False
+        lst2 = []
+        for name in dict_:
+            if name == 'xpos':
+                pass
+            (typ1, typ2, val, enum) = dict_[name]
+            if typ2 == 'func':
+                lst2.append((name, 98, val, enum))
+                continue
+            if typ2 == 'param':
+                lst2.append((name, typ1, val, enum))
+                continue
+            if typ2 == '99':
+                the = gradient.Gradient()
+                the.load(StringIO.StringIO(val))
+                lst2.append((name, 7, the, enum))
+                continue
+            assert False
+
+        return lst2
+
+
+    def bookaa_GetParam0(self, theform):
         params = theform.params
         paramtypes = theform.paramtypes
         var_params = theform.formula.symbols.var_params
@@ -454,6 +516,7 @@ class T(fctutils.T):
             self.set_gradient(cf.gradient)
 
     def parse__colors_1(self,vlst):
+        self.color_deeplist = vlst
         cf = colorizer.T(self)
         cf.load_1(vlst)
         if cf.read_gradient:

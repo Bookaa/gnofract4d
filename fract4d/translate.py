@@ -22,6 +22,64 @@ allowed_param_names = [
     "hint"
 ]
 
+class ParamVar:
+    pass
+
+def NewParamVar(v):
+    pass
+    # return ParamVar()
+    the = ParamVar()
+    the.name = v.leaf
+    the.type = v.type # maybe 'param
+    the.datatype = v.datatype
+    the.value = 0
+    the.enum = None
+
+    if the.name == 'colortype':
+        pass
+
+    for v1 in v.children:
+        if v1.type == 'set':
+            if v1.children[0].leaf == 'enum':
+                c1 = v1.children[1]
+                lst3 = [c1.leaf]
+                for v in c1.children:
+                    lst3.append(v.leaf)
+                the.enum = lst3
+                continue
+            if v1.children[0].leaf == 'default':
+                c1 = v1.children[1]
+                if the.type == 'func':
+                    the.value = c1.leaf
+                    continue
+                if c1.type == 'const':
+                    val = c1.leaf
+                    the.value = val
+                elif c1.type == 'id':
+                    val = c1.leaf
+                    the.value = val
+                elif c1.type == 'string':
+                    the.value = c1.leaf
+                elif c1.type == 'funcall':
+                    if v.datatype == 4 and c1.leaf == 'rgb':
+                        the.value = (c1.children[0].leaf, c1.children[1].leaf, c1.children[2].leaf, 1.0)
+                    else:
+                        assert False
+                elif c1.leaf == 'complex' and the.datatype == 3 and c1.type == 'binop':
+                    the.value = (c1.children[0].leaf, c1.children[1].leaf)
+                else:
+                    assert False
+    if the.datatype is None: # why not datatype
+        if isinstance(the.value, float):
+            the.datatype = 2
+        else:
+            assert False
+
+    if the.enum and isinstance(the.value, str):
+        the.value = the.enum.index(the.value)
+
+    return the
+
 class TBase:
     def __init__(self,prefix,dump=None):
         #print "translating"
@@ -41,6 +99,8 @@ class TBase:
         self.dumpTranslation = 0
         self.dumpVars = 0
         self.dumpPreCanon = 0
+
+        self.paramlist = {} # bookaa: { name : ParamVar }
 
         if dump != None:
             for k in dump.keys():
@@ -143,6 +203,12 @@ class TBase:
 
     def default(self,node):
         self.update_settings("default", node)
+        # bookaa
+        for v in node.children:
+            thev = NewParamVar(v)
+            if thev:
+                self.paramlist[thev.name] = thev
+
 
     def add_to_section(self,sectname,stmlist):
         current = self.sections.get(sectname)
@@ -1042,6 +1108,7 @@ class T(TBase):
         # lookup sections in order
         s = f.childByName("default")
         if s: self.default(s)
+        return
         s = f.childByName("global")
         if s: self.global_(s)
         s = f.childByName("init")
@@ -1281,6 +1348,7 @@ class ColorFunc(TBase):
         self.canonicalizeSections(f)
         s = f.childByName("default")
         if s: self.default(s)
+        return
         s = f.childByName("global")
         if s: self.global_(s)
         s = f.childByName("init")
