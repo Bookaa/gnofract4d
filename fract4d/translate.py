@@ -71,7 +71,9 @@ def NewParamVar(v):
                     assert False
     if the.datatype is None: # why not datatype
         if isinstance(the.value, float):
-            the.datatype = 2
+            the.datatype = 2 # float
+        elif the.enum:
+            the.datatype = 1 # int
         else:
             assert False
 

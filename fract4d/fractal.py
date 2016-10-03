@@ -388,7 +388,8 @@ class T(fctutils.T):
         else:
             formuName = self.forms[0].funcName
             initparams = self.all_params()
-        myfract4dc.draw(image, outputfile, formuName, initparams, self.params, segs, self.maxiter)
+        cmap = myfract4dc.cmap_from_pyobject(segs)
+        myfract4dc.draw(image, outputfile, formuName, initparams, self.params, cmap, self.maxiter)
         return
 
     def bookaa_GetParam(self, theform):

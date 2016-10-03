@@ -1300,61 +1300,25 @@ class mywalk(GFF_sample_visitor_01):
         dict_, param, mod = self.cur_color
         for name1, typ, val, enum in param:
             if name1 == name:
+                if typ == 0:
+                    if val == False:
+                        return type_bool, ir.Constant(ir.IntType(1), 0)
+                    return type_bool, ir.Constant(ir.IntType(1), 1)
                 if typ == 1:
                     if enum:
                         return type_enum_string, (val, enum[val])
                     return type_int, ir.Constant(ir.IntType(64), val)
                 if typ == 2:
                     return type_double, ir.Constant(ir.DoubleType(), val)
+                if typ == 3:
+                    return type_complex, (ir.Constant(ir.DoubleType(), val[0]),
+                                          ir.Constant(ir.DoubleType(), val[1]))
                 if typ == 4:
                     return type_color, (ir.Constant(ir.DoubleType(), val[0]),
                                         ir.Constant(ir.DoubleType(), val[1]),
                                         ir.Constant(ir.DoubleType(), val[2]),
                                         ir.Constant(ir.DoubleType(), val[3]))
                 # return
-        assert self.default_blk
-        for itm in self.default_blk.vlst:
-            if isinstance(itm, Ast_GFF.GFF_dt_param):
-                dt = getdt(itm.v1.s)
-                if isinstance(itm.v2, Ast_GFF.GFF_Name0):
-                    name1 = itm.v2.n
-                else:
-                    assert False
-                if name1 == name:
-                    if dt == 0: # bool
-                        s = itm.vlst[0].v.n
-                        if s == 'true':
-                            return type_bool, ir.Constant(ir.IntType(1), 1)
-                        if s == 'false':
-                            return type_bool, ir.Constant(ir.IntType(1), 0)
-                    if dt == 2: # double
-                        assert len(itm.vlst) == 1
-                        assert isinstance(itm.vlst[0], Ast_GFF.GFF_df_default)
-                        assert isinstance(itm.vlst[0].v, Ast_GFF.GFF_Number)
-                        f = itm.vlst[0].v.f
-                        return type_double, ir.Constant(ir.DoubleType(), float(f))
-                    if dt == 3: # complex
-                        assert len(itm.vlst) == 1
-                        assert isinstance(itm.vlst[0], Ast_GFF.GFF_df_default)
-                        cpx = itm.vlst[0].v
-                        assert isinstance(cpx, Ast_GFF.GFF_Num_Complex)
-                        value_real = cpx.v1.walkabout(self)
-                        value_imag = cpx.v2.walkabout(self)
-                        if value_imag is None:
-                            value_imag = cpx.v2.walkabout(self)
-                        return type_complex, (value_real[1], value_imag[1])
-                    assert False
-                continue
-            elif isinstance(itm, Ast_GFF.GFF_dt_func):
-                name1 = itm.n
-                if name1 == name:
-                    assert False
-            elif isinstance(itm, Ast_GFF.GFF_general_param):
-                name1 = itm.n
-                if name1 == name:
-                    assert False
-            else:
-                assert False
 
         assert False, name
     def get_param_func_name(self, funcname):

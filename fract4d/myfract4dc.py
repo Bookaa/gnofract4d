@@ -996,7 +996,7 @@ def parse_params_to_dict(params):
     cf0cf1 = (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset)
     return (cf0cf1, tuple(values))
 
-def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
+def draw(image, outputfile, formuName, initparams, params, cmap, maxiter):
     if UseLLVM:
         pfo_p = ((0.0,0.0,0.0,0.0,0.0), (0.0,0.0,0.0,0.0,0.0)) # no use
         formuNameNo = 0 # no use
@@ -1008,7 +1008,6 @@ def draw(image, outputfile, formuName, initparams, params, segs, maxiter):
         else: # if formuName == 'Cubic Mandelbrot':
             formuNameNo = 3
         pfo_p = parse_params_to_dict(initparams)
-    cmap = cmap_from_pyobject(segs)
     _img = image._img
 
     pfcls = (formuNameNo, params, pfo_p, cmap, maxiter, _img)
