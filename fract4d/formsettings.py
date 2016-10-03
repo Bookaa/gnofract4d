@@ -207,9 +207,6 @@ class T:
         else:
             self.set_named_param(name,val)
 
-        if name[0] == '@':
-            self.paramlist2[name[1:]] = val
-
     def set_named_param(self,name,val):
         ord = self.order_of_name(name)
         if ord == None:

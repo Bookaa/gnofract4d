@@ -165,11 +165,13 @@ class T(fctutils.T):
                 name = '@'+v.v1.n
                 val = ValueToString(v.v2)
                 self.forms[2].set_named_item(name,val)
+                self.forms[2].paramlist2[v.v1.n] = val
                 continue
             if isinstance(v, Ast_GFF.GFF_gradient):
                 name = '@_gradient'
                 val = '\n'.join([v1.n for v1 in v.vlst])
                 self.forms[2].set_named_item(name,val)
+                self.forms[2].paramlist2['_gradient'] = val
                 continue
             if isinstance(v, Ast_GFF.GFF_ExtEqu):
                 name = v.s
@@ -218,11 +220,13 @@ class T(fctutils.T):
                 else:
                     assert False
                 self.forms[1].set_named_item(name,val)
+                self.forms[1].paramlist2[v.v1.n] = val
                 continue
             if isinstance(v, Ast_GFF.GFF_gradient):
                 name = '@_gradient'
                 val = '\n'.join([v1.n for v1 in v.vlst])
                 self.forms[1].set_named_item(name,val)
+                self.forms[1].paramlist2['_gradient'] = val
                 continue
             if isinstance(v, Ast_GFF.GFF_ExtEqu):
                 name = v.s
@@ -282,11 +286,13 @@ class T(fctutils.T):
                 name = '@'+v.v1.n
                 val = ValueToString(v.v2)
                 self.forms[0].set_named_item(name,val)
+                self.forms[0].paramlist2[v.v1.n] = val
                 continue
             if isinstance(v, Ast_GFF.GFF_gradient):
                 name = '@_gradient'
                 val = '\n'.join([v1.n for v1 in v.vlst])
                 self.forms[0].set_named_item(name,val)
+                self.forms[0].paramlist2['_gradient'] = val
                 continue
             if isinstance(v, Ast_GFF.GFF_ExtEqu):
                 name = v.s
