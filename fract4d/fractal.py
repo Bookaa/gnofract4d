@@ -371,7 +371,6 @@ class T(fctutils.T):
         return p
 
     def draw(self, image, outputfile):
-        segs = self.get_gradient().segments
 
         if myfract4dc.UseLLVM:
             formuName = ''
@@ -381,30 +380,46 @@ class T(fctutils.T):
             form1_mod = self.forms[1].formula.basef.deepmod
             form2_mod = self.forms[2].formula.basef.deepmod
 
-            param0 = self.bookaa_GetParam(self.forms[0])
-            param1 = self.bookaa_GetParam(self.forms[1])
-            param2 = self.bookaa_GetParam(self.forms[2])
+            param0 = self.bookaa_GetParam(self.forms[0], 0)
+            param1 = self.bookaa_GetParam(self.forms[1], 1)
+            param2 = self.bookaa_GetParam(self.forms[2], 2)
+
             myfract4dc.CompileLLVM(form0_mod, form1_mod, form2_mod, param0, param1, param2)
+
+            gradient1 = self.bookaa_GetGradient(self.forms[0])
+            segs = gradient1.segments
         else:
             formuName = self.forms[0].funcName
             initparams = self.all_params()
+            segs = self.get_gradient().segments
         cmap = myfract4dc.cmap_from_pyobject(segs)
         myfract4dc.draw(image, outputfile, formuName, initparams, self.params, cmap, self.maxiter)
         return
 
-    def bookaa_GetParam(self, theform):
+    def bookaa_GetGradient(self, theform):
+        s = theform.paramlist2.get('_gradient')
+        if s:
+            if isinstance(s, str):
+                the = gradient.Gradient()
+                the.load(StringIO.StringIO(s))
+                return the
+            return s
+        return self.default_gradient
+
+    def bookaa_GetParam(self, theform, no):
         lst = self.bookaa_GetParam0(theform)
         pass
         dict_ = {}
         for name, var in theform.formula.paramlist.items():
             dict_[name] = (var.datatype, var.type, var.value, var.enum)
 
-        if '_density' not in dict_:
-            dict_['_density'] = (2, 'param', 1.0, None)
-        if '_offset' not in dict_:
-            dict_['_offset'] = (2, 'param', 0.0, None)
+        if no != 0:
+            if '_density' not in dict_:
+                dict_['_density'] = (2, 'param', 1.0, None)
+            if '_offset' not in dict_:
+                dict_['_offset'] = (2, 'param', 0.0, None)
 
-        for name, s in theform.paramlist.items():
+        for name, s in theform.paramlist2.items():
             if name in dict_:
                 (typ1, typ2, val, enum) = dict_[name]
                 if typ2 == 'func':
@@ -425,7 +440,7 @@ class T(fctutils.T):
             elif name == '_transfer':
                 dict_[name] = (97, 'param', s, None)
             elif name == '_gradient':
-                dict_[name] = (99, '99', s, None)
+                continue
             else:
                 assert False
         lst2 = []
@@ -438,11 +453,6 @@ class T(fctutils.T):
                 continue
             if typ2 == 'param':
                 lst2.append((name, typ1, val, enum))
-                continue
-            if typ2 == '99':
-                the = gradient.Gradient()
-                the.load(StringIO.StringIO(val))
-                lst2.append((name, 7, the, enum))
                 continue
             assert False
 
@@ -522,6 +532,7 @@ class T(fctutils.T):
         cf.load_1(vlst)
         if cf.read_gradient:
             self.set_gradient(cf.gradient)
+            self.forms[0].paramlist2['_gradient'] = cf.gradient
 
     def parse__colorizer_(self,val,f):
         which_cf = int(val)

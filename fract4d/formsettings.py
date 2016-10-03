@@ -31,7 +31,7 @@ class T:
         else:
             self.parent = None
 
-        self.paramlist = {} # bookaa : {name : value}
+        self.paramlist2 = {} # bookaa : {name : value}
 
     def set_prefix(self,prefix):
         self.prefix = prefix
@@ -208,7 +208,7 @@ class T:
             self.set_named_param(name,val)
 
         if name[0] == '@':
-            self.paramlist[name[1:]] = val
+            self.paramlist2[name[1:]] = val
 
     def set_named_param(self,name,val):
         ord = self.order_of_name(name)
