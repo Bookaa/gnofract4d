@@ -4,7 +4,7 @@ import numba
 from numba import jit, types, typeof, none, boolean, byte, int64, float64, complex128 # 0.27.0
 import mycalc
 
-from mycalc import myjit, myjitclass, UseLLVM
+from mycalc import myjit, myjitclass
 
 (VX, VY, VZ, VW) = (0,1,2,3)
 (IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_TOTAL_WIDTH, IMAGE_TOTAL_HEIGHT, IMAGE_XOFFSET, IMAGE_YOFFSET) = (0,1,2,3,4,5)
@@ -592,7 +592,6 @@ def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap, checkPeriod):
 
     (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = g_color_params
 
-    assert UseLLVM
     arr = np.zeros(1, dtype=dtype_i8i8f8f8)
     color_arr = np.zeros(1, dtype=dtype_i8f8f8f8f8)
     #print dir(cmap)
@@ -636,74 +635,12 @@ def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap, checkPeriod):
 
     return (pixel_, fate, dist, iter_)
 
-#[((float64 x 5), complex128, complex128, int64, (float64 x 5), int64, reflected list((float64, float64, float64, int64, int64, (float64 x 4), (float64 x 4))))]
-#@myjit(types.Tuple((int64,int64,complex128,float64,int64))(float64, complex128, complex128, int64))
-@myjit
-def Mandelbrot_calc(param_values, pixel, zwpixel, maxiter, cf0cf1, formuNameNo, cmap, checkPeriod):
-    fUseColors = 0
-    colors = [0.0, 0.0, 0.0, 0.0]
-
-    (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = cf0cf1
-
-    assert not UseLLVM
-
-    if formuNameNo == 1: # 'Mandelbrot':
-        t__a_fbailout = param_values[0]
-        if UseLLVM:
-            pass
-        else:
-            t__h_inside, t__h_numiter, z, indx, solid = mycalc.Mandelbrot_1(t__a_fbailout, pixel, zwpixel, maxiter)
-
-
-    elif formuNameNo == 2: # 'CGNewton3':
-        p1 = complex(param_values[0], param_values[1])
-        if UseLLVM:
-            pass
-        else:
-            t__h_inside, t__h_numiter, z, indx, solid = mycalc.CGNewton3_1(p1, pixel, maxiter)
-    else: # if formuNameNo == 3: # 'Cubic Mandelbrot':
-        t__a_fbailout = param_values[0]
-        fa = complex(param_values[1], param_values[2])
-        if UseLLVM:
-            pass
-        else:
-            t__h_inside, t__h_numiter, z, indx, solid = mycalc.Cubic_Mandelbrot_1(fa, t__a_fbailout, pixel, zwpixel, maxiter)
-
-    if t__h_inside == 0:
-        t__h_index = t__a_cf0_density * indx + t__a_cf0_offset
-    else:
-        t__h_index = t__a_cf1_density * indx + t__a_cf1_offset
-
-
-    iter_ = t__h_numiter
-    fate = FATE_INSIDE if t__h_inside != 0 else 0
-    dist = t__h_index
-    if solid:
-        fate |= FATE_SOLID
-    if fUseColors:
-        fate |= FATE_DIRECT
-    if fate & FATE_INSIDE:
-        iter_ = -1
-    if fUseColors:
-        pixel_ = lookup_with_dca(solid, colors)
-    else:
-        pixel_ = lookup_with_transfer(cmap, dist, solid)
-    return (pixel_, fate, dist, iter_)
-
 @myjit #(types.Tuple((int8[:], int64, float64, int64))(typ_cmap, float64[:], int64))
 def calc_pf_UseLLVM(cmap, params, nIters, checkPeriod):
     pixel = complex(params[0], params[1])
     zwpixel = complex(params[2], params[3])
 
     return Mandelbrot_calc_UseLLVM(pixel, zwpixel, nIters, cmap, checkPeriod)
-
-@myjit
-def calc_pf(pfo_p, cmap, formuNameNo, params, nIters, checkPeriod):
-    cf0cf1, values = pfo_p
-    pixel = complex(params[0], params[1])
-    zwpixel = complex(params[2], params[3])
-
-    return Mandelbrot_calc(values, pixel, zwpixel, nIters, cf0cf1, formuNameNo, cmap, checkPeriod)
 
 @jit(float64(complex128))
 def abs2(c):
@@ -733,10 +670,7 @@ def do_pixel(stfw, x, y, w, h):
         (ff_topleft, ff_deltax, ff_deltay, ff_maxiter) = ff
         pos = ff_topleft + ff_deltax * x + ff_deltay * y
         checkPeriod = im.periodGuess()
-        if UseLLVM:
-            (pixel, fate, index, iter_) = calc_pf_UseLLVM(self_cmap, pos, ff_maxiter, checkPeriod)
-        else:
-            (pixel, fate, index, iter_) = calc_pf(self_pfo_p, self_cmap, self_formuNameNo, pos, ff_maxiter, checkPeriod)
+        (pixel, fate, index, iter_) = calc_pf_UseLLVM(self_cmap, pos, ff_maxiter, checkPeriod)
         im.periodSet(iter_)
         ii2 = im_info(im)
         ii2.pixel = pixel; ii2.fate = fate; ii2.index = index; ii2.iter = iter_
@@ -827,14 +761,6 @@ def test_param5(ff):
 @myjit #(none(typ_stfw))
 def draw_8(stfw):
     (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
-
-    test_param1(self_pfo_p)
-    #for v in self_cmap:
-    #    print v
-    #test_param2(self_cmap)
-    #test_param3(im)
-    test_param4(self_formuNameNo)
-    test_param5(ff)
 
     rsize = 16; drawsize = 16
     xsize = im.Xres(); ysize = im.Yres()
@@ -971,53 +897,17 @@ def GetPos_delta(im, params):
 
     return self_deltax, self_deltay, topleft
 
-
-def parse_params_to_dict(params):
-    (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset) = (0.0, 0.0, 0.0, 0.0, 0.0)
-    values = []
-    for param, var in params:
-        name = var.cname
-        if name == 't__a_cf0bailout': t__a_cf0bailout = param
-        elif name == 't__a_cf0_density': t__a_cf0_density = param
-        elif name == 't__a_cf0_offset': t__a_cf0_offset = param
-        elif name == 't__a_cf1_density': t__a_cf1_density = param
-        elif name == 't__a_cf1_offset': t__a_cf1_offset = param
-        elif name == 't__a__gradient':
-            pass
-        else:
-            if var.type == 3:
-                values.append(param[0])
-                values.append(param[1])
-            else:
-                values.append(param)
-
-    while len(values) < 5:
-        values.append(0.0)
-    cf0cf1 = (t__a_cf0bailout, t__a_cf0_density, t__a_cf0_offset, t__a_cf1_density, t__a_cf1_offset)
-    return (cf0cf1, tuple(values))
-
 def draw(image, outputfile, formuName, initparams, params, cmap, maxiter):
-    if UseLLVM:
-        pfo_p = ((0.0,0.0,0.0,0.0,0.0), (0.0,0.0,0.0,0.0,0.0)) # no use
-        formuNameNo = 0 # no use
-    else:
-        if formuName == 'Mandelbrot':
-            formuNameNo = 1
-        elif formuName == 'CGNewton3':
-            formuNameNo = 2
-        else: # if formuName == 'Cubic Mandelbrot':
-            formuNameNo = 3
-        pfo_p = parse_params_to_dict(initparams)
+    pfo_p = ((0.0,0.0,0.0,0.0,0.0), (0.0,0.0,0.0,0.0,0.0)) # no use
+    formuNameNo = 0 # no use
+
     _img = image._img
 
     pfcls = (formuNameNo, params, pfo_p, cmap, maxiter, _img)
 
-    #import pdb; pdb.set_trace()
-
     for (xoff,yoff,xres,yres) in image.get_tile_list():
         calc_7(pfcls, xoff, yoff, xres, yres)
 
-    #print look33up.inspect_llvm().values()[0]
 
 Cmap_spec = [
     ('m_1', typ_cmap),

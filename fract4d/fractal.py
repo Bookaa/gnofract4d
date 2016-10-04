@@ -356,29 +356,9 @@ class T(fctutils.T):
     def compile(self):
         assert False
 
-    def all_params(self):
-        p = []
-        for form in self.forms:
-            n2 = 0
-            for varr in form.formula.symbols.var_params:
-                typ = varr.type
-                if typ == 3:    # complex
-                    p.append(((form.params[n2], form.params[n2+1]), varr))
-                    n2 += 1
-                else:
-                    p.append((form.params[n2], varr))
-                n2 += 1
-            #p1 = zip(form.params, form.paramtypes, form.formula.symbols.var_params)
-            # p += form.params
-            #p += p1
-        for transform in self.transforms:
-            assert False    # alert me
-            p += transform.params
-        return p
-
     def draw(self, image, outputfile):
 
-        if myfract4dc.UseLLVM:
+        if True:
             formuName = ''
             initparams = None
 
@@ -394,10 +374,6 @@ class T(fctutils.T):
 
             gradient1 = self.bookaa_GetGradient(self.forms[0])
             segs = gradient1.segments
-        else:
-            formuName = self.forms[0].funcName
-            initparams = self.all_params()
-            segs = self.get_gradient().segments
         cmap = myfract4dc.cmap_from_pyobject(segs)
         myfract4dc.draw(image, outputfile, formuName, initparams, self.params, cmap, self.maxiter)
         return
