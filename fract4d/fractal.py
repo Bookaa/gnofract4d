@@ -328,7 +328,7 @@ class T(fctutils.T):
 
     def set_formula_text(self, buftext, formtype, formindex):
         assert self.compiler is self.forms[formindex].compiler
-        self.forms[formindex].set_formula_text_1(buftext, formtype, self.get_gradient())
+        self.forms[formindex].set_formula_text_1(buftext, formtype, None) #self.get_gradient())
 
         if formindex == 0:
             self.set_bailfunc()
@@ -345,9 +345,9 @@ class T(fctutils.T):
             # FIXME deal with diff
             return
 
-        func = self.forms[0].formula.symbols.get("@bailfunc")
-        if func != None:
-            self.set_func(func[0],funcname,self.forms[0].formula)
+        #func = self.forms[0].formula.symbols.get("@bailfunc")
+        #if func != None:
+        #    self.set_func(func[0],funcname,self.forms[0].formula)
 
     def set_func(self,func,fname,formula):
         if func.cname != fname:
@@ -389,7 +389,7 @@ class T(fctutils.T):
         return self.default_gradient
 
     def bookaa_GetParam(self, theform, no):
-        lst = self.bookaa_GetParam0(theform)
+        #lst = self.bookaa_GetParam0(theform)
         pass
         dict_ = {}
         for name, var in theform.formula.paramlist.items():
@@ -513,7 +513,7 @@ class T(fctutils.T):
         cf = colorizer.T(self)
         cf.load_1(vlst)
         if cf.read_gradient:
-            self.set_gradient(cf.gradient)
+            #self.set_gradient(cf.gradient)
             self.forms[0].paramlist2['_gradient'] = cf.gradient
 
     def parse__colorizer_(self,val,f):
@@ -526,11 +526,15 @@ class T(fctutils.T):
 
     def parse_inner(self,val,f):
         name = self.colorfunc_names[int(val)]
-        self.set_formula("gf4d.cfrm", name, 2)
+        # self.set_formula("gf4d.cfrm", name, 2)
+        f = self.compiler.get_parsetree("gf4d.cfrm", name)
+        self.set_formula_text(f.text, 1, 2)
 
     def parse_outer(self,val,f):
         name = self.colorfunc_names[int(val)]
-        self.set_formula("gf4d.cfrm", name, 1)
+        #self.set_formula("gf4d.cfrm", name, 1)
+        f = self.compiler.get_parsetree("gf4d.cfrm", name)
+        self.set_formula_text(f.text, 1, 1)
 
     def parse_x(self,val,f):
         self.set_param(self.XCENTER,val)

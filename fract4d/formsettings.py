@@ -345,7 +345,7 @@ class T:
         self.funcName = func
         self.funcFile = file
 
-        self.set_initparams_from_formula(gradient)
+        #self.set_initparams_from_formula(gradient)
 
     def set_formula_text_1(self, buftext, formtype, gradient):
         (func, form) = self.compiler.add_inline_formula(buftext, formtype)
@@ -364,7 +364,7 @@ class T:
         self.funcName = func
         self.funcFile = None
 
-        self.set_initparams_from_formula(gradient)
+        #self.set_initparams_from_formula(gradient)
 
     def set_formula_(self,formula,gradient):
         self.formula = formula

@@ -85,8 +85,8 @@ def NewParamVar(v):
 class TBase:
     def __init__(self,prefix,dump=None):
         #print "translating"
-        self.symbols = fsymbol.T(prefix)
-        self.canonicalizer = canon.T(self.symbols,dump)
+        #self.symbols = fsymbol.T(prefix)
+        #self.canonicalizer = canon.T(self.symbols,dump)
         self.errors = []
         self.warnings = []
         self.sections = {}
@@ -204,7 +204,7 @@ class TBase:
         self.add_to_section(sectname, l)
 
     def default(self,node):
-        self.update_settings("default", node)
+        #self.update_settings("default", node)
         # bookaa
         for v in node.children:
             thev = NewParamVar(v)
@@ -1080,7 +1080,7 @@ class T(TBase):
         self.basef = f
 
         # magic vars always included in funcs
-        self.symbols["__bailout"] = Var(Bool, 0)
+        #self.symbols["__bailout"] = Var(Bool, 0)
 
         try:
             self.main(f)
@@ -1104,8 +1104,8 @@ class T(TBase):
 
         # reference gradient, even if user doesn't do so explicitly
         gradient_var = Var(Gradient, 0, -1)
-        self.symbols.ensure("@_gradient", gradient_var)
-        self.symbols["@_gradient"].default = ir.Const(0, f, Gradient)
+        #self.symbols.ensure("@_gradient", gradient_var)
+        #self.symbols["@_gradient"].default = ir.Const(0, f, Gradient)
 
         # lookup sections in order
         s = f.childByName("default")
@@ -1273,7 +1273,7 @@ class ColorFunc(TBase):
         TBase.__init__(self,name,dump)
         self.basef = f
 
-        self.create_standard_vars()
+        #self.create_standard_vars()
 
         try:
             self.main(f)
