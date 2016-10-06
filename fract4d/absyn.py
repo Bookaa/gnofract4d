@@ -1,10 +1,3 @@
-# Abstract Syntax Tree produced by parser
-
-#from __future__ import generators
-import types
-import string
-#import fracttypes
-import re
 
 class Node1:
     def __init__(self, dict_):

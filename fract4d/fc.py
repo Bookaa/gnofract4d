@@ -401,10 +401,6 @@ class Compiler:
         return (file,formula)
 
 
-g_compile_cmds = '../gnofract4d.compiler/main_compile.py'
-if not os.path.isfile(g_compile_cmds):
-    g_compile_cmds = '../' + g_compile_cmds
-
 from LiuD import ParseFormFile
 def ParseFormulaFileRemote(s):
     print 'here', len(s)
@@ -412,68 +408,10 @@ def ParseFormulaFileRemote(s):
     if len(s) == 1840:
         flg = True
         print s
-    if True:
-        dict2_ = ParseFormFile.ParseFormuFile(s, False)
-        if len(dict2_['children']) == 1: # only 1 formula
-            dict3_ = ParseFormFile.ParseFormuFile(s, True)
-            if flg:
-                printit(dict3_)
-            if not flg:
-                return dict3_
-        return dict2_
-
-    #open('22.txt','w').write(s)
-    #print 'length1', len(s)
-    import json
-    sFile = json.dumps(s)
-    # print 'send length', len(sFile)
-    from subprocess import PIPE, Popen
-    p = Popen(["python", g_compile_cmds, '4'], stdin=PIPE, stdout=PIPE)
-    print >>p.stdin, sFile
-    while True:
-        s1 = p.stdout.readline().strip()
-        if s1 == 'next is json':
-            break
-        print s1
-    sJson = p.communicate("\n")[0]
-    dict_ = json.loads(sJson)
-    #print sJson
-    if flg:
-        printit(dict_)
-    return dict_
-
-def printit(dict_, n=0):
-    if n == 0:
-        print '---' * 10
-    sident = '    ' * n
-    if isinstance(dict_, str):
-        print 'why string:', dict_
-        return
-    keys = dict_.keys()
-    keys.remove('pos')
-    if 'text' in keys:
-        keys.remove('text')
-    keys.remove('children')
-    if dict_['datatype'] is None:
-        keys.remove('datatype')
-    print sident,
-    a = 'type';
-    if a in keys: keys.remove(a); print '%s : %s' % (a, dict_[a]),
-    a = 'leaf';
-    if a in keys: keys.remove(a); print '%s : %s' % (a, dict_[a]),
-    for a in keys:
-        print '%s : %s' % (a, dict_[a]),
-    a = 'children'
-    if dict_[a] == []:
-        print '%s : []' % (a, )
-    else:
-        print '%s : [' % (a, )
-        for v in dict_[a]:
-            printit(v, n+1)
-        print sident + ']'
-    if n == 0:
-        print '---' * 10
-
-#instance = Compiler()
-
+    dict2_ = ParseFormFile.ParseFormuFile(s, False)
+    if len(dict2_['children']) == 1: # only 1 formula
+        dict3_ = ParseFormFile.ParseFormuFile(s, True)
+        if not flg:
+            return dict3_
+    return dict2_
 
