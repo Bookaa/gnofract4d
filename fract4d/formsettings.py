@@ -7,7 +7,7 @@ import re
 import StringIO
 import weakref
 
-import fracttypes
+#import fracttypes
 import gradient
 import image
 

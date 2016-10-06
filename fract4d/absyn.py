@@ -3,7 +3,7 @@
 #from __future__ import generators
 import types
 import string
-import fracttypes
+#import fracttypes
 import re
 
 class Node1:

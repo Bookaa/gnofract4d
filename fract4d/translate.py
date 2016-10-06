@@ -5,13 +5,10 @@
 import sys
 
 from absyn import *
-import fsymbol
-#import fractparser
-#import fractlexer
-import ir
-import canon
+#import fsymbol
+#import ir
 
-from fracttypes import *
+#from fracttypes import *
 
 allowed_param_names = [
     "default",
@@ -1082,30 +1079,13 @@ class T(TBase):
         # magic vars always included in funcs
         #self.symbols["__bailout"] = Var(Bool, 0)
 
-        try:
-            self.main(f)
-            if self.dumpPreCanon:
-                self.dumpSections(f,self.sections)
-            self.canonicalize()
-        except TranslationError, e:
-            self.errors.append(e.msg)
+        self.main(f)
 
         self.post_init()
 
     def main(self, f):
         if len(f.children) == 0:
             return
-
-        if f.children[0].type == "error":
-            self.error(f.children[0].leaf)
-            return
-
-        self.canonicalizeSections(f)
-
-        # reference gradient, even if user doesn't do so explicitly
-        gradient_var = Var(Gradient, 0, -1)
-        #self.symbols.ensure("@_gradient", gradient_var)
-        #self.symbols["@_gradient"].default = ir.Const(0, f, Gradient)
 
         # lookup sections in order
         s = f.childByName("default")
