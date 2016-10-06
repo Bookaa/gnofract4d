@@ -78,6 +78,8 @@ class T(fctutils.T):
         self.maxiter = 256
         self.rot_by = math.pi/2
         self.title = self.forms[0].funcName
+        self.periodicity = True
+        self.period_tolerance = 1.0E-9
 
         self.colorfunc_names = [
             "default",
@@ -125,6 +127,16 @@ class T(fctutils.T):
     def set_gradient_from_file(self, file, name):
         g = self.compiler.get_gradient(file, name)
         self.set_gradient(g)
+
+    def parse_periodicity(self,val,f):
+        try:
+            self.periodicity = bool(int(val))
+        except ValueError:
+            # might be a bool in 'True'/'False' format
+            self.periodicity = bool(val)
+
+    def parse_period_tolerance(self,val,f):
+        self.period_tolerance = float(val)
 
     def normalize_formulafile(self,params,formindex,formtype):
         formula = params.dict.get("formula")
@@ -375,7 +387,8 @@ class T(fctutils.T):
             gradient1 = self.bookaa_GetGradient(self.forms[0])
             segs = gradient1.segments
         cmap = myfract4dc.cmap_from_pyobject(segs)
-        myfract4dc.draw(image, outputfile, formuName, initparams, self.params, cmap, self.maxiter)
+        myfract4dc.draw(image, outputfile, formuName, initparams, self.params, cmap,
+                        self.maxiter, self.periodicity, self.period_tolerance)
         return
 
     def bookaa_GetGradient(self, theform):
@@ -602,7 +615,7 @@ class MyLoadFCT(Ast_GFF.GFF_sample_visitor_01):
     def visit_NameEquValue(self, node):
         name = node.v1.walkabout(self)
         value = node.v2.walkabout(self)
-        if name in ('version', 'yflip', 'periodicity', 'period_tolerance', 'antialias'):
+        if name in ('version', 'yflip', 'antialias'):
             return # ignore
         if name == 'x':  return self.f.parse_x(value, None)
         if name == 'y':  return self.f.parse_y(value, None)
@@ -620,6 +633,8 @@ class MyLoadFCT(Ast_GFF.GFF_sample_visitor_01):
         if name == 'bailfunc': return self.f.parse_bailfunc(value, None)
         if name == 'inner': return self.f.parse_inner(value, None)
         if name == 'outer': return self.f.parse_outer(value, None)
+        if name == 'periodicity': return self.f.parse_periodicity(value, None)
+        if name == 'period_tolerance': return self.f.parse_period_tolerance(value, None)
         assert False
     def visit_fctf_section(self, node):
         sec_name = node.n

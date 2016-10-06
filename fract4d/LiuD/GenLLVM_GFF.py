@@ -596,7 +596,7 @@ class mywalk(GFF_sample_visitor_01):
         func_t = ir.FunctionType(ir.IntType(32),
                                  [rettype.as_pointer(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.DoubleType(), ir.IntType(64),
                                   retcolortype.as_pointer(),
-                                  ir.IntType(64),
+                                  ir.IntType(64), ir.DoubleType(),
                                   ir.PointerType(ir.DoubleType()), ir.IntType(64)])
         func = ir.Function(module, func_t, funcname)
         self.func = func
@@ -609,8 +609,9 @@ class mywalk(GFF_sample_visitor_01):
         func.args[5]._name = 'maxiter'
         func.args[6]._name = 'colorp'
         func.args[7]._name = 'checkPeriod'
-        func.args[8]._name = 'cmap_arr'
-        func.args[9]._name = 'n_arr'
+        func.args[8]._name = 'period_tolerance'
+        func.args[9]._name = 'cmap_arr'
+        func.args[10]._name = 'n_arr'
 
         zero = ir.Constant(ir.IntType(64), 0)
 
@@ -623,7 +624,8 @@ class mywalk(GFF_sample_visitor_01):
         if g_tolerance:
             #self.vardict['min_period_iter'] = (type_int, ir.Constant(ir.IntType(64), 10))
             self.vardict['min_period_iter'] = (type_int, func.args[7])
-            self.vardict['period_tolerance'] = (type_double, ir.Constant(ir.DoubleType(), 0.0001))
+            #self.vardict['period_tolerance'] = (type_double, ir.Constant(ir.DoubleType(), 1.0e-9)) # func.args[8]))
+            self.vardict['period_tolerance'] = (type_double, func.args[8])
             self.vardict['save_mask'] = (type_int, ir.Constant(ir.IntType(64), 9))
             self.vardict['save_incr'] = (type_int, ir.Constant(ir.IntType(64), 1))
             self.vardict['next_save_incr'] = (type_int, ir.Constant(ir.IntType(64), 4))
@@ -1242,7 +1244,7 @@ class mywalk(GFF_sample_visitor_01):
                     func_p = ir.Function(self.module, func_t, funcname)
                     self.globalfuncs[funcname] = func_p
 
-                rgba = self.irbuilder.call(func_p,(val,self.func.args[8],self.func.args[9]))
+                rgba = self.irbuilder.call(func_p,(val,self.func.args[9],self.func.args[10]))
                 r = self.irbuilder.extract_value(rgba, 0)
                 g = self.irbuilder.extract_value(rgba, 1)
                 b = self.irbuilder.extract_value(rgba, 2)
@@ -1446,7 +1448,7 @@ class LLVM_liud:
 
         self.engine = engine
         cfuncptr = CFUNCTYPE(c_int, c_void_p, c_double, c_double, c_double, c_double, c_long, c_void_p,
-                             c_long,
+                             c_long, c_double,
                              c_void_p, c_long)(func_addr)
         self.cfuncptr = cfuncptr
 

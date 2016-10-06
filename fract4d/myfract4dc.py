@@ -51,7 +51,9 @@ class Image(object):
     def row_length(self): return self.Xres() * 3
     def bytes(self): return self.row_length() * self.m_Yres
 
-    def periodGuess(self):
+    def periodGuess(self, periodicity, maxiter):
+        if not periodicity:
+            return maxiter
         if self.lastIter == -1:
             return 0
         return self.lastIter + 10
@@ -267,7 +269,7 @@ def cmap_from_pyobject(segs):
     return cmap_arr
 
 def calc_7(pfcls, xoff, yoff, xres, yres):
-    (self_formuNameNo, self_params, self_pfo_p, self_cmap, self_maxiter, im) = pfcls
+    (self_params, self_cmap, im, self_maxiter, periodicity, period_tolerance) = pfcls
 
     xtotalsize = im.totalXres()
     ytotalsize = im.totalYres()
@@ -276,9 +278,9 @@ def calc_7(pfcls, xoff, yoff, xres, yres):
 
     (ff_deltax, ff_deltay, ff_topleft) = GetPos_delta(im, self_params)
 
-    ff = (ff_topleft, ff_deltax, ff_deltay, self_maxiter)
+    ff = (ff_topleft, ff_deltax, ff_deltay, self_maxiter, periodicity, period_tolerance)
 
-    stfw = (self_pfo_p, self_cmap, im, self_formuNameNo, ff)
+    stfw = (self_cmap, im, ff)
 
     draw_8(stfw)
 
@@ -585,7 +587,7 @@ def CompileLLVM(form0_mod, form1_mod, form2_mod, param0, param1, param2):
     # form2 usually zero
 
 @myjit #(types.Tuple((int8[:], int64, float64, int64))(complex128, complex128, int64, typ_cmap))
-def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap, checkPeriod):
+def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap, checkPeriod, period_tolerance):
     #print 'xxx',pixel, zwpixel, maxiter, cmap
     fUseColors = 0
     colors = [0.0, 0.0, 0.0, 0.0]
@@ -600,7 +602,7 @@ def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap, checkPeriod):
         n = len(cmap)
         cmap_arr = cmap
     cfunc3_ptr(arr.ctypes.data, pixel.real, pixel.imag, zwpixel.real, zwpixel.imag, maxiter, color_arr.ctypes.data,
-               checkPeriod,
+               checkPeriod, period_tolerance,
                cmap_arr.ctypes.data, n)
     a1,a2,a3,a4,a5,a6 = arr[0]['i1'], arr[0]['i2'], arr[0]['i3'], arr[0]['i4'], arr[0]['i5'], arr[0]['i6']
     a1 = a1 + len(arr) - len(arr)
@@ -636,11 +638,11 @@ def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap, checkPeriod):
     return (pixel_, fate, dist, iter_)
 
 @myjit #(types.Tuple((int8[:], int64, float64, int64))(typ_cmap, float64[:], int64))
-def calc_pf_UseLLVM(cmap, params, nIters, checkPeriod):
+def calc_pf_UseLLVM(cmap, params, nIters, checkPeriod, period_tolerance):
     pixel = complex(params[0], params[1])
     zwpixel = complex(params[2], params[3])
 
-    return Mandelbrot_calc_UseLLVM(pixel, zwpixel, nIters, cmap, checkPeriod)
+    return Mandelbrot_calc_UseLLVM(pixel, zwpixel, nIters, cmap, checkPeriod, period_tolerance)
 
 @jit(float64(complex128))
 def abs2(c):
@@ -663,14 +665,14 @@ def recolor(selfii, cmap):
 
 @myjit#(none(typ_stfw, int64, int64, int64, int64))
 def do_pixel(stfw, x, y, w, h):
-    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+    (self_cmap, im, ff) = stfw
     ii = im_info(im)
     ii.init_fate(x,y)
     if ii.fate == FATE_UNKNOWN:
-        (ff_topleft, ff_deltax, ff_deltay, ff_maxiter) = ff
+        (ff_topleft, ff_deltax, ff_deltay, ff_maxiter, periodicity, period_tolerance) = ff
         pos = ff_topleft + ff_deltax * x + ff_deltay * y
-        checkPeriod = im.periodGuess()
-        (pixel, fate, index, iter_) = calc_pf_UseLLVM(self_cmap, pos, ff_maxiter, checkPeriod)
+        checkPeriod = im.periodGuess(periodicity, ff_maxiter)
+        (pixel, fate, index, iter_) = calc_pf_UseLLVM(self_cmap, pos, ff_maxiter, checkPeriod, period_tolerance)
         im.periodSet(iter_)
         ii2 = im_info(im)
         ii2.pixel = pixel; ii2.fate = fate; ii2.index = index; ii2.iter = iter_
@@ -699,7 +701,7 @@ def qbox_row(stfw, w, y, rsize, drawsize):
 
 @myjit #(none(typ_stfw, int64, int64, int64))
 def do_box(stfw, x, y, rsize):
-    (_, _, im, self_formuNameNo, ff) = stfw
+    (_, im, _) = stfw
     bFlat = True
     iter = im.getIter(x,y)
     pcol = RGB2INT(im,x,y)
@@ -760,7 +762,7 @@ def test_param5(ff):
 
 @myjit #(none(typ_stfw))
 def draw_8(stfw):
-    (self_pfo_p, self_cmap, im, self_formuNameNo, ff) = stfw
+    (self_cmap, im, _) = stfw
 
     rsize = 16; drawsize = 16
     xsize = im.Xres(); ysize = im.Yres()
@@ -897,13 +899,11 @@ def GetPos_delta(im, params):
 
     return self_deltax, self_deltay, topleft
 
-def draw(image, outputfile, formuName, initparams, params, cmap, maxiter):
-    pfo_p = ((0.0,0.0,0.0,0.0,0.0), (0.0,0.0,0.0,0.0,0.0)) # no use
-    formuNameNo = 0 # no use
+def draw(image, outputfile, formuName, initparams, params, cmap,
+         maxiter, periodicity, period_tolerance):
 
-    _img = image._img
-
-    pfcls = (formuNameNo, params, pfo_p, cmap, maxiter, _img)
+    pfcls = (params, cmap, image._img,
+             maxiter, periodicity, period_tolerance)
 
     for (xoff,yoff,xres,yres) in image.get_tile_list():
         calc_7(pfcls, xoff, yoff, xres, yres)
