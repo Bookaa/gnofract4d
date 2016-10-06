@@ -32,7 +32,7 @@ import hashlib
 import re
 import copy
 
-import fractconfig
+#import fractconfig
 import translate
 # import fracttypes
 import absyn
@@ -501,6 +501,6 @@ def printit(dict_, n=0):
         print '---' * 10
 
 instance = Compiler()
-instance.update_from_prefs(fractconfig.instance)
+#instance.update_from_prefs(fractconfig.instance)
 
 
