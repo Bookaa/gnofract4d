@@ -356,10 +356,6 @@ class T:
         if formula == None:
             raise ValueError("no such formula: %s:%s" % (file, func))
 
-        if formula.errors != []:
-            raise ValueError("invalid formula '%s':\n%s" % \
-                             (func, "\n".join(formula.errors)))
-
         self.formula = formula
         self.funcName = func
         self.funcFile = None

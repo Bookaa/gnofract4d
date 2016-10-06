@@ -14,16 +14,6 @@ class T:
         buf1 = self._img.buffer.reshape((self._img.Yres(), self._img.Xres(), 3))
         imsave(name, buf1)
 
-    def old_save(self,name):
-        try:
-            fp = open(name, "wb")
-        except IOError, err:
-            raise IOError("Unable to save image to '%s' : %s" % (name,err.strerror))
-
-        myfract4dc.image_save_all(self._img, fp)
-
-        fp.close()
-
     def get_tile_list(self):
         dims = myfract4dc.image_dims(self._img)
         xsize = dims[myfract4dc.IMAGE_WIDTH]

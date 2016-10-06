@@ -134,30 +134,9 @@ class Compiler:
         self.path_lists = [ [], [], [], [] ]
         self.files = {}
 
-        # self.cache = cache.T()
-        # self.cache_dir = os.path.expanduser("~/.gnofract4d-cache/")
-        # self.init_cache()
-        if 'win' != sys.platform[:3]:
-            self.compiler_name = "gcc"
-            self.flags = "-fPIC -DPIC -g -O3 -shared"
-            self.output_flag = "-o "
-            self.libs = "-lm"
-        else:
-            self.compiler_name = "cl"
-            self.flags = "/EHsc /Gd /nologo /W3 /LD /MT /TP /DWIN32 /DWINDOWS /D_USE_MATH_DEFINES"
-            self.output_flag = "/Fe"
-            self.libs = "/link /LIBPATH:\"%s/fract4d\" fract4d_stdlib.lib" % sys.path[0] # /DELAYLOAD:fract4d_stdlib.pyd DelayImp.lib
         self.tree_cache = {}
         self.leave_dirty = False
         self.next_inline_number = 0
-
-    def update_from_prefs(self,prefs):
-        self.compiler_name = prefs.get("compiler","name")
-        self.flags = prefs.get("compiler","options")
-
-        self.set_func_path_list(prefs.get_list("formula_path"))
-        self.path_lists[FormulaTypes.GRADIENT] = copy.copy(
-            prefs.get_list("map_path"))
 
     def set_flags(self,flags):
         self.flags = flags
@@ -169,11 +148,6 @@ class Compiler:
         self.path_lists[FormulaTypes.FRACTAL].append(path)
         self.path_lists[FormulaTypes.COLORFUNC].append(path)
         self.path_lists[FormulaTypes.TRANSFORM].append(path)
-
-    def set_func_path_list(self,list):
-        self.path_lists[FormulaTypes.FRACTAL] = copy.copy(list)
-        self.path_lists[FormulaTypes.COLORFUNC] = copy.copy(list)
-        self.path_lists[FormulaTypes.TRANSFORM] = copy.copy(list)
 
     def find_files(self,type):
         files = {}
@@ -354,7 +328,7 @@ class Compiler:
         else:
             result = absyn.Node(0,0)
             result.SerialIn(dict_)
-        
+
         ff = result
 
         # ff = ParseFormulaFileRemote(formulatext) # self.parse_FormulaFile(formulatext)
@@ -500,7 +474,6 @@ def printit(dict_, n=0):
     if n == 0:
         print '---' * 10
 
-instance = Compiler()
-#instance.update_from_prefs(fractconfig.instance)
+#instance = Compiler()
 
 
