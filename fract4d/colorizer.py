@@ -1,13 +1,13 @@
 import re
 
-import fctutils 
+#import fctutils
 import gradient
 import fc
 
-class T(fctutils.T):
+class T: #(fctutils.T):
     '''Parses the various different kinds of color data we have'''
     def __init__(self,parent=None):
-        fctutils.T.__init__(self,parent)
+        #fctutils.T.__init__(self,parent)
         self.name = "default"
         self.gradient = gradient.Gradient()
         self.solids = [(0,0,0,255)]

@@ -16,7 +16,7 @@ import myfract4dc
 # import fracttypes
 import gradient
 import image
-import fctutils
+#import fctutils
 import colorizer
 import formsettings
 import fc
@@ -25,7 +25,7 @@ import fc
 # this version can output
 THIS_FORMAT_VERSION="3.10"
 
-class T(fctutils.T):
+class T: #(fctutils.T):
     XCENTER = 0
     YCENTER = 1
     ZCENTER = 2
@@ -45,7 +45,7 @@ class T(fctutils.T):
     DEFAULT_FORMULA_FUNC="Mandelbrot"
     paramnames = ["x","y","z","w","size","xy","xz","xw","yz","yw","zw"]
     def __init__(self, compiler):
-        fctutils.T.__init__(self)
+        #fctutils.T.__init__(self)
 
         self.format_version = 2.8
 
