@@ -108,11 +108,9 @@ class FormulaFile:
         self.contents = contents
         self.mtime = mtime
         self.filename = filename
-        self.file_backed = True
 
     def out_of_date(self):
-        return self.file_backed and \
-               os.stat(self.filename)[stat.ST_MTIME] > self.mtime
+        return os.stat(self.filename)[stat.ST_MTIME] > self.mtime
 
     def get_formula(self,formula):
         return self.formulas.get(formula)
@@ -187,24 +185,8 @@ class Compiler:
 
     def add_inline_formula(self,formbody, formtype):
         # formbody contains a string containing the contents of a formula
-        formulas = self.parse_file(formbody)
-
-        # fname = self.nextInlineFile(formtype)
-        # ff = FormulaFile(formulas,formbody,0,fname)
-        # ff.file_backed = False
-        # self.files[fname] = ff
-        #names = ff.get_formula_names()
-        #if len(names) == 0:
-        #    formName = "error"
-        #    form = None
-        #else:
-        #    formName = names[0]
-        #    form = formulas.values()[0]
-        if len(formulas) == 1:
-            formName = formulas.keys()[0]
-            form = formulas.values()[0]
-            return (formName, form)
-        return ('error', None)
+        form = self.parse_file_detail(formbody)
+        return form.leaf, form
 
     def last_chance(self,filename):
         '''does nothing here, but can be overridden by GUI to prompt user.'''
@@ -227,24 +209,22 @@ class Compiler:
 
         return self.last_chance(filename)
 
+    def parse_file_detail(self, s):
+        dict_ = ParseFormulaFileRemote_detail(s)
+        chil = dict_['children']
+        assert len(chil) == 1
+        v = chil[0]
+        return absyn.Node1(v)
+
     def parse_file(self, s):
         # print 'input', type(s), len(s)
         dict_ = ParseFormulaFileRemote(s)
 
-        if True:
-            formulas = {}
-            for v in dict_['children']:
-                the = absyn.Node1(v)
-                formulas[the.leaf] = the
-            return formulas
-
-        result = absyn.Node(0,0)
-        result.SerialIn(dict_)
-
         formulas = {}
-        for formula in result.children:
-            formulas[formula.leaf] = formula
-        # print 'output', formulas
+        for v in dict_['children']:
+            the = absyn.Node1(v)
+            formulas[the.leaf] = the
+            # assert isinstance(v['deepmod'], (Ast_GFF.GFF_formu_deep,))
         return formulas
 
     def load_formula_file(self, filename):
@@ -301,41 +281,10 @@ class Compiler:
         lines = ff.contents.splitlines()
         return "\n".join(lines[start_line:last_line])
 
-    def is_inline(self,filename, formname):
-        return not self.files[filename].file_backed
-
-    def hashcode(self,c_code):
-        hash = hashlib.md5()
-        hash.update(c_code)
-        hash.update(self.compiler_name)
-        hash.update(self.flags)
-        hash.update(self.libs)
-        return hash.hexdigest()
-
-    def generate_code(self,ir, cg, outputfile=None,cfile=None):
-        assert False
-
     def get_parsetree(self,filename,formname):
         ff = self.get_file(filename)
         if ff == None : return None
         return ff.get_formula(formname)
-
-    def get_parsetree_with_text(self, formulatext):
-        dict_ = ParseFormulaFileRemote(formulatext)
-
-        if True:
-            result = absyn.Node1(dict_)
-        else:
-            result = absyn.Node(0,0)
-            result.SerialIn(dict_)
-
-        ff = result
-
-        # ff = ParseFormulaFileRemote(formulatext) # self.parse_FormulaFile(formulatext)
-        assert len(ff.children) == 1
-        theformula = ff.children[0]
-        # theformula.text = formulatext
-        return theformula
 
     def guess_type_from_filename(self,filename):
         return FormulaTypes.guess_type_from_filename(filename)
@@ -403,15 +352,12 @@ class Compiler:
 
 from LiuD import ParseFormFile
 def ParseFormulaFileRemote(s):
-    print 'here', len(s)
-    flg = False
-    if len(s) == 1840:
-        flg = True
-        print s
     dict2_ = ParseFormFile.ParseFormuFile(s, False)
     if len(dict2_['children']) == 1: # only 1 formula
         dict3_ = ParseFormFile.ParseFormuFile(s, True)
-        if not flg:
-            return dict3_
+        return dict3_
     return dict2_
 
+def ParseFormulaFileRemote_detail(s):
+    dict3_ = ParseFormFile.ParseFormuFile(s, True)
+    return dict3_

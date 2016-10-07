@@ -277,17 +277,6 @@ class T:
         factor = math.fabs(1.0 - math.log(size)) + 1.0
         return weirdness * (random.random() - 0.5 ) * 1.0 / factor
 
-    def mutate(self, weirdness, size):
-        for i in xrange(len(self.params)):
-            if self.paramtypes[i] == fracttypes.Float:
-                self.params[i] += self.zw_random(weirdness, size)
-            elif self.paramtypes[i] == fracttypes.Int:
-                # FIXME: need to be able to look up enum to find min/max
-                pass
-            elif self.paramtypes[i] == fracttypes.Bool:
-                if random.random() < weirdness * 0.2:
-                    self.params[i] = not self.params[i]
-
     def nudge_param(self,n,x,y):
         if x == 0 and y == 0:
             return False
@@ -345,8 +334,6 @@ class T:
         self.funcName = func
         self.funcFile = file
 
-        #self.set_initparams_from_formula(gradient)
-
     def set_formula_text_1(self, buftext, formtype, gradient):
         (func, form) = self.compiler.add_inline_formula(buftext, formtype)
         #self.set_formula(file,func,gradient)
@@ -360,15 +347,6 @@ class T:
         self.funcName = func
         self.funcFile = None
 
-        #self.set_initparams_from_formula(gradient)
-
-    def set_formula_(self,formula,gradient):
-        self.formula = formula
-        self.funcName = formula.basef.leaf
-        # self.funcFile = file
-
-        self.set_initparams_from_formula(gradient)
-
     def set_formula_with_text(self, type, fomulatext, gradient):
         formula, name = self.compiler.get_formula_with_text(type, fomulatext,self.prefix)
 
@@ -381,29 +359,5 @@ class T:
 
         self.set_initparams_from_formula(gradient)
 
-    def load_param_bag(self,bag):
-        for (name,val) in bag.dict.items():
-            if name == "formulafile" or name=="function":
-                pass
-            else:
-                self.try_set_named_item(name,val)
-
-    def blend(self, other, ratio):
-        # update in-place our settings so that they are a mixture with the other
-        if self.funcName != other.funcName or self.funcFile != other.funcFile:
-            raise ValueError("Cannot blend parameters between different formulas")
-
-        for i in xrange(len(self.params)):
-            (a,b) = (self.params[i],other.params[i])
-            if self.paramtypes[i] == fracttypes.Float:
-                self.params[i] = a*(1.0-ratio) + b*ratio
-            elif self.paramtypes[i] == fracttypes.Int:
-                self.params[i] = int(a*(1.0-ratio) + b*ratio)
-            elif self.paramtypes[i] == fracttypes.Bool:
-                if ratio >= 0.5:
-                    self.params[i] = b
-            else:
-                # don't interpolate
-                pass
 
 
