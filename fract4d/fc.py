@@ -128,16 +128,10 @@ class FormulaFile:
 
 class Compiler:
     def __init__(self):
-        self.c_code = ""
         self.path_lists = [ [], [], [], [] ]
         self.files = {}
 
-        self.tree_cache = {}
         self.leave_dirty = False
-        self.next_inline_number = 0
-
-    def set_flags(self,flags):
-        self.flags = flags
 
     def add_path(self,path,type):
         self.path_lists[type].append(path)
@@ -171,27 +165,10 @@ class Compiler:
     def find_transform_files(self):
         return self.find_files_of_type(FormulaTypes.TRANSFORM)
 
-    def get_text(self,fname):
-        file = self.files.get(fname)
-        if not file:
-            self.load_formula_file(fname)
-
-        return self.files[fname].contents
-
-    def nextInlineFile(self,type):
-        self.next_inline_number += 1
-        ext = FormulaTypes.extension_from_type(type)
-        return "__inline__%d.%s" % (self.next_inline_number, ext)
-
     def add_inline_formula(self,formbody, formtype):
         # formbody contains a string containing the contents of a formula
         form = self.parse_file_detail(formbody)
         return form.leaf, form
-
-    def last_chance(self,filename):
-        '''does nothing here, but can be overridden by GUI to prompt user.'''
-        raise IOError("Can't find formula file %s in formula search path" % \
-                      filename)
 
     def find_file(self,filename,type):
         if os.path.exists(filename):
@@ -207,7 +184,7 @@ class Compiler:
             if os.path.exists(f):
                 return f
 
-        return self.last_chance(filename)
+        return None
 
     def parse_file_detail(self, s):
         dict_ = ParseFormulaFileRemote_detail(s)
@@ -353,9 +330,6 @@ class Compiler:
 from LiuD import ParseFormFile
 def ParseFormulaFileRemote(s):
     dict2_ = ParseFormFile.ParseFormuFile(s, False)
-    if len(dict2_['children']) == 1: # only 1 formula
-        dict3_ = ParseFormFile.ParseFormuFile(s, True)
-        return dict3_
     return dict2_
 
 def ParseFormulaFileRemote_detail(s):

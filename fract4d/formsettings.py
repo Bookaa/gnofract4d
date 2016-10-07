@@ -5,8 +5,6 @@ class T:
         self.compiler = compiler
         self.formula = None
         self.funcName = None
-        self.funcFile = None
-        self.dirty = False
         self.prefix = prefix
 
         self.paramlist2 = {} # bookaa : {name : value}
@@ -23,7 +21,6 @@ class T:
 
         self.formula = formula
         self.funcName = func
-        self.funcFile = None
 
 
 

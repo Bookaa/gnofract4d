@@ -192,10 +192,8 @@ class T: #(fctutils.T):
                     params_dict[name] = val
                     if len(params_dict) == 2: # we have both
                         formtype = 2
-                        formulafile = params_dict.get(
-                            "formulafile",self.forms[formtype].funcFile)
-                        fname = params_dict.get(
-                            "function", self.forms[formtype].funcName)
+                        formulafile = params_dict.get("formulafile")
+                        fname = params_dict.get("function")
                         f = self.compiler.get_parsetree(formulafile, fname)
                         self.set_formula_text(f.text, 1, 2)
                     continue
@@ -247,10 +245,8 @@ class T: #(fctutils.T):
                     params_dict[name] = val
                     if len(params_dict) == 2: # we have both
                         formtype = 1
-                        formulafile = params_dict.get(
-                            "formulafile",self.forms[formtype].funcFile)
-                        fname = params_dict.get(
-                            "function", self.forms[formtype].funcName)
+                        formulafile = params_dict.get("formulafile")
+                        fname = params_dict.get("function")
                         f = self.compiler.get_parsetree(formulafile, fname)
                         self.set_formula_text(f.text, 1, 1)
                     continue
@@ -313,10 +309,8 @@ class T: #(fctutils.T):
                     params_dict[name] = val
                     if len(params_dict) == 2: # we have both
                         formtype = 0
-                        formulafile = params_dict.get(
-                            "formulafile",self.forms[formtype].funcFile)
-                        fname = params_dict.get(
-                            "function", self.forms[formtype].funcName)
+                        formulafile = params_dict.get("formulafile")
+                        fname = params_dict.get("function")
                         f = self.compiler.get_parsetree(formulafile, fname)
                         self.set_formula_text(f.text, 0, 0)
                     continue
