@@ -52,9 +52,9 @@ class T: #(fctutils.T):
         self.bailfunc = 0
         # formula support
         self.forms = [
-            formsettings.T(compiler,self), # formula
-            formsettings.T(compiler,self,"cf0"), # outer
-            formsettings.T(compiler,self,"cf1") # inner
+            formsettings.T(compiler), # formula
+            formsettings.T(compiler,"cf0"), # outer
+            formsettings.T(compiler,"cf1") # inner
             ]
 
         self.transforms = []
