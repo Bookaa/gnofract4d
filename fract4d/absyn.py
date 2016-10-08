@@ -28,14 +28,3 @@ class Node1:
                 return child
         return None
 
-def NewNode(type,pos,children=None,leaf=None,datatype=None):
-    if True:
-        the = Node1(None)
-        the.type = type
-        the.children = children
-        the.leaf = leaf
-        the.datatype = datatype
-        the.pos = pos
-        return the
-    return Node(type, pos, children, leaf, datatype)
-

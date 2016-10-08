@@ -25,7 +25,7 @@ import fc
 # this version can output
 THIS_FORMAT_VERSION="3.10"
 
-class T: #(fctutils.T):
+class T:
     XCENTER = 0
     YCENTER = 1
     ZCENTER = 2
@@ -45,8 +45,6 @@ class T: #(fctutils.T):
     DEFAULT_FORMULA_FUNC="Mandelbrot"
     paramnames = ["x","y","z","w","size","xy","xz","xw","yz","yw","zw"]
     def __init__(self, compiler):
-        #fctutils.T.__init__(self)
-
         self.format_version = 2.8
 
         self.bailfunc = 0
@@ -59,7 +57,6 @@ class T: #(fctutils.T):
 
         self.transforms = []
         self.next_transform_id = 0
-        self.compiler_options = { "optimize" : 1 }
         self.compiler = compiler
 
         # default is just white outside
@@ -76,8 +73,6 @@ class T: #(fctutils.T):
 
         self.bailout = 0.0
         self.maxiter = 256
-        self.rot_by = math.pi/2
-        self.title = self.forms[0].funcName
         self.periodicity = True
         self.period_tolerance = 1.0E-9
 
@@ -88,24 +83,6 @@ class T: #(fctutils.T):
             "ejection_distance",
             "decomposition",
             "external_angle"]
-
-    def serialize_formula(self):
-        out = StringIO.StringIO()
-        self.save_formula(out)
-        return out.getvalue()
-
-    def save_formula(self,file):
-        print >>file, "gnofract4d formula desc"
-        print >>file, "version=%s" % THIS_FORMAT_VERSION
-
-        self.forms[0].save_formula_(file)
-        self.forms[1].save_formula_(file)
-        self.forms[2].save_formula_(file)
-
-        i = 0
-        for transform in self.transforms:
-            transform.save_formula_(file,i)
-            i += 1
 
     def get_gradient(self):
         if self.forms[0].formula is None:
@@ -137,29 +114,6 @@ class T: #(fctutils.T):
 
     def parse_period_tolerance(self,val,f):
         self.period_tolerance = float(val)
-
-    def normalize_formulafile(self,params,formindex,formtype):
-        formula = params.dict.get("formula")
-        if formula:
-            # we have an in-line formula, use that instead of formulafile/function
-            (formulafile, fname) = self.compiler.add_inline_formula(
-                formula,formtype)
-        else:
-            formulafile = params.dict.get(
-                "formulafile",self.forms[formtype].funcFile)
-            fname = params.dict.get(
-                "function", self.forms[formtype].funcName)
-            f = self.compiler.get_parsetree(formulafile, fname)
-            return (formulafile, f)
-
-        return (formulafile, fname)
-
-    def parse__inner_(self,val,f):
-        params = fctutils.ParamBag()
-        params.load(f)
-        (file,func) = self.normalize_formulafile(params,2,fc.FormulaTypes.COLORFUNC)
-        self.set_formula_text(func.text, 1, 2)
-        self.forms[2].load_param_bag(params)
 
     def parse__inner_1(self, vlst):
         self.forms[2].deeplist = vlst
@@ -195,19 +149,13 @@ class T: #(fctutils.T):
                         formulafile = params_dict.get("formulafile")
                         fname = params_dict.get("function")
                         f = self.compiler.get_parsetree(formulafile, fname)
-                        self.set_formula_text(f.text, 1, 2)
+                        #self.set_formula_text(f.text, 1, 2)
+                        self.set_formula_text(f, 1, 2)
                     continue
                 assert False
 
 
             assert False
-
-    def parse__outer_(self,val,f):
-        params = fctutils.ParamBag()
-        params.load(f)
-        (file, func) = self.normalize_formulafile(params,1,fc.FormulaTypes.COLORFUNC)
-        self.set_formula_text(func.text, 1, 1)
-        self.forms[1].load_param_bag(params)
 
     def parse__outer_1(self, vlst):
         self.forms[1].deeplist = vlst
@@ -248,29 +196,12 @@ class T: #(fctutils.T):
                         formulafile = params_dict.get("formulafile")
                         fname = params_dict.get("function")
                         f = self.compiler.get_parsetree(formulafile, fname)
-                        self.set_formula_text(f.text, 1, 1)
+                        #self.set_formula_text(f.text, 1, 1)
+                        self.set_formula_text(f, 1, 1)
                     continue
                 assert False
 
-
             assert False
-
-    def parse__function_(self,val,f):
-        params = fctutils.ParamBag()
-        params.load(f)
-        (file,func) = self.normalize_formulafile(params,0,fc.FormulaTypes.FRACTAL)
-
-        self.set_formula_text(func.text, 0, 0)
-        # self.set_formula(file,func,0)
-
-        for (name,val) in params.dict.items():
-            if name == "formulafile" or name == "function" or name == "formula" or name=="":
-                continue
-            elif name == "a" or name =="b" or name == "c":
-                # back-compat for older versions
-                self.forms[0].set_named_param("@" + name, val)
-            else:
-                self.forms[0].set_named_item(name,val)
 
     def parse__function_1(self, vlst):
         self.forms[0].deeplist = vlst
@@ -312,7 +243,8 @@ class T: #(fctutils.T):
                         formulafile = params_dict.get("formulafile")
                         fname = params_dict.get("function")
                         f = self.compiler.get_parsetree(formulafile, fname)
-                        self.set_formula_text(f.text, 0, 0)
+                        #self.set_formula_text(f.text, 0, 0)
+                        self.set_formula_text(f, 0, 0)
                     continue
                 assert False
 
@@ -396,8 +328,6 @@ class T: #(fctutils.T):
         return self.default_gradient
 
     def bookaa_GetParam(self, theform, no):
-        #lst = self.bookaa_GetParam0(theform)
-        pass
         dict_ = {}
         for name, var in theform.formula.paramlist.items():
             dict_[name] = (var.datatype, var.type, var.value, var.enum)
@@ -447,58 +377,6 @@ class T: #(fctutils.T):
 
         return lst2
 
-
-    def bookaa_GetParam0(self, theform):
-        params = theform.params
-        paramtypes = theform.paramtypes
-        var_params = theform.formula.symbols.var_params
-        assert len(params) == len(paramtypes)
-        n1 = len(var_params)
-        n2 = len(params)
-        n0 = 0
-        for i in range(n1):
-            var_ = var_params[i]
-            if var_.type == 3: # complex
-                n0 += 1
-            if var_.type == 4: # color
-                n0 += 3
-        assert n1 + n0 == n2
-        lst = []
-        n0 = 0
-        for i in range(n1):
-            var_ = var_params[i]
-            name = var_.cname
-            if theform.formula.symbols.prefix == 'f':
-                if name.startswith('t__a_f'):
-                    name = name[6:]
-            elif theform.formula.symbols.prefix == 'cf0':
-                if name.startswith('t__a_cf0'):
-                    name = name[8:]
-            elif theform.formula.symbols.prefix == 'cf1':
-                if name.startswith('t__a_cf1'):
-                    name = name[8:]
-
-            if name.startswith('t__a_'):
-                name = name[5:]
-
-            try:
-                enum = var_.enum.value
-            except:
-                enum = None
-            if var_.type == 3: # complex
-                value = (params[i+n0], params[i+n0+1])
-                n0 += 1
-                lst.append((name,3,value,enum))
-            elif var_.type == 4: # color
-                value = (params[i+n0], params[i+n0+1], params[i+n0+2], params[i+n0+3])
-                n0 += 3
-                lst.append((name,4,value,enum))
-            else:
-                value = params[i+n0]
-                typ = paramtypes[i+n0]
-                lst.append((name,typ,value,enum))
-        return lst # params,paramtypes,var_params
-
     def set_param(self,n,val):
         val = float(val)
         if self.params[n] != val:
@@ -508,13 +386,6 @@ class T: #(fctutils.T):
         # can't set function directly because formula hasn't been parsed yet
         self.bailfunc = int(val)
 
-    def parse__colors_(self,val,f):
-        cf = colorizer.T(self)
-        cf.load(f)
-        # apply_colorizer :
-        if cf.read_gradient:
-            self.set_gradient(cf.gradient)
-
     def parse__colors_1(self,vlst):
         self.color_deeplist = vlst
         cf = colorizer.T(self)
@@ -523,25 +394,19 @@ class T: #(fctutils.T):
             #self.set_gradient(cf.gradient)
             self.forms[0].paramlist2['_gradient'] = cf.gradient
 
-    def parse__colorizer_(self,val,f):
-        which_cf = int(val)
-        cf = colorizer.T(self)
-        cf.load(f)
-        if which_cf == 0:
-            self.apply_colorizer(cf)
-        # ignore other colorlists for now
-
     def parse_inner(self,val,f):
         name = self.colorfunc_names[int(val)]
         # self.set_formula("gf4d.cfrm", name, 2)
         f = self.compiler.get_parsetree("gf4d.cfrm", name)
-        self.set_formula_text(f.text, 1, 2)
+        #self.set_formula_text(f.text, 1, 2)
+        self.set_formula_text(f, 1, 2)
 
     def parse_outer(self,val,f):
         name = self.colorfunc_names[int(val)]
         #self.set_formula("gf4d.cfrm", name, 1)
         f = self.compiler.get_parsetree("gf4d.cfrm", name)
-        self.set_formula_text(f.text, 1, 1)
+        #self.set_formula_text(f.text, 1, 1)
+        self.set_formula_text(f, 1, 1)
 
     def parse_x(self,val,f):
         self.set_param(self.XCENTER,val)

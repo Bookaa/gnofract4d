@@ -199,8 +199,13 @@ class Compiler:
 
         formulas = {}
         for v in dict_['children']:
-            the = absyn.Node1(v)
-            formulas[the.leaf] = the
+            if False:
+                the = absyn.Node1(v)
+                formulas[the.leaf] = the
+            else:
+                leaf = v['leaf']
+                text = v['text']
+                formulas[leaf] = text
             # assert isinstance(v['deepmod'], (Ast_GFF.GFF_formu_deep,))
         return formulas
 
