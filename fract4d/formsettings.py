@@ -12,9 +12,7 @@ class T:
 
     def set_formula_text_1(self, buftext, formtype, gradient):
         (func, form, mod) = self.compiler.add_inline_formula(buftext)
-        #self.set_formula(file,func,gradient)
-        formula = self.compiler.get_formula_3(form, mod, formtype, self.prefix)
-        # formula = self.compiler.get_formula(file,func,self.prefix)
+        formula = self.compiler.get_formula_3(form, mod, formtype)
 
         if formula == None:
             raise ValueError("no such formula: %s:%s" % (file, func))

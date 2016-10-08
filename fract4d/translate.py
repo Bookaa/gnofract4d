@@ -81,22 +81,26 @@ def NewParamVar(v):
 
 class TBase:
     def __init__(self):
-        self.sections = {}
-        self.defaults = {}
-        self.paramlist = {} # bookaa: { name : ParamVar }
+        self.paramlist1 = {} # bookaa: { name : ParamVar }
 
 
     def default(self,node):
         for v in node.children:
             thev = NewParamVar(v)
             if thev:
-                self.paramlist[thev.name] = thev
+                self.paramlist1[thev.name] = thev
 
+    def GetDefaultValues(self):
+        dict_ = {}
+        for name, var in self.paramlist1.items():
+            dict_[name] = (var.datatype, var.type, var.value, var.enum)
+        return dict_
 
 class T(TBase):
-    def __init__(self,f):
+    def __init__(self, f, mod):
         TBase.__init__(self)
         self.basef = f
+        self.mod = mod
 
         if len(f.children) == 0:
             return
@@ -107,9 +111,10 @@ class T(TBase):
 
 class Transform(TBase):
     "For transforms (.uxf files)"
-    def __init__(self,f):
+    def __init__(self, f, mod):
         TBase.__init__(self)
         self.basef = f
+        self.mod = mod
 
         if len(f.children) == 0:
             return
@@ -126,9 +131,10 @@ class Transform(TBase):
 
 class GradientFunc(TBase):
     "For translating UltraFractal .ugr files"
-    def __init__(self,f):
+    def __init__(self, f, mod):
         TBase.__init__(self)
         self.basef = f
+        self.mod = mod
 
         self.grad = []
 
@@ -160,9 +166,10 @@ class GradientFunc(TBase):
 
 class ColorFunc(TBase):
     "For translating .ucl files"
-    def __init__(self,f):
+    def __init__(self, f, mod):
         TBase.__init__(self)
         self.basef = f
+        self.mod = mod
 
         s = f.childByName("default")
         if s: self.default(s)

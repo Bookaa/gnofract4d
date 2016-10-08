@@ -328,9 +328,7 @@ class T:
         return self.default_gradient
 
     def bookaa_GetParam(self, theform, no):
-        dict_ = {}
-        for name, var in theform.formula.paramlist.items():
-            dict_[name] = (var.datatype, var.type, var.value, var.enum)
+        dict_ = theform.formula.GetDefaultValues()
 
         if no != 0:
             if '_density' not in dict_:

@@ -253,22 +253,18 @@ class Compiler:
     def guess_type_from_filename(self,filename):
         return FormulaTypes.guess_type_from_filename(filename)
 
-    def get_formula_3(self, form, mod, formtype, prefix):
+    def get_formula_3(self, form, mod, formtype):
+        if form is None:
+            return None
         if formtype == 0:
-            type = translate.T
+            return translate.T(form, mod)
         elif formtype == 1:
-            type = translate.ColorFunc
+            return translate.ColorFunc(form, mod)
         elif formtype == 2:
-            type = translate.Transform
+            return translate.Transform(form, mod)
         elif formtype == 3:
-            type = translate.GradientFunc
-
-        f = form
-
-        if f != None:
-            return type(f)
-
-        return f
+            return translate.GradientFunc(form, mod)
+        assert False
 
     def get_formula(self, filename, formname,prefix=""):
         type = self.guess_type_from_filename(filename)
