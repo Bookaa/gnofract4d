@@ -80,7 +80,7 @@ def NewParamVar(v):
     return the
 
 class TBase:
-    def __init__(self,prefix,dump=None):
+    def __init__(self):
         self.sections = {}
         self.defaults = {}
         self.paramlist = {} # bookaa: { name : ParamVar }
@@ -94,8 +94,8 @@ class TBase:
 
 
 class T(TBase):
-    def __init__(self,f,prefix="f", dump=None):
-        TBase.__init__(self,"f",dump)
+    def __init__(self,f):
+        TBase.__init__(self)
         self.basef = f
 
         if len(f.children) == 0:
@@ -107,24 +107,11 @@ class T(TBase):
 
 class Transform(TBase):
     "For transforms (.uxf files)"
-    def __init__(self,f,prefix,dump=None):
-        TBase.__init__(self,prefix,dump)
+    def __init__(self,f):
+        TBase.__init__(self)
         self.basef = f
 
-        try:
-            self.main(f)
-            if self.dumpPreCanon:
-                self.dumpSections(f,self.sections)
-            self.canonicalize()
-        except TranslationError, e:
-            self.errors.append(e.msg)
-
-    def main(self, f):
         if len(f.children) == 0:
-            return
-
-        if f.children[0].type == "error":
-            self.error(f.children[0].leaf)
             return
 
         s = f.childByName("default")
@@ -139,14 +126,12 @@ class Transform(TBase):
 
 class GradientFunc(TBase):
     "For translating UltraFractal .ugr files"
-    def __init__(self,f,prefix,dump=None):
-        TBase.__init__(self,prefix,dump)
+    def __init__(self,f):
+        TBase.__init__(self)
         self.basef = f
 
         self.grad = []
-        self.main(f)
 
-    def main(self, f):
         if len(f.children) == 0:
             return
 
@@ -175,23 +160,9 @@ class GradientFunc(TBase):
 
 class ColorFunc(TBase):
     "For translating .ucl files"
-    def __init__(self,f,name,dump=None):
-        TBase.__init__(self,name,dump)
+    def __init__(self,f):
+        TBase.__init__(self)
         self.basef = f
-
-        if not f.children:
-            text = f.text
-            from LiuD import ParseFormFile
-            dict3_ = ParseFormFile.ParseFormuFile_deep(text)
-            lst = dict3_['children'][0]['children']
-            for dict1 in lst:
-                if True:
-                    m = Node1(dict1)
-                else:
-                    m = Node(0,0)
-                    m.SerialIn(dict1)
-                f.children.append(m)
-            f.deepmod = dict3_['children'][0]['deepmod']
 
         s = f.childByName("default")
         if s: self.default(s)

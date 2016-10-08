@@ -455,7 +455,8 @@ def ParseFormuFile_deep(s_formufile):
         return
     the = mywalk()
     dict_ = mod.walkabout(the)
-    return new_dict(leaf='',type='formlist',children=[dict_])
+    return dict_, mod
+
 
 if __name__ == '__main__':
     func1(True)

@@ -38,6 +38,7 @@ import translate
 import absyn
 # import cache
 import gradient
+from LiuD import ParseFormFile
 
 class FormulaTypes:
     FRACTAL = 0
@@ -165,10 +166,10 @@ class Compiler:
     def find_transform_files(self):
         return self.find_files_of_type(FormulaTypes.TRANSFORM)
 
-    def add_inline_formula(self,formbody, formtype):
+    def add_inline_formula(self,formbody):
         # formbody contains a string containing the contents of a formula
-        form = self.parse_file_detail(formbody)
-        return form.leaf, form
+        v, mod = ParseFormFile.ParseFormuFile_deep(formbody)
+        return v['leaf'], absyn.Node1(v), mod
 
     def find_file(self,filename,type):
         if os.path.exists(filename):
@@ -185,13 +186,6 @@ class Compiler:
                 return f
 
         return None
-
-    def parse_file_detail(self, s):
-        dict_ = ParseFormulaFileRemote_detail(s)
-        chil = dict_['children']
-        assert len(chil) == 1
-        v = chil[0]
-        return absyn.Node1(v)
 
     def parse_file(self, s):
         # print 'input', type(s), len(s)
@@ -259,7 +253,7 @@ class Compiler:
     def guess_type_from_filename(self,filename):
         return FormulaTypes.guess_type_from_filename(filename)
 
-    def get_formula_3(self, form, formtype, prefix):
+    def get_formula_3(self, form, mod, formtype, prefix):
         if formtype == 0:
             type = translate.T
         elif formtype == 1:
@@ -272,7 +266,7 @@ class Compiler:
         f = form
 
         if f != None:
-            return type(f, prefix)
+            return type(f)
 
         return f
 
@@ -320,8 +314,4 @@ class Compiler:
         return (file,formula)
 
 
-from LiuD import ParseFormFile
 
-def ParseFormulaFileRemote_detail(s):
-    dict3_ = ParseFormFile.ParseFormuFile_deep(s)
-    return dict3_
