@@ -182,7 +182,7 @@ class ColorFunc(TBase):
         if not f.children:
             text = f.text
             from LiuD import ParseFormFile
-            dict3_ = ParseFormFile.ParseFormuFile(text, True)
+            dict3_ = ParseFormFile.ParseFormuFile_deep(text)
             lst = dict3_['children'][0]['children']
             for dict1 in lst:
                 if True:

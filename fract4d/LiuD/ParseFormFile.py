@@ -414,8 +414,20 @@ endparam
     dict_ = mod.walkabout(the)
     print dict_
 
-def ParseFormuFile(s_formufile, deepin):
-    if deepin:
+def ParseFormuFile_nodeep(s_formufile):
+    mod = Ast_GFF.Test_Parse_GFF(s_formufile)
+    if not mod:
+        return
+    formulas = {}
+    for v in mod.vlst:
+        if isinstance(v, Ast_GFF.GFF_formu):
+            leaf = v.n.strip()
+            text = PrtOneNode(v)
+            formulas[leaf] = text
+    return formulas
+
+def ParseFormuFile_deep(s_formufile):
+    if True:
         parser = Ast_GFF.Parser(s_formufile)
         mod = parser.handle_formu_deep()
         if mod.n.strip() == 'CGNewton3':
@@ -439,14 +451,11 @@ def ParseFormuFile(s_formufile, deepin):
             mod = parser.handle_formu_deep()
     else:
         mod = Ast_GFF.Test_Parse_GFF(s_formufile)
-    if not mod :
+    if not mod:
         return
     the = mywalk()
     dict_ = mod.walkabout(the)
-    if deepin:
-        return new_dict(leaf='',type='formlist',children=[dict_])
-
-    return dict_
+    return new_dict(leaf='',type='formlist',children=[dict_])
 
 if __name__ == '__main__':
     func1(True)

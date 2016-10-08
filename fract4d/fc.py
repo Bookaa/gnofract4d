@@ -195,19 +195,7 @@ class Compiler:
 
     def parse_file(self, s):
         # print 'input', type(s), len(s)
-        dict_ = ParseFormulaFileRemote(s)
-
-        formulas = {}
-        for v in dict_['children']:
-            if False:
-                the = absyn.Node1(v)
-                formulas[the.leaf] = the
-            else:
-                leaf = v['leaf']
-                text = v['text']
-                formulas[leaf] = text
-            # assert isinstance(v['deepmod'], (Ast_GFF.GFF_formu_deep,))
-        return formulas
+        return ParseFormFile.ParseFormuFile_nodeep(s)
 
     def load_formula_file(self, filename):
         try:
@@ -333,10 +321,7 @@ class Compiler:
 
 
 from LiuD import ParseFormFile
-def ParseFormulaFileRemote(s):
-    dict2_ = ParseFormFile.ParseFormuFile(s, False)
-    return dict2_
 
 def ParseFormulaFileRemote_detail(s):
-    dict3_ = ParseFormFile.ParseFormuFile(s, True)
+    dict3_ = ParseFormFile.ParseFormuFile_deep(s)
     return dict3_
