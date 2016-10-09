@@ -143,8 +143,9 @@ class Compiler:
 
     def add_inline_formula(self,formbody):
         # formbody contains a string containing the contents of a formula
-        v, mod = ParseFormFile.ParseFormuFile_deep(formbody)
-        return v['leaf'], mod
+        mod = ParseFormFile.ParseFormuFile_deep(formbody)
+        name = mod.n.strip()
+        return name, mod
 
     def find_file(self,filename,type):
         if os.path.exists(filename):
