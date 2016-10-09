@@ -99,12 +99,6 @@ class Compiler:
                     files[file] = 1
         return files.keys()
 
-    def add_inline_formula(self,formbody):
-        # formbody contains a string containing the contents of a formula
-        mod = ParseFormFile.ParseFormuFile_deep(formbody)
-        name = mod.n.strip()
-        return name, mod
-
     def find_file(self,filename,type):
         if os.path.exists(filename):
             dir = os.path.dirname(filename)
@@ -175,16 +169,5 @@ class Compiler:
         ff = self.get_file(filename)
         if ff == None : return None
         return ff.get_formula(formname)
-
-    def get_formula_3(self, mod):
-        return TT(mod)
-
-
-class TT:
-    def __init__(self, mod):
-        self.mod = mod
-    def GetDefaultValues(self):
-        import fractal
-        return fractal.GetDefaultVals(self.mod)
 
 

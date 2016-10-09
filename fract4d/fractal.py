@@ -37,13 +37,12 @@ class T:
         self.bailfunc = 0
         # formula support
         self.forms = [
-            formsettings.T(compiler), # formula
-            formsettings.T(compiler,"cf0"), # outer
-            formsettings.T(compiler,"cf1") # inner
+            formsettings.T(), # formula
+            formsettings.T(), #"cf0"), # outer
+            formsettings.T()  #"cf1") # inner
             ]
 
         self.transforms = []
-        self.next_transform_id = 0
         self.compiler = compiler
 
         # default is just white outside
@@ -238,45 +237,8 @@ class T:
             assert False
 
 
-    def parse__transform_(self,val,f):
-        which_transform = int(val)
-        params = fctutils.ParamBag()
-        params.load(f)
-        self.set_transform_with_text(params.dict['formula'], which_transform)
-        self.transforms[which_transform].load_param_bag(params)
-
-    def set_formula(self,formulafile,func,index=0):
-        self.forms[index].set_formula(formulafile,func,self.get_gradient())
-
-        if index == 0:
-            self.set_bailfunc()
-
     def set_formula_text(self, buftext, formindex):
-        assert self.compiler is self.forms[formindex].compiler
         self.forms[formindex].set_formula_text_1(buftext)
-
-        if formindex == 0:
-            self.set_bailfunc()
-
-    def set_bailfunc(self):
-        bailfuncs = [
-            "cmag", "manhattanish","manhattanish2",
-            "max2","min2",
-            "real2","imag2",
-            None # bailout
-            ]
-        funcname = bailfuncs[self.bailfunc]
-        if funcname == None:
-            # FIXME deal with diff
-            return
-
-        #func = self.forms[0].formula.symbols.get("@bailfunc")
-        #if func != None:
-        #    self.set_func(func[0],funcname,self.forms[0].formula)
-
-    def set_func(self,func,fname,formula):
-        if func.cname != fname:
-            formula.symbols.set_std_func(func,fname)
 
     def draw(self, image):
         form0_mod = self.forms[0].formula.mod
@@ -295,7 +257,6 @@ class T:
         cmap = myfract4dc.cmap_from_pyobject(segs)
         myfract4dc.draw(image, self.params, cmap,
                         self.maxiter, self.periodicity, self.period_tolerance)
-        return
 
     def bookaa_GetGradient(self, theform):
         s = theform.paramlist2.get('_gradient')

@@ -102,4 +102,3 @@ class T: #(fctutils.T):
         'Gimp gradient format: gf4d >= 2.7'
         self.gradient.load(f)
         self.read_gradient = True
-        

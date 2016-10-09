@@ -1,5 +1,5 @@
 import Ast_GFF
-from Ast_GFF import GFF_sample_visitor_01
+# from Ast_GFF import GFF_sample_visitor_01
 
 def getdt(s):
     if s == 'bool':
