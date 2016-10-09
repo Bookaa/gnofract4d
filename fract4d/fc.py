@@ -35,9 +35,9 @@ import copy
 #import fractconfig
 #import translate
 # import fracttypes
-import absyn
+#import absyn
 # import cache
-import gradient
+#import gradient
 from LiuD import ParseFormFile
 
 class FormulaTypes:
@@ -64,17 +64,6 @@ class FormulaTypes:
     @staticmethod
     def extension_from_type(t):
         return FormulaTypes.extensions[t]
-
-    @staticmethod
-    def guess_type_from_filename(filename):
-        if FormulaTypes.matches[FormulaTypes.FRACTAL].search(filename):
-            return translate.T
-        elif FormulaTypes.matches[FormulaTypes.COLORFUNC].search(filename):
-            return translate.ColorFunc
-        elif FormulaTypes.matches[FormulaTypes.TRANSFORM].search(filename):
-            return translate.Transform
-        elif FormulaTypes.matches[FormulaTypes.GRADIENT].search(filename):
-            return translate.GradientFunc
 
     @staticmethod
     def guess_formula_type_from_filename(filename):
@@ -152,24 +141,10 @@ class Compiler:
                     files[file] = 1
         return files.keys()
 
-    def find_files_of_type(self,type):
-        matcher = FormulaTypes.matches[type]
-        return [file for file in self.find_files(type)
-                if matcher.search(file)]
-
-    def find_formula_files(self):
-        return self.find_files_of_type(FormulaTypes.FRACTAL)
-
-    def find_colorfunc_files(self):
-        return self.find_files_of_type(FormulaTypes.COLORFUNC)
-
-    def find_transform_files(self):
-        return self.find_files_of_type(FormulaTypes.TRANSFORM)
-
     def add_inline_formula(self,formbody):
         # formbody contains a string containing the contents of a formula
         v, mod = ParseFormFile.ParseFormuFile_deep(formbody)
-        return v['leaf'], absyn.Node1(v), mod
+        return v['leaf'], mod
 
     def find_file(self,filename,type):
         if os.path.exists(filename):
@@ -237,78 +212,14 @@ class Compiler:
             ff = self.files.get(basefile)
         return ff
 
-    def get_formula_text(self,filename,formname):
-        ff = self.get_file(filename)
-        form = ff.get_formula(formname)
-        start_line = form.pos-1
-        last_line = form.last_line
-        lines = ff.contents.splitlines()
-        return "\n".join(lines[start_line:last_line])
-
     def get_parsetree(self,filename,formname):
         ff = self.get_file(filename)
         if ff == None : return None
         return ff.get_formula(formname)
 
-    def guess_type_from_filename(self,filename):
-        return FormulaTypes.guess_type_from_filename(filename)
-
-    def get_formula_3(self, form, mod, formtype):
+    def get_formula_3(self, mod):
         return TT(mod)
-        if form is None:
-            return None
-        if formtype == 0:
-            return translate.T(form, mod)
-        elif formtype == 1:
-            return translate.ColorFunc(form, mod)
-        elif formtype == 2:
-            return translate.Transform(form, mod)
-        elif formtype == 3:
-            return translate.GradientFunc(form, mod)
-        assert False
 
-    def get_formula(self, filename, formname,prefix=""):
-        type = self.guess_type_from_filename(filename)
-
-        f = self.get_parsetree(filename,formname)
-
-        if f != None:
-            f = type(f,prefix)
-        return f
-
-    def get_formula_with_text(self, type, formulatext, prefix=""):
-
-        f = self.get_parsetree_with_text(formulatext)
-
-        if f != None:
-            f2 = type(f,prefix)
-            return f2, f.leaf
-        return None, ''
-
-    def get_gradient(self, filename, formname):
-        g = gradient.Gradient()
-        if formname == None:
-            g.load(open(self.find_file(filename, 3))) # FIXME
-        else:
-            compiled_gradient = self.get_formula(filename,formname)
-            g.load_ugr(compiled_gradient)
-
-        return g
-
-    def get_random_gradient(self):
-        return self.get_random_formula(3) # FIXME
-
-    def get_random_formula(self,type):
-        files = self.find_files_of_type(type)
-        file = random.choice(files)
-
-        if gradient.FileType.guess(file) == gradient.FileType.UGR:
-            ff = self.get_file(file)
-            formulas = ff.formulas.keys()
-            formula = random.choice(formulas)
-        else:
-            formula = None
-        return (file,formula)
 
 class TT:
     def __init__(self, mod):
