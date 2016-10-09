@@ -1,43 +1,8 @@
 #!/usr/bin/env python
 
-# A compiler from UltraFractal or Fractint formula files to C code
-
-# The UltraFractal manual is the best current description of the file
-# format. You can download it from http://www.ultrafractal.com/uf3-manual.zip
-
-# The implementation is based on the outline in "Modern Compiler
-# Implementation in ML: basic techniques" (Appel 1997, Cambridge)
-
-# Overall structure:
-# fractlexer.py and fractparser.py are the lexer and parser, respectively.
-# They use the PLY package to do lexing and SLR parsing, and produce as
-# output an abstract syntax tree (defined in the Absyn module).
-
-# The Translate module type-checks the code, maintains the symbol
-# table (symbol.py) and converts it into an intermediate form (ir.py)
-
-# Canon performs several simplifying passes on the IR to make it easier
-# to deal with, then codegen converts it into a linear sequence of
-# simple C instructions
-
-# Finally we invoke the C compiler to convert to a native code shared library
-
-# import getopt
-import sys
-# import commands
 import os.path
 import stat
-import random
-import hashlib
 import re
-import copy
-
-#import fractconfig
-#import translate
-# import fracttypes
-#import absyn
-# import cache
-#import gradient
 from LiuD import ParseFormFile
 
 class FormulaTypes:
@@ -84,13 +49,6 @@ class FormulaTypes:
         if filename.endswith(".cs"):
             return FormulaTypes.GRAD_CS
         raise ValueError("Unknown gradient type for '%s'" % filename)
-
-    @staticmethod
-    def isFormula(filename):
-        for matcher in FormulaTypes.matches:
-            if matcher.search(filename):
-                return True
-        return False
 
 class FormulaFile:
     def __init__(self, formulas, contents,mtime,filename):

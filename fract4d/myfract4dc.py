@@ -58,17 +58,6 @@ class Image(object):
             return 0
         return self.lastIter + 10
 
-        '''
-        if(!ff->periodicity)
-            return ff->maxiter;
-        if(lastIter == -1)
-        {
-        // we were captured last time so probably will be again
-        return 0;
-        }
-        // we escaped, so don't try so hard this time
-        return lastIter + 10;
-        '''
     def periodSet(self, iter_):
         self.lastIter = iter_
 
@@ -153,11 +142,7 @@ class Image(object):
         n = self.index_of_subpixel(x,y,subpixel)
         return self.index_buf[n]
 
-tem33 = Image()
-
-typeof_Image = typeof(tem33)
-
-del tem33
+typeof_Image = typeof(Image())
 
 ii_spec = [
     ('im', typeof_Image),
@@ -184,7 +169,6 @@ class im_info(object):
         self.iter = self.im.getIter(x,y)
         self.fate = self.im.getFate(x,y,0)
         self.pixel = self.im.get(x,y)
-        pass
     def writeback(self, x, y):
         self.im.setIter(x,y,self.iter)
         self.im.setFate(x,y,0,self.fate)
@@ -202,17 +186,13 @@ class im_info(object):
                 self.im.setIndex(j,i,0,self.index)
     def set_pixel(self, pixel):
         self.pixel = pixel
-tem32 = Image()
-tem33 = im_info(tem32)
-typ_im_info = typeof(tem33)
-del tem33
-del tem32
+
+typ_im_info = typeof(im_info(Image()))
 
 def cmap_from_pyobject(segs):
     n = len(segs)
-    cmap_items = [] # ColorMap(n)
+    cmap_items = []
     for i in range(n):
-        # the = gradient_item_t()
         left = segs[i].left
         right = segs[i].right
         mid = segs[i].mid
@@ -225,28 +205,9 @@ def cmap_from_pyobject(segs):
         leftc = (f1,f2,f3,f4)
         (f1,f2,f3,f4) = right_col
         rightc = (f1,f2,f3,f4)
-        #n = len(left_col)
-        #leftc = np.zeros(n,dtype=np.float64)
-        #for j in range(n):
-        #    leftc[j] = left_col[j]
-
-        #n = len(right_col)
-        #rightc = np.zeros(n,dtype=np.float64)
-        #for j in range(n):
-        #    rightc[j] = right_col[j]
 
         the = (left, right, mid, bmode, cmode, leftc, rightc)
-        ''' gradient_item_t_spec = [
-            ('left', float64),
-            ('right', float64),
-            ('bmode', int64),
-            ('cmode', int64),
-            ('mid', float64),
-            ('left_color', float64[:]),
-            ('right_color', float64[:]),
-        ]'''
 
-        # the.set(left, right, mid, left_col, right_col, bmode, cmode)
         cmap_items.append(the)
     n = len(cmap_items)
     cmap_arr = np.zeros(n, dtype=dtype_cmap)
@@ -288,7 +249,6 @@ def image_create(xsize, ysize, txsize, tysize):
     img = Image()
     img.set_resolution(xsize, ysize, txsize, tysize)
     return img
-    #_img = fract4dc.image_create(xsize, ysize, txsize, tysize)
 
 def image_dims(_img):
     xsize = _img.Xres()
@@ -588,7 +548,6 @@ def CompileLLVM(form0_mod, form1_mod, form2_mod, param0, param1, param2):
 
 @myjit #(types.Tuple((int8[:], int64, float64, int64))(complex128, complex128, int64, typ_cmap))
 def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap, checkPeriod, period_tolerance):
-    #print 'xxx',pixel, zwpixel, maxiter, cmap
     fUseColors = 0
     colors = [0.0, 0.0, 0.0, 0.0]
 
@@ -628,12 +587,9 @@ def Mandelbrot_calc_UseLLVM(pixel, zwpixel, maxiter, cmap, checkPeriod, period_t
         iter_ = -1
     if fUseColors:
         fate |= FATE_DIRECT
-        #pixel_ = lookup_with_dca(solid, colors)
         pixel_ = lookup_with_dca_nt(solid, (colors[0],colors[1],colors[2],colors[3]))
     else:
         pixel_ = lookup_with_transfer(cmap_arr, dist, solid)
-    #print 'fff',pixel_, fate, dist, iter_
-    # fff [ 70  72 230 255] 0 0.00330332703674 0
 
     return (pixel_, fate, dist, iter_)
 
@@ -737,28 +693,6 @@ def box_row(stfw, w, y, rsize):
         x += rsize - 1
     for y2 in range(y, y+rsize):
         row(stfw,x,y2,w-x)
-
-@myjit(int64(typ_pfo_p))
-def test_param1(self_pfo_p):
-    return 0
-
-@myjit(int64(typ_cmap))
-def test_param2(self_cmap):
-    return 0
-
-#@myjit(int64(typeof_Image))
-#def test_param3(im):
-#    return 0
-
-@myjit(int64(int64))
-def test_param4(fnno):
-    return 0
-
-
-@myjit(none(typ_ff))
-def test_param5(ff):
-    pass
-
 
 @myjit #(none(typ_stfw))
 def draw_8(stfw):
@@ -899,34 +833,13 @@ def GetPos_delta(im, params):
 
     return self_deltax, self_deltay, topleft
 
-def draw(image, outputfile, formuName, initparams, params, cmap,
-         maxiter, periodicity, period_tolerance):
+def draw(image, params, cmap, maxiter, periodicity, period_tolerance):
 
     pfcls = (params, cmap, image._img,
              maxiter, periodicity, period_tolerance)
 
     for (xoff,yoff,xres,yres) in image.get_tile_list():
         calc_7(pfcls, xoff, yoff, xres, yres)
-
-
-Cmap_spec = [
-    ('m_1', typ_cmap),
-]
-
-@myjitclass(Cmap_spec)
-class ClassCmap(object):
-    def __init__(self, items):
-        self.m_1 = items
-
-typ36 = types.Tuple((float64, float64, float64, int64, int64,
-                     types.Tuple((float64, float64, float64, float64)),
-                     types.Tuple((float64, float64, float64, float64))
-                     ))
-tem32 = [(0.0,0.0,0.0,0,0,(0.0,0.0,0.0,0.0),(0.0,0.0,0.0,0.0))]
-tem33 = ClassCmap(tem32)
-typ_ccmap = typeof(tem33)
-del tem33
-del tem32
 
 @numba.cfunc(types.Tuple((byte, byte, byte, byte))(float64, types.CPointer(typ36), int64))
 def lookup_cfunc(input_index, ptr_cmap, n):

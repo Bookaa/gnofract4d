@@ -1,28 +1,15 @@
 #!/usr/bin/env python
 
-import string
 import StringIO
-import re
 import os
 import sys
-import struct
-import math
-import copy
-import random
-from time import time as now
-
 import myfract4dc
-
-# import fracttypes
 import gradient
 import image
-#import fctutils
 import colorizer
 import formsettings
 import fc
 
-# the version of the earliest gf4d release which can parse all the files
-# this version can output
 THIS_FORMAT_VERSION="3.10"
 
 class T:
@@ -124,7 +111,7 @@ class T:
                 v = v.v
                 assert v.vq is None
                 s = v.n + '{\n' + '\n'.join([v1.n for v1 in v.vlst]) + '\n}'
-                self.set_formula_text(s, 1, 2)
+                self.set_formula_text(s, 2)
                 continue
             if isinstance(v, Ast_GFF.GFF_NameEquValue2):
                 assert isinstance(v.v1, Ast_GFF.GFF_Name2)
@@ -150,7 +137,7 @@ class T:
                         fname = params_dict.get("function")
                         f = self.compiler.get_parsetree(formulafile, fname)
                         #self.set_formula_text(f.text, 1, 2)
-                        self.set_formula_text(f, 1, 2)
+                        self.set_formula_text(f, 2)
                     continue
                 assert False
 
@@ -166,7 +153,7 @@ class T:
                 v = v.v
                 assert v.vq is None
                 s = v.n + '{\n' + '\n'.join([v1.n for v1 in v.vlst]) + '\n}'
-                self.set_formula_text(s, 1, 1)
+                self.set_formula_text(s,  1)
                 continue
             if isinstance(v, Ast_GFF.GFF_NameEquValue2):
                 assert isinstance(v.v1, Ast_GFF.GFF_Name2)
@@ -197,7 +184,7 @@ class T:
                         fname = params_dict.get("function")
                         f = self.compiler.get_parsetree(formulafile, fname)
                         #self.set_formula_text(f.text, 1, 1)
-                        self.set_formula_text(f, 1, 1)
+                        self.set_formula_text(f, 1)
                     continue
                 assert False
 
@@ -212,7 +199,7 @@ class T:
                 v = v.v
                 assert v.vq is None
                 s = v.n + '{\n' + '\n'.join([v1.n for v1 in v.vlst]) + '\n}'
-                self.set_formula_text(s, 0, 0)
+                self.set_formula_text(s, 0)
                 continue
             if isinstance(v, Ast_GFF.GFF_NameEquValue):
                 assert isinstance(v.v1, Ast_GFF.GFF_Name0)
@@ -244,7 +231,7 @@ class T:
                         fname = params_dict.get("function")
                         f = self.compiler.get_parsetree(formulafile, fname)
                         #self.set_formula_text(f.text, 0, 0)
-                        self.set_formula_text(f, 0, 0)
+                        self.set_formula_text(f, 0)
                     continue
                 assert False
 
@@ -264,9 +251,9 @@ class T:
         if index == 0:
             self.set_bailfunc()
 
-    def set_formula_text(self, buftext, formtype, formindex):
+    def set_formula_text(self, buftext, formindex):
         assert self.compiler is self.forms[formindex].compiler
-        self.forms[formindex].set_formula_text_1(buftext, formtype, None) #self.get_gradient())
+        self.forms[formindex].set_formula_text_1(buftext)
 
         if formindex == 0:
             self.set_bailfunc()
@@ -291,32 +278,22 @@ class T:
         if func.cname != fname:
             formula.symbols.set_std_func(func,fname)
 
-    def compile(self):
-        assert False
+    def draw(self, image):
+        form0_mod = self.forms[0].formula.mod
+        form1_mod = self.forms[1].formula.mod
+        form2_mod = self.forms[2].formula.mod
 
-    def draw(self, image, outputfile):
+        param0 = self.bookaa_GetParam(self.forms[0], 0)
+        param1 = self.bookaa_GetParam(self.forms[1], 1)
+        param2 = self.bookaa_GetParam(self.forms[2], 2)
 
-        if True:
-            formuName = ''
-            initparams = None
+        myfract4dc.CompileLLVM(form0_mod, form1_mod, form2_mod, param0, param1, param2)
 
-            form0_mod = self.forms[0].formula.mod
-            form1_mod = self.forms[1].formula.mod
-            form2_mod = self.forms[2].formula.mod
-            #form0_mod = self.forms[0].formula.basef.deepmod
-            #form1_mod = self.forms[1].formula.basef.deepmod
-            #form2_mod = self.forms[2].formula.basef.deepmod
+        gradient1 = self.bookaa_GetGradient(self.forms[0])
+        segs = gradient1.segments
 
-            param0 = self.bookaa_GetParam(self.forms[0], 0)
-            param1 = self.bookaa_GetParam(self.forms[1], 1)
-            param2 = self.bookaa_GetParam(self.forms[2], 2)
-
-            myfract4dc.CompileLLVM(form0_mod, form1_mod, form2_mod, param0, param1, param2)
-
-            gradient1 = self.bookaa_GetGradient(self.forms[0])
-            segs = gradient1.segments
         cmap = myfract4dc.cmap_from_pyobject(segs)
-        myfract4dc.draw(image, outputfile, formuName, initparams, self.params, cmap,
+        myfract4dc.draw(image, self.params, cmap,
                         self.maxiter, self.periodicity, self.period_tolerance)
         return
 
@@ -392,22 +369,17 @@ class T:
         cf = colorizer.T(self)
         cf.load_1(vlst)
         if cf.read_gradient:
-            #self.set_gradient(cf.gradient)
             self.forms[0].paramlist2['_gradient'] = cf.gradient
 
     def parse_inner(self,val,f):
         name = self.colorfunc_names[int(val)]
-        # self.set_formula("gf4d.cfrm", name, 2)
         f = self.compiler.get_parsetree("gf4d.cfrm", name)
-        #self.set_formula_text(f.text, 1, 2)
-        self.set_formula_text(f, 1, 2)
+        self.set_formula_text(f, 2)
 
     def parse_outer(self,val,f):
         name = self.colorfunc_names[int(val)]
-        #self.set_formula("gf4d.cfrm", name, 1)
         f = self.compiler.get_parsetree("gf4d.cfrm", name)
-        #self.set_formula_text(f.text, 1, 1)
-        self.set_formula_text(f, 1, 1)
+        self.set_formula_text(f, 1)
 
     def parse_x(self,val,f):
         self.set_param(self.XCENTER,val)
@@ -623,6 +595,7 @@ class MyLoadFCT(Ast_GFF.GFF_sample_visitor_01):
         return node.f
     def visit_Numi(self, node):
         return str(node.i)
+
 def MyloadFctFile(file, f):
     if False:
         f.loadFctFile(file)
@@ -657,12 +630,11 @@ if __name__ == '__main__':
             f.loadFctFile(file)
         else:
             MyloadFctFile(file, f)
-        outputfile = None # f.compile()
         im = image.T(1024,768)
         #im = image.T(320,200)
         from datetime import datetime
         t1 = datetime.now()
-        f.draw(im, outputfile)
+        f.draw(im)
         t2 = datetime.now()
         delta = t2 - t1
         print 'time last :', delta.seconds, delta

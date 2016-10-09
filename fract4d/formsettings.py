@@ -10,7 +10,7 @@ class T:
         self.paramlist2 = {} # bookaa : {name : value}
 
 
-    def set_formula_text_1(self, buftext, formtype, gradient):
+    def set_formula_text_1(self, buftext):
         (func, mod) = self.compiler.add_inline_formula(buftext)
         formula = self.compiler.get_formula_3(mod)
 
