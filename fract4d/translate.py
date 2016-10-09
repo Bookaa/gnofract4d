@@ -9,6 +9,7 @@ from absyn import *
 #import ir
 
 #from fracttypes import *
+import fractal
 
 allowed_param_names = [
     "default",
@@ -94,7 +95,20 @@ class TBase:
         dict_ = {}
         for name, var in self.paramlist1.items():
             dict_[name] = (var.datatype, var.type, var.value, var.enum)
+        dict2 = fractal.GetDefaultVals(self.mod)
+        flg = dict_ == dict2
+        if not flg:
+            keys1 = dict_.keys()
+            keys2 = dict2.keys()
+            if set(keys1) != set(keys2):
+                assert False
+            for name in keys1:
+                val1 = dict_[name]
+                val2 = dict2[name]
+                if val1 != val2:
+                    assert False
         return dict_
+
 
 class T(TBase):
     def __init__(self, f, mod):

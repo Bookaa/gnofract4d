@@ -466,6 +466,115 @@ def ValueToString(v):
     return val
 
 from LiuD import Ast_GFF
+from LiuD.ParseFormFile import getdt
+def GetDefaultVals(mod):
+    dict_ = {}
+    for v in mod.vlst:
+        if isinstance(v, Ast_GFF.GFF_default_blk):
+            break
+    else:
+        return dict_
+
+    for v1 in v.vlst:
+        if isinstance(v1, Ast_GFF.GFF_dt_param):
+            dt = getdt(v1.v1.s)
+            name = v1.v2.n
+            val = None
+            enum_ = None
+            for v3 in v1.vlst:
+                if isinstance(v3, Ast_GFF.GFF_df_default):
+                    if isinstance(v3.v, Ast_GFF.GFF_Number):
+                        val = float(v3.v.f)
+                    elif isinstance(v3.v, Ast_GFF.GFF_String):
+                        val = v3.v.s[0]
+                    elif isinstance(v3.v, Ast_GFF.GFF_Numi):
+                        val = v3.v.i
+                    elif isinstance(v3.v, Ast_GFF.GFF_Name0):
+                        sval = v3.v.n
+                        if dt == 0:
+                            if sval == 'true':
+                                val = True
+                            elif sval == 'false':
+                                val = False
+                            else:
+                                assert False
+                        else:
+                            assert False
+                    elif isinstance(v3.v, Ast_GFF.GFF_Num_Complex):
+                        val = (float(v3.v.v1.f), float(v3.v.v2.f))
+                    elif isinstance(v3.v, Ast_GFF.GFF_funccall):
+                        funcname = v3.v.v.n
+                        if dt == 4 and funcname == 'rgb':
+                            lst = [float(v4.f) for v4 in v3.v.vq.vlst]
+                            val = tuple(lst + [1.0])
+                    else:
+                        assert False
+                elif isinstance(v3, Ast_GFF.GFF_df_enum):
+                    lst = [v4[0] for v4 in v3.slst]
+                    enum_ = lst
+                    if val is None:
+                        val = 0
+                elif isinstance(v3, Ast_GFF.GFF_df_hint):
+                    continue
+                else:
+                    assert False
+            if enum_ and isinstance(val, str):
+                val = enum_.index(val)
+            dict_[name] = (dt, 'param', val, enum_)
+        elif isinstance(v1, Ast_GFF.GFF_dt_func):
+            dt = getdt(v1.v.s)
+            name = v1.n
+            val = None
+            for v3 in v1.vlst:
+                if isinstance(v3, Ast_GFF.GFF_df_default):
+                    if isinstance(v3.v, Ast_GFF.GFF_Name0):
+                        val = v3.v.n
+                    elif isinstance(v3.v, Ast_GFF.GFF_funccall):
+                        val = v3.v.v.n
+                    else:
+                        assert False
+                elif isinstance(v3, Ast_GFF.GFF_df_caption):
+                    continue
+                elif isinstance(v3, Ast_GFF.GFF_df_hint):
+                    continue
+                else:
+                    assert False
+            dict_[name] = (dt, 'func', val, None)
+        elif isinstance(v1, Ast_GFF.GFF_general_param):
+            dt = None
+            name = v1.n
+            val = None
+            enum_ = None
+            for v3 in v1.vlst:
+                if isinstance(v3, Ast_GFF.GFF_df_enum):
+                    lst = [v4[0] for v4 in v3.slst]
+                    enum_ = lst
+                    if dt is None:
+                        dt = getdt('int')
+                    if val is None:
+                        val = 0
+                elif isinstance(v3, Ast_GFF.GFF_df_caption):
+                    continue
+                elif isinstance(v3, Ast_GFF.GFF_df_hint):
+                    continue
+                elif isinstance(v3, Ast_GFF.GFF_df_default):
+                    if isinstance(v3.v, Ast_GFF.GFF_Number):
+                        val = float(v3.v.f)
+                        if dt is None:
+                            dt = getdt('float')
+                    elif isinstance(v3.v, Ast_GFF.GFF_Numi):
+                        val = v3.v.i
+                        if dt is None:
+                            dt = getdt('int')
+                    else:
+                        assert False
+                else:
+                    assert False
+            dict_[name] = (dt, 'param', val, enum_)
+        else:
+            assert False
+    return dict_
+
 class MyLoadFCT(Ast_GFF.GFF_sample_visitor_01):
     def __init__(self, f):
         self.f = f
