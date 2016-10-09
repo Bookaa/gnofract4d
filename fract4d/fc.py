@@ -33,7 +33,7 @@ import re
 import copy
 
 #import fractconfig
-import translate
+#import translate
 # import fracttypes
 import absyn
 # import cache
@@ -254,6 +254,7 @@ class Compiler:
         return FormulaTypes.guess_type_from_filename(filename)
 
     def get_formula_3(self, form, mod, formtype):
+        return TT(mod)
         if form is None:
             return None
         if formtype == 0:
@@ -309,5 +310,11 @@ class Compiler:
             formula = None
         return (file,formula)
 
+class TT:
+    def __init__(self, mod):
+        self.mod = mod
+    def GetDefaultValues(self):
+        import fractal
+        return fractal.GetDefaultVals(self.mod)
 
 

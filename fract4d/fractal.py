@@ -300,9 +300,12 @@ class T:
             formuName = ''
             initparams = None
 
-            form0_mod = self.forms[0].formula.basef.deepmod
-            form1_mod = self.forms[1].formula.basef.deepmod
-            form2_mod = self.forms[2].formula.basef.deepmod
+            form0_mod = self.forms[0].formula.mod
+            form1_mod = self.forms[1].formula.mod
+            form2_mod = self.forms[2].formula.mod
+            #form0_mod = self.forms[0].formula.basef.deepmod
+            #form1_mod = self.forms[1].formula.basef.deepmod
+            #form2_mod = self.forms[2].formula.basef.deepmod
 
             param0 = self.bookaa_GetParam(self.forms[0], 0)
             param1 = self.bookaa_GetParam(self.forms[1], 1)
